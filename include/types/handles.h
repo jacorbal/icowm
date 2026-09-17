@@ -64,14 +64,14 @@ typedef struct client_s client_td;
 
 #ifndef DESKTOP_TD_DECLARED
 #define DESKTOP_TD_DECLARED
-/** One desktop of a surface; defined in @c desktop.h */
+/** One desktop of a stage; defined in @c desktop.h */
 typedef struct desktop_s desktop_td;
 #endif
 
-#ifndef SURFACE_TD_DECLARED
-#define SURFACE_TD_DECLARED
-/** One screen and everything on it; defined in @c surface.h */
-typedef struct surface_s surface_td;
+#ifndef STAGE_TD_DECLARED
+#define STAGE_TD_DECLARED
+/** One screen and everything on it; defined in @c stage.h */
+typedef struct stage_s stage_td;
 #endif
 
 #ifndef WM_TD_DECLARED

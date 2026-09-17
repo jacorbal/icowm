@@ -42,7 +42,7 @@
 /* Project includes */
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <input/modifier.h>
@@ -91,7 +91,7 @@ static xcb_button_index_t s_parse_button_token(const char *tok)
  * Splits on '+', treating all tokens except the last as modifiers and
  * the last token as a button name.
  *
- * @param config     Configuration (for modifier alias resolution)
+ * @param config  Configuration (for modifier alias resolution)
  * @param binding Binding string from configuration
  * @param modmask Receives the combined modifier mask
  * @param button  Receives the parsed button index
@@ -146,7 +146,7 @@ static bool s_parse_mouse_binding(const config_td *config,
 
 
 /* Parse mouse bindings from configuration and grab buttons */
-void mouse_load(list_td *surfaces, const config_td *config)
+void mouse_load(list_td *stages, const config_td *config)
 {
     static const uint16_t lockmods[] = {
         0,
@@ -191,17 +191,17 @@ void mouse_load(list_td *surfaces, const config_td *config)
      * 'keyboard_load' does: otherwise a binding's old button/modifier
      * combination stays grabbed and active alongside its new one after
      * a configuration reload actually changes it. */
-    if (surfaces != NULL) {
-        for (list_item_td *node = list_head(surfaces);
+    if (stages != NULL) {
+        for (list_item_td *node = list_head(stages);
                 node != NULL; node = list_next(node)) {
-            surface_td *surface = (surface_td *) list_data(node);
+            stage_td *stage = (stage_td *) list_data(node);
 
-            if (surface == NULL || surface->screen == NULL) {
+            if (stage == NULL || stage->screen == NULL) {
                 continue;
             }
 
             xcb_ungrab_button(xcb_connection_get(),
-                    XCB_BUTTON_INDEX_ANY, surface->screen->root,
+                    XCB_BUTTON_INDEX_ANY, stage->screen->root,
                     XCB_MOD_MASK_ANY);
         }
     }
@@ -224,7 +224,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
             s_mousebindings_count++;
         }
 
-        if (surfaces == NULL) {
+        if (stages == NULL) {
             continue;
         }
 
@@ -249,10 +249,10 @@ void mouse_load(list_td *surfaces, const config_td *config)
             continue;
         }
 
-        for (list_item_td *node = list_head(surfaces);
+        for (list_item_td *node = list_head(stages);
                 node != NULL; node = list_next(node)) {
-            surface_td *surface = (surface_td *) list_data(node);
-            if (surface == NULL || surface->screen == NULL) {
+            stage_td *stage = (stage_td *) list_data(node);
+            if (stage == NULL || stage->screen == NULL) {
                 continue;
             }
 
@@ -263,7 +263,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
                 xcb_generic_error_t *err;
                 ck = xcb_grab_button_checked(connection,
                         0,
-                        surface->screen->root,
+                        stage->screen->root,
                         XCB_EVENT_MASK_BUTTON_PRESS   |
                         XCB_EVENT_MASK_BUTTON_RELEASE |
                         XCB_EVENT_MASK_POINTER_MOTION,

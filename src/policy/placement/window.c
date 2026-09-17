@@ -41,9 +41,9 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/desktop.h>
-#include <surface/monitor.h>
+#include <stage.h>
+#include <stage/desktop.h>
+#include <stage/monitor.h>
 #include <systray.h>
 #include <wm.h>
 
@@ -101,14 +101,14 @@ enum s_place_result_e {
  */
 struct s_place_ctx_s {
     const wm_td *wm;            /**< Window manager instance */
-    surface_td *surface;        /**< Surface being placed on */
+    stage_td *stage;        /**< Stage being placed on */
     client_td *client;          /**< Window being placed */
     config_td *config;          /**< Configuration in force */
     xcb_connection_t *connection;   /**< XCB connection */
     desktop_td *desktop;        /**< Current desktop, or null */
-    struct geometry_s wa;       /**< Workarea, whole surface */
+    struct geometry_s wa;       /**< Workarea, whole stage */
     struct geometry_s mon_wa;   /**< Workarea, reference monitor */
-    struct dimensions_s screen; /**< Screen size, whole surface */
+    struct dimensions_s screen; /**< Screen size, whole stage */
     struct dimensions_s mon_sz; /**< Screen size, reference monitor */
     struct dimensions_s frame;  /**< Size the window occupies */
     xcb_window_t leader;        /**< Its application group, or none */
@@ -137,20 +137,20 @@ typedef enum s_place_result_e (*s_place_step_fn)(
  * frame is positioned relative to its configured gravity point (e.g.,
  * centering or anchoring the frame by its edge or corner instead of its
  * top-left corner).  After applying the gravity offset, the resulting
- * position is clamped so the frame stays fully within the surface
+ * position is clamped so the frame stays fully within the stage
  * bounds, preferring to keep it at the near edge when it does not fit.
  *
- * @param surface Pointer to the surface providing the placement bounds
- * @param client  Pointer to the client whose gravity and frame size are
+ * @param stage  Pointer to the stage providing the placement bounds
+ * @param client Pointer to the client whose gravity and frame size are
  *                used
- * @param x       Pointer to the X coordinate to adjust and clamp in
+ * @param x Pointer to the X coordinate to adjust and clamp in
  *                place
- * @param y       Pointer to the Y coordinate to adjust and clamp in
+ * @param y Pointer to the Y coordinate to adjust and clamp in
  *                place
  *
  * @note Complexity: @e O(1)
  */
-static void s_place_window_apply_gravity(const surface_td *surface,
+static void s_place_window_apply_gravity(const stage_td *stage,
         const client_td *client,
         int32_t *restrict x, int32_t *restrict y)
 {
@@ -161,14 +161,14 @@ static void s_place_window_apply_gravity(const surface_td *surface,
     uint32_t fw;
     uint32_t fh;
 
-    if (surface == NULL || client == NULL || x == NULL || y == NULL) {
+    if (stage == NULL || client == NULL || x == NULL || y == NULL) {
         return;
     }
 
     nx = *x;
     ny = *y;
-    sw = surface->properties.dim.w;
-    sh = surface->properties.dim.h;
+    sw = stage->properties.dim.w;
+    sh = stage->properties.dim.h;
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
 
@@ -229,10 +229,10 @@ static void s_place_window_apply_gravity(const surface_td *surface,
  * updates its stored geometry) and returns @c true, so
  * @a place_window_apply has nothing further to do.
  *
- * @param wm      Window manager instance
- * @param surface Surface @p client is on
- * @param client  Client being placed
- * @param wa      Surface-wide workarea, for the fallback monitor clip
+ * @param wm     Window manager instance
+ * @param stage  Stage @p client is on
+ * @param client Client being placed
+ * @param wa     Stage-wide workarea, for the fallback monitor clip
  *                below
  *
  * @return @c true if @p client was transient and got placed here
@@ -245,7 +245,7 @@ static void s_place_window_apply_gravity(const surface_td *surface,
  *       clients (see @a lookup_find_client)
  */
 static bool s_place_window_transient_centered(const wm_td *wm,
-        surface_td *surface, client_td *client,
+        stage_td *stage, client_td *client,
         struct geometry_s wa)
 {
     uint32_t fw;
@@ -276,12 +276,12 @@ static bool s_place_window_transient_centered(const wm_td *wm,
      * client, falling through to the ordinary geometry-based fallback
      * further below (which, for the root window specifically, ends up
      * centering on screen) when no such sibling is currently mapped. */
-    if (client->transient_for == surface->screen->root) {
+    if (client->transient_for == stage->screen->root) {
         xcb_window_t leader = client_group_leader(client);
 
         if (leader != XCB_WINDOW_NONE) {
             desktop_td *desktop =
-                surface_desktop_get(surface, surface->desktop_cur);
+                stage_desktop_get(stage, stage->desktop_cur);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;
@@ -307,7 +307,7 @@ static bool s_place_window_transient_centered(const wm_td *wm,
      * position.  Using the stored geometry correctly centers the dialog
      * wherever the parent window is on screen. */
     if (parent == NULL) {
-        parent = lookup_find_client(wm_surfaces(wm),
+        parent = lookup_find_client(wm_stages(wm),
                 client->transient_for, NULL, NULL);
     }
     if (parent != NULL) {
@@ -343,10 +343,10 @@ static bool s_place_window_transient_centered(const wm_td *wm,
     /* Resolved from the dialog's proposed center, not the pointer: it
      * is meant to sit with its parent, wherever that is, regardless of
      * where the pointer happens to be right now. */
-    screen.w = surface->properties.dim.w;
-    screen.h = surface->properties.dim.h;
-    placement_clip_to_monitor(surface, &wa, &screen,
-            surface_monitor_for_point(surface,
+    screen.w = stage->properties.dim.w;
+    screen.h = stage->properties.dim.h;
+    placement_clip_to_monitor(stage, &wa, &screen,
+            stage_monitor_for_point(stage,
                     (struct position_s) {
                         new_x + (int32_t) (fw / 2u),
                         new_y + (int32_t) (fh / 2u) }),
@@ -380,20 +380,20 @@ static bool s_place_window_transient_centered(const wm_td *wm,
  * the physical screen edge, then issues the @c ConfigureWindow that
  * moves the window and records the position it was moved to.
  *
- * @param surface Surface the client lives on
+ * @param stage   Stage the client lives on
  * @param client  Client being placed
  * @param wa_pos  Workarea origin, unclipped to any single monitor
  * @param new_pos Policy-resolved position, before gravity/clamping
  *
  * @note Complexity: @e O(1)
  */
-static void s_place_window_finalize(const surface_td *surface,
+static void s_place_window_finalize(const stage_td *stage,
         client_td *client, struct position_s wa_pos,
         struct position_s new_pos)
 {
     xcb_window_t target;
 
-    s_place_window_apply_gravity(surface, client,
+    s_place_window_apply_gravity(stage, client,
             &new_pos.x, &new_pos.y);
 
     /* Final safety: gravity adjustments must not push the title bar
@@ -412,7 +412,7 @@ static void s_place_window_finalize(const surface_td *surface,
 
 /* Place the client following the cascade policy, unconditionally */
 void place_window_apply_cascade(const wm_td *wm,
-        surface_td *surface, client_td *client)
+        stage_td *stage, client_td *client)
 {
     const int32_t step = (int32_t) WM_PLACE_CASCADE_STEP;
     uint32_t fw;
@@ -423,13 +423,13 @@ void place_window_apply_cascade(const wm_td *wm,
     struct position_s off;
 
     if (wm == NULL || wm_config(wm) == NULL ||
-            surface == NULL || client == NULL) {
+            stage == NULL || client == NULL) {
         return;
     }
 
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
-    placement_workarea(wm, surface, client, &wa, &mon_wa, &mon_sz);
+    placement_workarea(wm, stage, client, &wa, &mon_wa, &mon_sz);
 
     off.x = (s_cascade_has_last) ? s_cascade_last.x + step : 0;
     off.y = (s_cascade_has_last) ? s_cascade_last.y + step : 0;
@@ -454,7 +454,7 @@ void place_window_apply_cascade(const wm_td *wm,
 
     /* Offset from the workarea origin, not from (0, 0), so the title
      * bar is never hidden behind a panel or dock */
-    s_place_window_finalize(surface, client, wa.pos,
+    s_place_window_finalize(stage, client, wa.pos,
             (struct position_s) { mon_wa.pos.x + off.x,
                 mon_wa.pos.y + off.y });
 }
@@ -592,7 +592,7 @@ static enum s_place_result_e s_place_step_transient(
 {
     (void) out_pos;
 
-    if (!s_place_window_transient_centered(ctx->wm, ctx->surface,
+    if (!s_place_window_transient_centered(ctx->wm, ctx->stage,
                 ctx->client, ctx->wa)) {
         return S_PLACE_RESULT_DECLINED;
     }
@@ -666,8 +666,8 @@ static enum s_place_result_e s_place_step_sibling(
     out_pos->y = anchor->layout.geometry.cur.pos.y +
         (int32_t) ((uint32_t) WM_PLACE_CASCADE_STEP * sibling_count);
 
-    placement_clip_to_monitor(ctx->surface, &ctx->wa, &ctx->screen,
-            surface_monitor_for_point(ctx->surface,
+    placement_clip_to_monitor(ctx->stage, &ctx->wa, &ctx->screen,
+            stage_monitor_for_point(ctx->stage,
                     (struct position_s) {
                         out_pos->x + (int32_t) (ctx->frame.w / 2u),
                         out_pos->y + (int32_t) (ctx->frame.h / 2u) }),
@@ -713,7 +713,7 @@ static enum s_place_result_e s_place_step_smart(
         const struct s_place_ctx_s *ctx,
         struct position_s *restrict out_pos)
 {
-    if (!place_window_smart(ctx->wm, ctx->surface, ctx->client,
+    if (!place_window_smart(ctx->wm, ctx->stage, ctx->client,
                 &out_pos->x, &out_pos->y)) {
         return S_PLACE_RESULT_DECLINED;
     }
@@ -738,7 +738,7 @@ static enum s_place_result_e s_place_step_cascade(
 {
     (void) out_pos;
 
-    place_window_apply_cascade(ctx->wm, ctx->surface, ctx->client);
+    place_window_apply_cascade(ctx->wm, ctx->stage, ctx->client);
 
     return S_PLACE_RESULT_DONE;
 }
@@ -799,7 +799,7 @@ static enum s_place_result_e s_place_step_manual(
         const struct s_place_ctx_s *ctx,
         struct position_s *restrict out_pos)
 {
-    if (!place_window_manual(ctx->wm, ctx->surface, ctx->client,
+    if (!place_window_manual(ctx->wm, ctx->stage, ctx->client,
                 &out_pos->x, &out_pos->y)) {
         return S_PLACE_RESULT_DECLINED;
     }
@@ -831,7 +831,7 @@ static enum s_place_result_e s_place_step_under_mouse(
     xcb_query_pointer_reply_t *pointer_reply;
 
     pointer_reply = xcb_query_pointer_reply(ctx->connection,
-            xcb_query_pointer(ctx->connection, ctx->surface->screen->root),
+            xcb_query_pointer(ctx->connection, ctx->stage->screen->root),
             NULL);
     if (pointer_reply == NULL) {
         LOGGER_WARNING("Failed to query pointer for 'under-mouse'" \
@@ -906,7 +906,7 @@ static enum s_place_result_e s_place_step_keep(
 
 /* Apply the configured placement policy to a newly mapped client */
 void place_window_apply(const wm_td *wm,
-        surface_td *surface, client_td *client)
+        stage_td *stage, client_td *client)
 {
     /* Tried in this order, and the order is the precedence.  What used
      * to be several paragraphs explaining why a splash has to be
@@ -934,22 +934,22 @@ void place_window_apply(const wm_td *wm,
     config_td *config = wm_config(wm);
 
     if (wm == NULL || config == NULL ||
-            surface == NULL || client == NULL) {
+            stage == NULL || client == NULL) {
         return;
     }
 
     ctx.wm = wm;
-    ctx.surface = surface;
+    ctx.stage = stage;
     ctx.client = client;
     ctx.config = config;
     ctx.connection = wm_connection(wm);
-    ctx.screen = surface->properties.dim;
+    ctx.screen = stage->properties.dim;
     ctx.frame = client->layout.geometry.cur.dim;
     ctx.leader = client_group_leader(client);
 
     /* The usable workarea, which respects panel struts, falling back
      * to the whole screen when no workarea is set */
-    ctx.desktop = surface_desktop_get(surface, surface->desktop_cur);
+    ctx.desktop = stage_desktop_get(stage, stage->desktop_cur);
     if (ctx.desktop != NULL && ctx.desktop->workarea.dim.w > 0u &&
             ctx.desktop->workarea.dim.h > 0u) {
         ctx.wa = ctx.desktop->workarea;
@@ -961,7 +961,7 @@ void place_window_apply(const wm_td *wm,
 
     /* Neither the monitor-clipped workarea nor its screen bound mean
      * anything to the overrides below, which all work off the whole
-     * surface, so they are left unset until after those have had their
+     * stage, so they are left unset until after those have had their
      * turn (see the clip further down) */
     ctx.mon_wa = ctx.wa;
     ctx.mon_sz = ctx.screen;
@@ -974,20 +974,20 @@ void place_window_apply(const wm_td *wm,
             return;
         }
         if (result == S_PLACE_RESULT_POSITION) {
-            s_place_window_finalize(surface, client, ctx.wa.pos, chosen);
+            s_place_window_finalize(stage, client, ctx.wa.pos, chosen);
             return;
         }
     }
 
     /* Clipped down to whichever physical monitor
-     * 'windows.placement.monitor' resolves to, on a surface made of
+     * 'windows.placement.monitor' resolves to, on a stage made of
      * more than one: the steps below score and clamp against these two,
      * and without this they would do so against the whole combined area
      * instead of one monitor.  Falls back to the unclipped values when
      * there is only one monitor, or when clipping would leave nothing
      * to place into. */
-    placement_clip_to_monitor(surface, &ctx.wa, &ctx.screen,
-            placement_reference_monitor(wm, surface, client,
+    placement_clip_to_monitor(stage, &ctx.wa, &ctx.screen,
+            placement_reference_monitor(wm, stage, client,
                     config->base.windows.monitor_policy,
                     config->base.windows.monitor_index),
             &ctx.mon_wa, &ctx.mon_sz);
@@ -1019,6 +1019,6 @@ void place_window_apply(const wm_td *wm,
     }
 
     if (result == S_PLACE_RESULT_POSITION) {
-        s_place_window_finalize(surface, client, ctx.wa.pos, chosen);
+        s_place_window_finalize(stage, client, ctx.wa.pos, chosen);
     }
 }

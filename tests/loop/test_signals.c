@@ -135,10 +135,10 @@ int wm_action_config_reload(const wm_td *wm)
 
 
 /** Link-only stand-in for keyboard_load (input/kbd/bind.c) */
-void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
+void keyboard_load(list_td *stages, xcb_key_symbols_t *keysyms,
         const config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) keysyms;
     (void) config;
     s_keyboard_load_calls++;
@@ -146,9 +146,9 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
 
 
 /** Link-only stand-in for mouse_load (input/mouse/bind.c) */
-void mouse_load(list_td *surfaces, const config_td *config)
+void mouse_load(list_td *stages, const config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) config;
     s_mouse_load_calls++;
 }

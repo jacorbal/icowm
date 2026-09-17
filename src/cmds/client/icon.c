@@ -115,12 +115,12 @@ static void s_icon_overlap_visit(client_td *client, void *data)
  * Checked against @a client_is_iconified rather than @c is_icon_mapped.
  * The latter only reflects whether a desktop's icons are currently
  * mapped on screen right now (@c false for every client on a desktop
- * that is not the one currently shown, @a surface_client_hide_all, in
- * @c surface/actions.c, clears it precisely for that reason), so
+ * that is not the one currently shown, @a stage_client_hide_all, in
+ * @c stage/actions.c, clears it precisely for that reason), so
  * relying on it here would report every slot on a non-current desktop
  * as free regardless of how many icons already actually occupy it.
  *
- * @param client   Client about to be iconified; its @p icon_window may
+ * @param client Client about to be iconified; its @p icon_window may
  *                 still be non-zero from a previous iconify, in which
  *                 case it is skipped so it never collides with itself
  * @param icon_dim Icon width/height, in pixels
@@ -191,7 +191,7 @@ static bool s_icon_position_choose(client_td *client,
     uint16_t screen_w = 1024u;
     uint16_t screen_h = 768u;
     monitor_td monitor;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop;
     enum config_icon_placement_e policy;
     struct dimensions_s screen_dim;
@@ -207,7 +207,7 @@ static bool s_icon_position_choose(client_td *client,
     policy = client->config->base.icons.placement_policy;
     desktop = wm_get_client_desktop(client);
 
-    if (ccmd_client_monitor(client, &surface, &monitor)) {
+    if (ccmd_client_monitor(client, &stage, &monitor)) {
         mx = monitor.x;
         my = monitor.y;
         screen_w = geom_dim_clamp((int32_t) monitor.w);
@@ -221,16 +221,16 @@ static bool s_icon_position_choose(client_td *client,
      * (in 'desktop.c') starts from before folding in
      * 'desktops.margins' and the systray's reservation for windows;
      * applied here the same way, per monitor rather than once across
-     * the whole surface: top/left shift this monitor's placement
+     * the whole stage: top/left shift this monitor's placement
      * origin inward, and right/bottom shrink the available area, so
      * the icon grid never lands within a margin a window's maximize
      * and placement already stay clear of, nor under the systray's
      * dock window (which would otherwise sit right on top of
      * a restored icon left behind there, blocking that dock window's
      * repaint). */
-    if (surface != NULL) {
+    if (stage != NULL) {
         const struct strut_partial_s *tray_strut =
-            systray_get_reserved_strut(surface);
+            systray_get_reserved_strut(stage);
         uint32_t margin_left = 0u;
         uint32_t margin_right = 0u;
         uint32_t margin_top = 0u;
@@ -238,9 +238,9 @@ static bool s_icon_position_choose(client_td *client,
         uint32_t horiz;
         uint32_t vert;
 
-        if (surface->config != NULL) {
+        if (stage->config != NULL) {
             const struct config_desktop_s *cd =
-                &surface->config->desktops;
+                &stage->config->desktops;
 
             margin_left += cd->margins.left;
             margin_right += cd->margins.right;
@@ -283,7 +283,7 @@ static bool s_icon_position_choose(client_td *client,
     /* 'place_icon_apply' works in a (0,0)-relative coordinate space
      * bounded by 'screen_w'/'screen_h' alone; offset by 'mx'/'my', the
      * target monitor's origin plus its top/left margin, so the icon
-     * lands on that monitor within the combined surface, past whatever
+     * lands on that monitor within the combined stage, past whatever
      * margin is configured, rather than always in the raw top-left
      * corner of the whole screen. */
     ix = (int16_t) (icon_pos.x + mx);
@@ -324,8 +324,8 @@ static bool s_icon_position_choose(client_td *client,
  * @param io_x     Icon X position; read but never adjusted
  * @param io_y     Icon Y position; overwritten when pushed
  *
- * @note A no-op when the client sits on no known surface, or when that
- *       surface has no tray mapped
+ * @note A no-op when the client sits on no known stage, or when that
+ *       stage has no tray mapped
  * @note Complexity: @e O(1)
  */
 static void s_icon_tray_avoid(client_td *client,
@@ -334,15 +334,15 @@ static void s_icon_tray_avoid(client_td *client,
 {
     const desktop_td *desktop;
     monitor_td monitor;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     struct geometry_s tray;
 
     if (client == NULL || io_x == NULL || io_y == NULL) {
         return;
     }
 
-    (void) ccmd_client_monitor(client, &surface, &monitor);
-    if (surface == NULL || !systray_get_geometry(surface, &tray)) {
+    (void) ccmd_client_monitor(client, &stage, &monitor);
+    if (stage == NULL || !systray_get_geometry(stage, &tray)) {
         return;
     }
 

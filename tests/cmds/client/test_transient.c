@@ -13,14 +13,14 @@
  * data structures they do in the window manager itself.
  * 'lookup_find_client' is a test-controlled stand-in answering from
  * a small table this file fills directly, so 'client_link_transient'
- * never has to build a well-formed surfaces list just to resolve a
- * parent by window id.  'wm_get_client_desktop', 'wm_get_surface_by_
- * id', and 'surface_desktop_get' are test-controlled stand-ins too,
+ * never has to build a well-formed stages list just to resolve a
+ * parent by window id.  'wm_get_client_desktop', 'wm_get_stage_by_
+ * id', and 'stage_desktop_get' are test-controlled stand-ins too,
  * each answering from its own small table.  'desktop_action_client_
  * move', 'ccmd_client_restore', and 'ccmd_client_unhide' are
  * recording stand-ins, capturing what was actually asked for so a
  * test can check it directly rather than needing a live desktop-move
- * or map/unmap side effect.  'wm_get_surfaces' is a link-only
+ * or map/unmap side effect.  'wm_get_stages' is a link-only
  * stand-in, reached only to be handed straight through to
  * 'lookup_find_client', which ignores it entirely.
  */
@@ -52,7 +52,7 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
@@ -84,15 +84,15 @@ static int s_owned_clients_used;
 static desktop_td *s_owned_desktops[MAX_TEST_DESKTOPS];
 static int s_owned_desktops_used;
 
-/** Table @a wm_get_surface_by_id answers from, filled by
- *  @a s_set_surface */
-static surface_td *s_surfaces_by_screen[MAX_TEST_DESKTOPS];
-static uint32_t s_surface_screen_ids[MAX_TEST_DESKTOPS];
-static int s_surfaces_registered;
+/** Table @a wm_get_stage_by_id answers from, filled by
+ *  @a s_set_stage */
+static stage_td *s_stages_by_screen[MAX_TEST_DESKTOPS];
+static uint32_t s_stage_screen_ids[MAX_TEST_DESKTOPS];
+static int s_stages_registered;
 
-/** Table @a surface_desktop_get answers from, filled by
- *  @a s_link_surface_desktop */
-static surface_td *s_sd_surfaces[MAX_TEST_DESKTOPS];
+/** Table @a stage_desktop_get answers from, filled by
+ *  @a s_link_stage_desktop */
+static stage_td *s_sd_stages[MAX_TEST_DESKTOPS];
 static uint32_t s_sd_desktop_ids[MAX_TEST_DESKTOPS];
 static desktop_td *s_sd_desktops[MAX_TEST_DESKTOPS];
 static int s_sd_registered;
@@ -136,18 +136,18 @@ static void s_desktop_add_client(desktop_td *desktop, client_td *client)
 }
 
 
-static void s_set_surface(uint32_t screen_id, surface_td *surface)
+static void s_set_stage(uint32_t screen_id, stage_td *stage)
 {
-    s_surface_screen_ids[s_surfaces_registered] = screen_id;
-    s_surfaces_by_screen[s_surfaces_registered] = surface;
-    s_surfaces_registered++;
+    s_stage_screen_ids[s_stages_registered] = screen_id;
+    s_stages_by_screen[s_stages_registered] = stage;
+    s_stages_registered++;
 }
 
 
-static void s_link_surface_desktop(surface_td *surface, uint32_t desktop_id,
+static void s_link_stage_desktop(stage_td *stage, uint32_t desktop_id,
         desktop_td *desktop)
 {
-    s_sd_surfaces[s_sd_registered] = surface;
+    s_sd_stages[s_sd_registered] = stage;
     s_sd_desktop_ids[s_sd_registered] = desktop_id;
     s_sd_desktops[s_sd_registered] = desktop;
     s_sd_registered++;
@@ -163,16 +163,16 @@ static void s_set_client_home(client_td *client, desktop_td *desktop)
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_surface_by_id
+ * @brief Test-controlled stand-in for @a wm_get_stage_by_id
  * @note Complexity: @e O(n)
  */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
     int i;
 
-    for (i = 0; i < s_surfaces_registered; i++) {
-        if (s_surface_screen_ids[i] == surface_id) {
-            return s_surfaces_by_screen[i];
+    for (i = 0; i < s_stages_registered; i++) {
+        if (s_stage_screen_ids[i] == stage_id) {
+            return s_stages_by_screen[i];
         }
     }
 
@@ -181,15 +181,15 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_desktop_get
+ * @brief Test-controlled stand-in for @a stage_desktop_get
  * @note Complexity: @e O(n)
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
     int i;
 
     for (i = 0; i < s_sd_registered; i++) {
-        if (s_sd_surfaces[i] == surface &&
+        if (s_sd_stages[i] == stage &&
                 s_sd_desktop_ids[i] == desktop_id) {
             return s_sd_desktops[i];
         }
@@ -235,20 +235,20 @@ static void s_register_lookup(client_td *client)
 /**
  * @brief Test-controlled stand-in for @a lookup_find_client
  *
- * Ignores @p surfaces entirely, answering from a small table this
+ * Ignores @p stages entirely, answering from a small table this
  * file fills directly through @a s_register_lookup instead
  *
  * @note Complexity: @e O(n)
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
     int i;
 
-    (void) surfaces;
+    (void) stages;
 
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
     if (out_desktop != NULL) {
         *out_desktop = NULL;
@@ -265,7 +265,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_surfaces
+ * @brief Link-only stand-in for @a wm_get_stages
  *
  * 'client_link_transient' only ever passes what this answers
  * straight through to @a lookup_find_client, itself a test-controlled
@@ -273,7 +273,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
  *
  * @note Complexity: @e O(1)
  */
-list_td *wm_get_surfaces(void)
+list_td *wm_get_stages(void)
 {
     return NULL;
 }
@@ -344,14 +344,14 @@ void ccmd_client_unhide(client_td *client)
 
 static void s_reset(void)
 {
-    s_surfaces_registered = 0;
+    s_stages_registered = 0;
     s_sd_registered = 0;
     s_home_registered = 0;
     s_lookup_registered = 0;
     s_move_log_used = 0;
     s_restore_log_used = 0;
     s_unhide_log_used = 0;
-    memset(s_surfaces_by_screen, 0, sizeof(s_surfaces_by_screen));
+    memset(s_stages_by_screen, 0, sizeof(s_stages_by_screen));
     memset(s_sd_desktops, 0, sizeof(s_sd_desktops));
     memset(s_home_desktops, 0, sizeof(s_home_desktops));
 }
@@ -980,15 +980,15 @@ static void s_test_focus_target_null_client(void)
  * desktop than the one currently being looked at, onto that one */
 static void s_test_bring_family_relocates_sibling(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *home_desktop;
     desktop_td *current_desktop;
     client_td *top;
     client_td *sibling;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.desktop_cur = 2u;
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_cur = 2u;
     home_desktop = s_make_desktop(1u);
     current_desktop = s_make_desktop(2u);
     top = s_make_client(1u);
@@ -997,8 +997,8 @@ static void s_test_bring_family_relocates_sibling(void)
     sibling->desktop_id = 1u;
     top->transients = cdlist_init(NULL);
     (void) cdlist_ins_next(top->transients, NULL, sibling);
-    s_set_surface(5u, &surface);
-    s_link_surface_desktop(&surface, 2u, current_desktop);
+    s_set_stage(5u, &stage);
+    s_link_stage_desktop(&stage, 2u, current_desktop);
     s_set_client_home(sibling, home_desktop);
 
     ccmd_client_bring_family(top);
@@ -1017,14 +1017,14 @@ static void s_test_bring_family_relocates_sibling(void)
  * rather than relocated */
 static void s_test_bring_family_restores_iconified(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *current_desktop;
     client_td *top;
     client_td *sibling;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.desktop_cur = 3u;
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_cur = 3u;
     current_desktop = s_make_desktop(3u);
     top = s_make_client(1u);
     top->screen_id = 5u;
@@ -1033,8 +1033,8 @@ static void s_test_bring_family_restores_iconified(void)
     sibling->properties.state |= (uint16_t) CLIENT_STATE_ICONIFIED;
     top->transients = cdlist_init(NULL);
     (void) cdlist_ins_next(top->transients, NULL, sibling);
-    s_set_surface(5u, &surface);
-    s_link_surface_desktop(&surface, 3u, current_desktop);
+    s_set_stage(5u, &stage);
+    s_link_stage_desktop(&stage, 3u, current_desktop);
 
     ccmd_client_bring_family(top);
 
@@ -1051,14 +1051,14 @@ static void s_test_bring_family_restores_iconified(void)
 /* A genuinely hidden (not withdrawn) sibling is unhidden */
 static void s_test_bring_family_unhides_hidden(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *current_desktop;
     client_td *top;
     client_td *sibling;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.desktop_cur = 3u;
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_cur = 3u;
     current_desktop = s_make_desktop(3u);
     top = s_make_client(1u);
     top->screen_id = 5u;
@@ -1067,8 +1067,8 @@ static void s_test_bring_family_unhides_hidden(void)
     client_hide(sibling);
     top->transients = cdlist_init(NULL);
     (void) cdlist_ins_next(top->transients, NULL, sibling);
-    s_set_surface(5u, &surface);
-    s_link_surface_desktop(&surface, 3u, current_desktop);
+    s_set_stage(5u, &stage);
+    s_link_stage_desktop(&stage, 3u, current_desktop);
 
     ccmd_client_bring_family(top);
 
@@ -1085,15 +1085,15 @@ static void s_test_bring_family_unhides_hidden(void)
  * is not something automatic discovery brings back on its own */
 static void s_test_bring_family_relocates_but_skips_transient(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *current_desktop;
     desktop_td *home_desktop;
     client_td *top;
     client_td *sibling;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.desktop_cur = 3u;
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_cur = 3u;
     current_desktop = s_make_desktop(3u);
     home_desktop = s_make_desktop(7u);
     top = s_make_client(1u);
@@ -1104,8 +1104,8 @@ static void s_test_bring_family_relocates_but_skips_transient(void)
     client_hide(sibling);
     top->transients = cdlist_init(NULL);
     (void) cdlist_ins_next(top->transients, NULL, sibling);
-    s_set_surface(5u, &surface);
-    s_link_surface_desktop(&surface, 3u, current_desktop);
+    s_set_stage(5u, &stage);
+    s_link_stage_desktop(&stage, 3u, current_desktop);
     s_set_client_home(sibling, home_desktop);
 
     ccmd_client_bring_family(top);
@@ -1120,7 +1120,7 @@ static void s_test_bring_family_relocates_but_skips_transient(void)
 }
 
 
-/* A null client, or one whose top parent's surface cannot be
+/* A null client, or one whose top parent's stage cannot be
  * resolved, is a silent no-op */
 static void s_test_bring_family_null_and_unresolved_are_noop(void)
 {
@@ -1135,7 +1135,7 @@ static void s_test_bring_family_null_and_unresolved_are_noop(void)
     lone->screen_id = 123u;
     ccmd_client_bring_family(lone);
     TAP_EQ_INT(s_move_log_used, 0,
-            "an unresolvable surface leaves nothing relocated");
+            "an unresolvable stage leaves nothing relocated");
 
     s_teardown();
 }

@@ -105,11 +105,11 @@ int mouse_hover_poll_ms_remaining(void)
 
 /* Re-evaluate the resize cursor for 's_hover_window', if due */
 void mouse_hover_poll_tick(xcb_connection_t *connection,
-        list_td *surfaces)
+        list_td *stages)
 {
     xcb_query_pointer_reply_t *reply;
 
-    if (connection == NULL || surfaces == NULL ||
+    if (connection == NULL || stages == NULL ||
             s_hover_window == XCB_WINDOW_NONE ||
             mouse_hover_poll_ms_remaining() > 0) {
         return;
@@ -119,7 +119,7 @@ void mouse_hover_poll_tick(xcb_connection_t *connection,
             xcb_query_pointer(connection, s_hover_window), NULL);
     if (reply != NULL) {
         if (reply->same_screen) {
-            (void) mouse_resize_cursor_update(connection, surfaces,
+            (void) mouse_resize_cursor_update(connection, stages,
                     s_hover_window,
                     (struct position_s) { reply->root_x,
                         reply->root_y });
@@ -133,13 +133,13 @@ void mouse_hover_poll_tick(xcb_connection_t *connection,
 
 /* Update the pointer cursor to match a window's resize border */
 void mouse_handle_motion_hover(xcb_connection_t *connection,
-        list_td *surfaces, xcb_motion_notify_event_t *event)
+        list_td *stages, xcb_motion_notify_event_t *event)
 {
     if (event == NULL) {
         return;
     }
 
-    (void) mouse_resize_cursor_update(connection, surfaces,
+    (void) mouse_resize_cursor_update(connection, stages,
             event->event,
             (struct position_s) { event->root_x, event->root_y });
 }

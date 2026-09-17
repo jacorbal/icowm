@@ -4,8 +4,8 @@
  * @brief Test battery for the shared "Send to page" context menu
  *        submenu (menu/context/submenu/page.c)
  *
- * 'surface_viewport_has_room', 'surface_viewport_dims', and
- * 'scmd_surface_viewport_client_page' are test-controlled, letting a
+ * 'stage_viewport_has_room', 'stage_viewport_dims', and
+ * 'scmd_stage_viewport_client_page' are test-controlled, letting a
  * scenario hand 'ctxmenu_submenu_page_build' any viewport grid and any
  * "client's current page" answer it wants.  'enact_client_send_to_page'
  * and 'enact_client_toggle_stick' are recording stand-ins: a scenario
@@ -38,7 +38,7 @@
 #include <harness/tap.h>
 #include <menu/context/ctxmenu.h>
 #include <menu/context/submenu/page.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /** Link-only stand-in for @a enact_client_send_to_page; records
@@ -49,10 +49,10 @@ static client_td *s_last_sent_client;
 static uint32_t s_last_sent_col;
 static uint32_t s_last_sent_row;
 
-void enact_client_send_to_page(surface_td *surface, client_td *client,
+void enact_client_send_to_page(stage_td *stage, client_td *client,
         uint32_t col, uint32_t row)
 {
-    (void) surface;
+    (void) stage;
 
     s_call_send_to_page++;
     s_last_sent_client = client;
@@ -74,34 +74,34 @@ void enact_client_toggle_stick(client_td *client)
 }
 
 
-/** Test-controlled stand-in for @a surface_viewport_has_room
+/** Test-controlled stand-in for @a stage_viewport_has_room
  * @note Complexity: @e O(1) */
 static bool s_viewport_has_room = true;
 
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_viewport_has_room;
 }
 
 
-/** Test-controlled viewport grid @a surface_viewport_dims reports
+/** Test-controlled viewport grid @a stage_viewport_dims reports
  * @note Complexity: @e O(1) */
 static uint32_t s_viewport_columns = 1u;
 static uint32_t s_viewport_rows = 1u;
 
-void surface_viewport_dims(const surface_td *surface,
+void stage_viewport_dims(const stage_td *stage,
         uint32_t *columns_out, uint32_t *rows_out)
 {
-    (void) surface;
+    (void) stage;
 
     *columns_out = s_viewport_columns;
     *rows_out = s_viewport_rows;
 }
 
 
-/** Test-controlled stand-in for @a scmd_surface_viewport_client_page,
+/** Test-controlled stand-in for @a scmd_stage_viewport_client_page,
  *  reporting whichever page a scenario last registered as the target
  *  client's own, or none at all
  * @note Complexity: @e O(1) */
@@ -109,11 +109,11 @@ static bool s_client_page_known;
 static uint32_t s_client_page_col;
 static uint32_t s_client_page_row;
 
-bool scmd_surface_viewport_client_page(const surface_td *surface,
+bool scmd_stage_viewport_client_page(const stage_td *stage,
         const desktop_td *desktop, const client_td *client,
         uint32_t *out_col, uint32_t *out_row)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
 
@@ -143,28 +143,28 @@ static void s_reset(void)
 /* A null argument, in any position, builds nothing */
 static void s_test_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *entries = (ctxmenu_entry_td *) 1;
     ctxmenu_state_td *state = (ctxmenu_state_td *) 1;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     s_viewport_columns = 2u;
     s_viewport_rows = 2u;
 
     TAP_EQ_INT(ctxmenu_submenu_page_build(NULL, &desktop, &client,
-                &entries, &state), 0, "a null surface builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_page_build(&surface, NULL, &client,
+                &entries, &state), 0, "a null stage builds nothing");
+    TAP_EQ_INT(ctxmenu_submenu_page_build(&stage, NULL, &client,
                 &entries, &state), 0, "a null desktop builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_page_build(&surface, &desktop, NULL,
+    TAP_EQ_INT(ctxmenu_submenu_page_build(&stage, &desktop, NULL,
                 &entries, &state), 0, "a null client builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_page_build(&surface, &desktop, &client,
+    TAP_EQ_INT(ctxmenu_submenu_page_build(&stage, &desktop, &client,
                 NULL, &state), 0, "a null out_entries builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_page_build(&surface, &desktop, &client,
+    TAP_EQ_INT(ctxmenu_submenu_page_build(&stage, &desktop, &client,
                 &entries, NULL), 0, "a null out_state builds nothing");
 }
 
@@ -173,19 +173,19 @@ static void s_test_null_guards(void)
  * send anything, so the whole submenu is omitted */
 static void s_test_no_room_or_single_page_builds_nothing(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *entries = NULL;
     ctxmenu_state_td *state = NULL;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     s_viewport_has_room = false;
 
-    TAP_EQ_INT(ctxmenu_submenu_page_build(&surface, &desktop, &client,
+    TAP_EQ_INT(ctxmenu_submenu_page_build(&stage, &desktop, &client,
                 &entries, &state), 0,
             "a viewport that cannot pan builds nothing");
 
@@ -193,7 +193,7 @@ static void s_test_no_room_or_single_page_builds_nothing(void)
     s_viewport_columns = 1u;
     s_viewport_rows = 1u;
 
-    TAP_EQ_INT(ctxmenu_submenu_page_build(&surface, &desktop, &client,
+    TAP_EQ_INT(ctxmenu_submenu_page_build(&stage, &desktop, &client,
                 &entries, &state), 0,
             "a 1x1 grid builds nothing even if room is reported");
 }
@@ -204,7 +204,7 @@ static void s_test_no_room_or_single_page_builds_nothing(void)
  * stick */
 static void s_test_unstuck_client_2x2_grid(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *e = NULL;
@@ -212,7 +212,7 @@ static void s_test_unstuck_client_2x2_grid(void)
     int n;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     s_viewport_columns = 2u;
@@ -221,7 +221,7 @@ static void s_test_unstuck_client_2x2_grid(void)
     s_client_page_col = 1u;
     s_client_page_row = 0u;
 
-    n = ctxmenu_submenu_page_build(&surface, &desktop, &client, &e,
+    n = ctxmenu_submenu_page_build(&stage, &desktop, &client, &e,
             &state);
 
     TAP_EQ_INT(n, 6,
@@ -258,7 +258,7 @@ static void s_test_unstuck_client_2x2_grid(void)
  * relabeled as an active unsticky action instead */
 static void s_test_sticky_client_relabels_toggle(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *e = NULL;
@@ -266,14 +266,14 @@ static void s_test_sticky_client_relabels_toggle(void)
     int n;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     s_viewport_columns = 2u;
     s_viewport_rows = 2u;
     client.properties.flags |= (uint16_t) CLIENT_FLAG_STICKY;
 
-    n = ctxmenu_submenu_page_build(&surface, &desktop, &client, &e,
+    n = ctxmenu_submenu_page_build(&stage, &desktop, &client, &e,
             &state);
 
     TAP_OK(e[0].is_disabled && e[1].is_disabled && e[2].is_disabled &&

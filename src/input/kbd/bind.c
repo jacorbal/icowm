@@ -46,7 +46,7 @@
 /* Project includes */
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <input/kbd/bind.h>
@@ -236,40 +236,40 @@ static bool s_parse_binding(const config_td *config,
 
 
 /**
- * @brief Check whether any surface in a list matches a per-surface
+ * @brief Check whether any stage in a list matches a per-stage
  *        predicate
  *
  * Shared by every "is this keybind even meaningful given the current
  * setup" check below (multiple monitors, multiple desktops, and any
  * future one of the same shape): each only differs in which single
- * field of a surface it looks at, so that one field comparison is the
+ * field of a stage it looks at, so that one field comparison is the
  * only part that actually needs its function; the list traversal and
- * null-surface skip around it do not.
+ * null-stage skip around it do not.
  *
- * @param surfaces  List of surfaces to check
- * @param predicate Called with each non-@c NULL surface in turn;
+ * @param stages    List of stages to check
+ * @param predicate Called with each non-@c NULL stage in turn;
  *                  returns @c true to stop and report a match
  *
  * @return @c true if @p predicate returned @c true for at least one
- *         surface in @p surfaces
+ *         stage in @p stages
  *
  * @note Answers @c false without a list, since @c list_head reaches
  *       into one unguarded and the contract that every caller passes
  *       the manager's own is nowhere written down
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
-static bool s_any_surface_matches(list_td *surfaces,
-        bool (*predicate)(const surface_td *surface))
+static bool s_any_stage_matches(list_td *stages,
+        bool (*predicate)(const stage_td *stage))
 {
-    if (surfaces == NULL || predicate == NULL) {
+    if (stages == NULL || predicate == NULL) {
         return false;
     }
 
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(stages);
             node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
+        stage_td *const stage = (stage_td *) list_data(node);
 
-        if (surface != NULL && predicate(surface)) {
+        if (stage != NULL && predicate(stage)) {
             return true;
         }
     }
@@ -278,63 +278,63 @@ static bool s_any_surface_matches(list_td *surfaces,
 
 
 /**
- * @brief Predicate: does this surface have more than one physical
+ * @brief Predicate: does this stage have more than one physical
  *        monitor?
  *
- * @param surface Surface to check
+ * @param stage Stage to check
  *
- * @return @c true if @p surface has more than one monitor
+ * @return @c true if @p stage has more than one monitor
  *
  * @note Complexity: @e O(1)
  */
-static bool s_surface_has_multiple_monitors(const surface_td *surface)
+static bool s_stage_has_multiple_monitors(const stage_td *stage)
 {
-    return surface->monitor_count > 1u;
+    return stage->monitor_count > 1u;
 }
 
 
 /**
- * @brief Predicate: does this surface have more than one virtual
+ * @brief Predicate: does this stage have more than one virtual
  *        desktop?
  *
- * @param surface Surface to check
+ * @param stage Stage to check
  *
- * @return @c true if @p surface has more than one desktop
+ * @return @c true if @p stage has more than one desktop
  *
  * @note Complexity: @e O(1)
  */
-static bool s_surface_has_multiple_desktops(const surface_td *surface)
+static bool s_stage_has_multiple_desktops(const stage_td *stage)
 {
-    return surface->desktop_count > 1u;
+    return stage->desktop_count > 1u;
 }
 
 
 /**
- * @brief Predicate: is this surface's viewport wider or taller than a
+ * @brief Predicate: is this stage's viewport wider or taller than a
  *        single screen?
  *
- * A surface with no @c config, or an @c id past
+ * A stage with no @c config, or an @c id past
  * @c CONFIG_MAX_SCREENS, reports @c false, the same 1x1
  * @c config_viewport_s fallback every other reader of this field
  * already falls back to.
  *
- * @param surface Surface to check
+ * @param stage Stage to check
  *
- * @return @c true if @p surface's configured viewport has more than
+ * @return @c true if @p stage's configured viewport has more than
  *         one column or more than one row
  *
  * @note Complexity: @e O(1)
  */
-static bool s_surface_has_viewport(const surface_td *surface)
+static bool s_stage_has_viewport(const stage_td *stage)
 {
-    if (surface->config == NULL ||
-            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+    if (stage->config == NULL ||
+            stage->id >= (uint32_t) CONFIG_MAX_SCREENS) {
         return false;
     }
 
-    return surface->config->base.screens[surface->id]
+    return stage->config->base.screens[stage->id]
             .viewport.columns > 1u ||
-        surface->config->base.screens[surface->id]
+        stage->config->base.screens[stage->id]
             .viewport.rows > 1u;
 }
 
@@ -578,11 +578,11 @@ static size_t s_keyboard_binding_defs(const config_td *config,
  * changed would otherwise keep firing on the old one as well as the
  * new.
  *
- * @param surfaces Every surface to release grabs on
+ * @param stages Every stage to release grabs on
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
-static void s_keyboard_ungrab_all(list_td *surfaces)
+static void s_keyboard_ungrab_all(list_td *stages)
 {
     /* Release every key grab this window manager previously made on
      * each root window before re-grabbing below.  Without this, calling
@@ -592,16 +592,16 @@ static void s_keyboard_ungrab_all(list_td *surfaces)
      * whenever a binding actually changed, since 'xcb_grab_key' only
      * adds a grab and there was previously nothing here that removed
      * a stale one. */
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(stages);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        stage_td *stage = (stage_td *) list_data(node);
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
         xcb_ungrab_key(xcb_connection_get(), XCB_GRAB_ANY,
-                surface->screen->root, XCB_MOD_MASK_ANY);
+                stage->screen->root, XCB_MOD_MASK_ANY);
     }
 }
 
@@ -609,11 +609,11 @@ static void s_keyboard_ungrab_all(list_td *surfaces)
 /**
  * @brief Whether a binding is disabled and must not be grabbed
  *
- * @param type               Binding to judge
- * @param config             Active configuration
- * @param has_multi_monitor  Whether any surface has several monitors
- * @param has_multi_desktop  Whether any surface has several desktops
- * @param has_viewport       Whether any surface has a viewport wider
+ * @param type              Binding to judge
+ * @param config            Active configuration
+ * @param has_multi_monitor Whether any stage has several monitors
+ * @param has_multi_desktop Whether any stage has several desktops
+ * @param has_viewport      Whether any stage has a viewport wider
  *                           or taller than a single screen
  *
  * @return @c true when the binding must be skipped
@@ -639,11 +639,11 @@ static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
         return true;
     }
 
-    /* Every "move to monitor" direction, when no surface has more than
+    /* Every "move to monitor" direction, when no stage has more than
      * one monitor to move to.  All four are named.  An earlier
      * two-direction version of this guard named only 'next', which
      * silently left 'prev' grabbed, and so reachable as a no-op, on
-     * a genuinely single-monitor surface. */
+     * a genuinely single-monitor stage. */
     if ((type == KEYBIND_CLIENT_MOVE_MONITOR_NORTH ||
                 type == KEYBIND_CLIENT_MOVE_MONITOR_SOUTH ||
                 type == KEYBIND_CLIENT_MOVE_MONITOR_EAST ||
@@ -653,7 +653,7 @@ static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
     }
 
     /* Every desktop-cycling and go-to-desktop-N binding, when no
-     * surface has more than one desktop to switch to */
+     * stage has more than one desktop to switch to */
     if ((type == KEYBIND_DESKTOP_NORTH ||
                 type == KEYBIND_DESKTOP_SOUTH ||
                 type == KEYBIND_DESKTOP_EAST ||
@@ -664,7 +664,7 @@ static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
         return true;
     }
 
-    /* Every viewport-pan and go-to-page-N binding, when no surface
+    /* Every viewport-pan and go-to-page-N binding, when no stage
      * has a viewport wider or taller than a single screen to pan
      * within or jump around */
     if ((type == KEYBIND_VIEWPORT_PAN_NORTH ||
@@ -682,26 +682,26 @@ static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
 
 
 /**
- * @brief Install one binding's grab on every surface
+ * @brief Install one binding's grab on every stage
  *
  * Grabbed once per lock-modifier combination, so the binding fires
  * whatever the lock state happens to be.
  *
- * @param surfaces Every surface to grab on
+ * @param stages   Every stage to grab on
  * @param keycodes Null-terminated keycodes the key symbol resolved to
  * @param modmask  Modifiers the binding itself names
  *
- * @note Complexity: @e O(n * k), where @e n is the number of surfaces
+ * @note Complexity: @e O(n * k), where @e n is the number of stages
  *       and @e k the number of keycodes
  */
-static void s_keyboard_grab_on_surfaces(list_td *surfaces,
+static void s_keyboard_grab_on_stages(list_td *stages,
         const xcb_keycode_t *keycodes, uint16_t modmask)
 {
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(stages);
             node != NULL; node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        stage_td *stage = (stage_td *) list_data(node);
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
@@ -714,7 +714,7 @@ static void s_keyboard_grab_on_surfaces(list_td *surfaces,
                 ck = xcb_grab_key_checked(
                         xcb_connection_get(),
                         1,
-                        surface->screen->root,
+                        stage->screen->root,
                         (uint16_t) (modmask | s_lockmods[k]),
                         keycodes[j],
                         XCB_GRAB_MODE_ASYNC,
@@ -768,27 +768,27 @@ static void s_keyboard_warn_cycle_pairs(void)
 
 
 /* Load and grab every configured key binding */
-void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
+void keyboard_load(list_td *stages, xcb_key_symbols_t *keysyms,
         const config_td *config)
 {
     s_keybind_def_td defs[WM_MAX_KEYBINDINGS + 1];
     xcb_keysym_t emergency_keysym = XCB_NO_SYMBOL;
     uint16_t emergency_modmask = 0;
-    bool has_multi_monitor_surface;
-    bool has_multi_desktop_surface;
-    bool has_viewport_surface;
+    bool has_multi_monitor_stage;
+    bool has_multi_desktop_stage;
+    bool has_viewport_stage;
 
-    has_multi_monitor_surface = s_any_surface_matches(surfaces,
-            s_surface_has_multiple_monitors);
-    has_multi_desktop_surface = s_any_surface_matches(surfaces,
-            s_surface_has_multiple_desktops);
-    has_viewport_surface = s_any_surface_matches(surfaces,
-            s_surface_has_viewport);
+    has_multi_monitor_stage = s_any_stage_matches(stages,
+            s_stage_has_multiple_monitors);
+    has_multi_desktop_stage = s_any_stage_matches(stages,
+            s_stage_has_multiple_desktops);
+    has_viewport_stage = s_any_stage_matches(stages,
+            s_stage_has_viewport);
 
     s_keybindings_count = 0;
     (void) s_keyboard_binding_defs(config, defs,
             sizeof(defs) / sizeof(defs[0]));
-    s_keyboard_ungrab_all(surfaces);
+    s_keyboard_ungrab_all(stages);
 
     if (config->base.shutdown.enable_emergency_shortcut) {
         (void) s_parse_binding(config, "Ctrl+Mod1+Backspace",
@@ -801,9 +801,9 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         xcb_keycode_t *keycodes;
 
         if (s_keyboard_is_disabled(defs[i].type, config,
-                    has_multi_monitor_surface,
-                    has_multi_desktop_surface,
-                    has_viewport_surface)) {
+                    has_multi_monitor_stage,
+                    has_multi_desktop_stage,
+                    has_viewport_stage)) {
             continue;
         }
 
@@ -842,7 +842,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
             s_keybindings_count++;
         }
 
-        s_keyboard_grab_on_surfaces(surfaces, keycodes, modmask);
+        s_keyboard_grab_on_stages(stages, keycodes, modmask);
         free(keycodes);
     }
 

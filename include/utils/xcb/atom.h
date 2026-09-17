@@ -68,9 +68,9 @@
  * well-known EWMH/ICCCM atom names this project ever interns never
  * changes meaning for the lifetime of the connection.
  *
- * @param connection      XCB connection
- * @param name            Null-terminated atom name
- * @param only_if_exists  @c true to only look the atom up, never
+ * @param connection     XCB connection
+ * @param name           Null-terminated atom name
+ * @param only_if_exists @c true to only look the atom up, never
  *                        creating it server-side if no client has
  *                        interned it yet (the right choice for checking
  *                        whether some other, possibly absent, tool
@@ -98,9 +98,9 @@ xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
  * than a plain string, to match a RandR output's real name such as
  * "HDMI-1" against a configured profile).
  *
- * @param connection    XCB connection
- * @param atom          Atom to resolve
- * @param out_name      Receives the resolved name, always
+ * @param connection XCB connection
+ * @param atom       Atom to resolve
+ * @param out_name   Receives the resolved name, always
  *                      null-terminated; left as an empty string on any
  *                      failure
  * @param out_name_size Size of @p out_name in bytes; the name is

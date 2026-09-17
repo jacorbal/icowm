@@ -6,9 +6,9 @@
  * One of the files @c config/base/ is made of;
  * @a config_load_base is the top-level orchestrator, calling into
  * @c config/base/parse.c's enumeration parsers directly,
- * @c desktops.c's @a ci_config_load_screens and
- * @a ci_config_load_desktop_behavior, and @c systray.c's
- * @a ci_config_load_systray (all declared in @c config/internal.h),
+ * @c desktops.c's @a ci_config_screens_load and
+ * @a ci_config_desktop_behavior_load, and @c systray.c's
+ * @a ci_config_systray_load (all declared in @c config/internal.h),
  * to assemble one fully-loaded @c config_td from @c config.json.
  */
 /*
@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <inttypes.h>   /* PRIu32 */
 
 /* Defs includes */
 #include <defs/config.h>
@@ -68,8 +69,9 @@ static void s_config_clamp_range(uint32_t *value, uint32_t minimum,
         return;
     }
 
-    LOGGER_WARNING("'%s' in '%s' is %u, outside the valid range" \
-            " %u to %u; using %u instead",
+    LOGGER_WARNING("'%s' in '%s' is %" PRIu32 ", outside the valid" \
+            " range %" PRIu32 " to %" PRIu32 "; using %" PRIu32 \
+            " instead",
             field_label, filename, *value, minimum, maximum,
             (*value < minimum) ? minimum : maximum);
     *value = (*value < minimum) ? minimum : maximum;
@@ -178,8 +180,8 @@ int config_load_base(const char *filename,
         config_base->theme[0] = '\0';
     }
 
-    ci_config_load_screens(json, config_base, filename);
-    ci_config_load_desktop_behavior(json, config_desktop, filename);
+    ci_config_screens_load(json, config_base, filename);
+    ci_config_desktop_behavior_load(json, config_desktop, filename);
 
     /* Load default programs */
     programs = cJSON_GetObjectItem(json, "programs");
@@ -218,10 +220,10 @@ int config_load_base(const char *filename,
         json_load_string(scratchpad, "command",
                 config_base->scratchpad.command,
                 CONFIG_MAX_LENGTH_COMMAND);
-        ci_config_parse_scratchpad_size(
+        ci_config_scratchpad_size_parse(
                 json_get_item(scratchpad, "width"),
                 &config_base->scratchpad.width);
-        ci_config_parse_scratchpad_size(
+        ci_config_scratchpad_size_parse(
                 json_get_item(scratchpad, "height"),
                 &config_base->scratchpad.height);
         json_load_bool(scratchpad, "ignore-margins",
@@ -245,10 +247,10 @@ int config_load_base(const char *filename,
         json_load_uint(windows, "move-step",
                 &config_base->windows.move_step);
 
-        /* Resize step is usually overwritten by hints and it has no
-         * effect on the window, so, just in case I decide to do
-         * something with it, I leave it here, but commented, so it
-         * raises no warning on the logger output. */
+        /* The resize step is usually overwritten by the client's own
+         * size hints and has no effect on the window in that case,
+         * but this is loaded regardless, for the rare client that
+         * declares none. */
         json_load_uint(windows, "resize-step",
                 &config_base->windows.resize_step);
 
@@ -448,7 +450,7 @@ int config_load_base(const char *filename,
     }
 
     /* Load systray dock configuration */
-    ci_config_load_systray(json, config_base);
+    ci_config_systray_load(json, config_base);
 
     /* Free memory */
     cJSON_Delete(json);

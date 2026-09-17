@@ -129,7 +129,7 @@ static s_glyph_font_td *s_glyph_current(void)
  * @brief Resolve @p font_name through fontconfig to a font file, face
  *        index, and pixel size
  *
- * @param font_name      Fontconfig pattern string, or a plain family
+ * @param font_name Fontconfig pattern string, or a plain family
  *                       name
  * @param out_file       Buffer to receive the matched font file path
  * @param out_file_size  Size of @p out_file

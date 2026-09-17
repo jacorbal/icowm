@@ -119,12 +119,14 @@ static void s_test_get_item(void)
 
 
 /* json_load_color/string/uint/bool: success and missing/wrong-type
- * failure, for each of the four typed loaders */
+ * failure, for each of the four typed loaders, plus json_load_uint's
+ * own rejection of a negative value */
 static void s_test_typed_loaders(void)
 {
     cJSON *json = cJSON_Parse(
             "{\"color\": \"#FF00FF\", \"name\": \"hello\","
-            " \"count\": 42, \"flag\": true, \"wrong_type\": 123}");
+            " \"count\": 42, \"flag\": true, \"wrong_type\": 123,"
+            " \"negative\": -1}");
     uint32_t color = 0xDEADBEEFu;
     char name[32] = "untouched";
     unsigned int count = 999u;
@@ -149,6 +151,10 @@ static void s_test_typed_loaders(void)
     TAP_EQ_INT(count, 42, "uint value is correct");
     TAP_EQ_INT(json_load_uint(json, "name", &count), 1,
             "wrong-type field (a string) fails for uint");
+    TAP_EQ_INT(json_load_uint(json, "negative", &count), 1,
+            "a negative value fails for uint");
+    TAP_EQ_INT(count, 42,
+            "dest left unchanged when the value is negative");
 
     TAP_EQ_INT(json_load_bool(json, "flag", &flag), 0,
             "bool loads successfully");
@@ -277,7 +283,7 @@ static void s_test_syntax_error_tracking(void)
 
 int main(void)
 {
-    TAP_PLAN(57);
+    TAP_PLAN(59);
 
     s_test_hex2uint32();
     s_test_field_normalize();

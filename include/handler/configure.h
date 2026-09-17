@@ -43,13 +43,13 @@
  * and @c WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS).
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Configure request event
  *
  * @note Complexity: @e O(1)
  */
 void handler_configure_request(xcb_connection_t *connection,
-        list_td *surfaces,
+        list_td *stages,
         xcb_configure_request_event_t *event);
 
 /**
@@ -61,13 +61,13 @@ void handler_configure_request(xcb_connection_t *connection,
  * windows.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Configure notify event
  *
  * @note Complexity: @e O(1)
  */
 void handler_configure_notify(xcb_connection_t *connection,
-        list_td *surfaces,
+        list_td *stages,
         xcb_configure_notify_event_t *event);
 
 

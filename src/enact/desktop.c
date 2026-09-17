@@ -41,7 +41,7 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Menu includes */
 #include <menu/cycle.h>
@@ -57,7 +57,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -68,7 +68,7 @@
 
 /**
  * @brief Broadcast an event whose payload is just the standard
- *        desktop/surface identifier pair, with no specific client
+ *        desktop/stage identifier pair, with no specific client
  *        involved
  *
  * @param desktop Desktop the event happened to
@@ -90,7 +90,7 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
     if (fields != NULL) {
         cJSON_AddNumberToObject(fields, "desktop_id",
                 (double) desktop->id);
-        cJSON_AddNumberToObject(fields, "surface_id",
+        cJSON_AddNumberToObject(fields, "stage_id",
                 (double) desktop->screen_id);
     }
     ipc_broadcast_event(type, fields);
@@ -117,7 +117,7 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
 static void s_enact_desktop_client_send_one(desktop_td *desktop,
         client_td *client, desktop_td *target)
 {
-    surface_td *surface;
+    stage_td *stage;
     xcb_window_t win_target;
     bool unmapped_main = false;
     bool unmapped_icon = false;
@@ -125,7 +125,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     LOGGER_TRACE("Sending client window=0x%x from desktop %u to" \
             " desktop %u", client->window, desktop->id, target->id);
 
-    surface = wm_get_surface_by_id(client->screen_id);
+    stage = wm_get_stage_by_id(client->screen_id);
 
     /* If the client is currently visible on the active desktop, unmap
      * it immediately so it disappears from the source desktop without
@@ -138,7 +138,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * iconified client's icon sitting in the old desktop's spot,
      * visible from every desktop, until some later, unrelated event
      * happened to hide it. */
-    if (surface != NULL && desktop->id == surface->desktop_cur &&
+    if (stage != NULL && desktop->id == stage->desktop_cur &&
             !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
             !client_is_iconified(client)) {
         win_target = (client_is_decorated(client) && client->frame != 0)
@@ -147,7 +147,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         unmapped_main = true;
     }
 
-    if (surface != NULL && desktop->id == surface->desktop_cur &&
+    if (stage != NULL && desktop->id == stage->desktop_cur &&
             client->icon_window != 0 && client->is_icon_mapped) {
         xcb_window_hide(client->icon_window);
         client->is_icon_mapped = false;
@@ -195,13 +195,13 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     }
 
     /* Remembered here as 'target''s active client, the same memory
-     * 'surface_client_show_all' ('surface/actions/client.c') reads back
+     * 'stage_client_show_all' ('stage/actions/client.c') reads back
      * whenever this desktop next becomes visible, so a client just sent
      * here is what greets a user arriving later, exactly as if it had
      * always been the thing they cared about on this desktop, rather
      * than something they have to go hunt for.  Left unset for
      * a genuinely unfocusable client (the same gate
-     * 'surface_client_show_all' itself re-checks on the read side
+     * 'stage_client_show_all' itself re-checks on the read side
      * regardless, gracefully falling through to
      * 'client_focus_fallback''s guess if this one somehow no longer
      * qualifies by the time it is actually read), so it never becomes
@@ -241,7 +241,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * silently doing nothing as an already-inactive client being sent
      * away correctly does. */
     if (desktop->client_active_id == client->id) {
-        client_focus_fallback(desktop, surface, client);
+        client_focus_fallback(desktop, stage, client);
     }
 
     enact_broadcast_client_event(client,
@@ -255,7 +255,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
 struct s_rearrange_ctx_s {
     /** Window manager, needed to find a transient's parent */
     const wm_td *wm;
-    surface_td *surface;    /**< Surface being rearranged */
+    stage_td *stage;    /**< Stage being rearranged */
     /** Desktop being rearranged, needed to place a client on a page */
     const desktop_td *desktop;
     uint32_t page_col;      /**< Column of the page panned to */
@@ -272,7 +272,7 @@ struct s_rearrange_ctx_s {
  * a newly mapped window does, not a rearrange-only routine, so
  * a transient dialog among them is re-centered over its parent per
  * ICCCM §4.1.2.6 rather than moved by the configured policy.  That
- * parent can live on another surface, which is why this needs the whole
+ * parent can live on another stage, which is why this needs the whole
  * @c wm_td rather than a desktop.
  *
  * @param client Client reached by the walk
@@ -305,7 +305,7 @@ static void s_desktop_rearrange_visit(client_td *client, void *data)
      * should be.  Both page lookups report false on a 1x1 viewport too,
      * where the question does not arise and every client on the desktop
      * is rearranged as before. */
-    if (scmd_surface_viewport_client_page(rearrange_ctx->surface,
+    if (scmd_stage_viewport_client_page(rearrange_ctx->stage,
                 rearrange_ctx->desktop, client, &client_col,
                 &client_row) &&
             (client_col != rearrange_ctx->page_col ||
@@ -315,9 +315,9 @@ static void s_desktop_rearrange_visit(client_td *client, void *data)
 
     if (rearrange_ctx->is_single_spot && !rearrange_ctx->is_first) {
         place_window_apply_cascade(rearrange_ctx->wm,
-                rearrange_ctx->surface, client);
+                rearrange_ctx->stage, client);
     } else {
-        place_window_apply(rearrange_ctx->wm, rearrange_ctx->surface,
+        place_window_apply(rearrange_ctx->wm, rearrange_ctx->stage,
                 client);
     }
     rearrange_ctx->is_first = false;
@@ -327,14 +327,14 @@ static void s_desktop_rearrange_visit(client_td *client, void *data)
 /* Set the desktop's background color */
 void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
 {
-    surface_td *surface;
+    stage_td *stage;
 
     if (desktop == NULL) {
         return;
     }
 
-    surface = wm_get_surface_by_id(desktop->screen_id);
-    if (surface == NULL) {
+    stage = wm_get_stage_by_id(desktop->screen_id);
+    if (stage == NULL) {
         return;
     }
 
@@ -343,33 +343,33 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     desktop->background.bg.color = color;
     desktop->is_outdated = true;
     /* Marking only 'desktop->is_outdated' is not enough on its own:
-     * 'loop_refresh' only calls 'surface_render_all_desktops' at all
-     * when this desktop's surface is itself outdated (see
+     * 'loop_refresh' only calls 'stage_render_all_desktops' at all
+     * when this desktop's stage is itself outdated (see
      * 'enact_desktop_show', right below, for the same pattern).
      * Without this, the new color never actually repaints until
-     * something else marks the surface outdated for an unrelated
+     * something else marks the stage outdated for an unrelated
      * reason, e.g., switching desktops away and back. */
-    surface->is_outdated = true;
+    stage->is_outdated = true;
     s_broadcast_desktop_event(desktop,
             IPC_EVENT_DESKTOP_BACKGROUND_CHANGED);
 }
 
 
-/* Toggle whether the desktop's surface shows the desktop */
+/* Toggle whether the desktop's stage shows the desktop */
 void enact_desktop_show(desktop_td *desktop, bool show)
 {
-    surface_td *surface;
+    stage_td *stage;
 
     if (desktop == NULL) {
         return;
     }
 
-    surface = wm_get_surface_by_id(desktop->screen_id);
-    if (surface == NULL) {
+    stage = wm_get_stage_by_id(desktop->screen_id);
+    if (stage == NULL) {
         return;
     }
 
-    hi_handle_net_showing_desktop(surface, show);
+    hi_handle_net_showing_desktop(stage, show);
     s_broadcast_desktop_event(desktop,
             (show) ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
 }
@@ -444,14 +444,14 @@ void enact_desktop_client_send_back(desktop_td *desktop,
 /* Re-apply the configured placement policy to every client on the
  * desktop */
 void enact_desktop_client_rearrange_all(const wm_td *wm,
-        surface_td *surface, const desktop_td *desktop)
+        stage_td *stage, const desktop_td *desktop)
 {
     struct s_rearrange_ctx_s rearrange_ctx;
     enum config_placement_policy_e policy;
     bool single_spot_policy;
     config_td *config = wm_config(wm);
 
-    if (wm == NULL || config == NULL || surface == NULL ||
+    if (wm == NULL || config == NULL || stage == NULL ||
             desktop == NULL) {
         return;
     }
@@ -463,11 +463,11 @@ void enact_desktop_client_rearrange_all(const wm_td *wm,
         (policy == CONFIG_PLACEMENT_POLICY_MANUAL);
 
     rearrange_ctx.wm = wm;
-    rearrange_ctx.surface = surface;
+    rearrange_ctx.stage = stage;
     rearrange_ctx.desktop = desktop;
     rearrange_ctx.page_col = 0u;
     rearrange_ctx.page_row = 0u;
-    (void) scmd_surface_viewport_desktop_page(surface, desktop,
+    (void) scmd_stage_viewport_desktop_page(stage, desktop,
             &rearrange_ctx.page_col, &rearrange_ctx.page_row);
     rearrange_ctx.is_single_spot = single_spot_policy;
     rearrange_ctx.is_first = true;
@@ -500,14 +500,14 @@ void enact_desktop_client_deiconify_all(desktop_td *desktop)
 
 /* Cycle input focus to the next non-iconified client */
 void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         uint16_t modifier, const config_td *cfg)
 {
-    if (surface == NULL || desktop == NULL) {
+    if (stage == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(connection, surface, desktop, false, 1,
+    cycle_init(connection, stage, desktop, false, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
 }
@@ -515,14 +515,14 @@ void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
 
 /* Cycle input focus to the previous non-iconified client */
 void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         uint16_t modifier, const config_td *cfg)
 {
-    if (surface == NULL || desktop == NULL) {
+    if (stage == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(connection, surface, desktop, false, -1,
+    cycle_init(connection, stage, desktop, false, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
 }
@@ -530,14 +530,14 @@ void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
 
 /* Cycle input focus to the next iconified client */
 void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         uint16_t modifier, const config_td *cfg)
 {
-    if (surface == NULL || desktop == NULL) {
+    if (stage == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(connection, surface, desktop, true, 1,
+    cycle_init(connection, stage, desktop, true, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
 }
@@ -545,14 +545,14 @@ void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
 
 /* Cycle input focus to the previous iconified client */
 void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         uint16_t modifier, const config_td *cfg)
 {
-    if (surface == NULL || desktop == NULL) {
+    if (stage == NULL || desktop == NULL) {
         return;
     }
 
-    cycle_init(connection, surface, desktop, true, -1,
+    cycle_init(connection, stage, desktop, true, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
 }

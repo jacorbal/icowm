@@ -9,8 +9,8 @@
  * own, so this file's tests run as one continuous narrative in
  * a fixed order (see main), exactly the same constraint
  * tests/policy/test_urgency.c already documents for its own sibling
- * module.  'surface_desktop_walk_all' is a link-only stand-in walking
- * a surface's real cdlist of desktops directly, the same pattern
+ * module.  'stage_desktop_walk_all' is a link-only stand-in walking
+ * a stage's real cdlist of desktops directly, the same pattern
  * test_urgency.c already uses, so both the "any client support
  * _NET_WM_PING" scan and the actual per-round probe walk run for
  * real.  'ccmd_client_ping_send' and 'client_mark_unresponsive'
@@ -45,29 +45,29 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
 #include <policy/ping.h>
 
 
-/** Link-only stand-in for @a surface_desktop_walk_all (surface/
+/** Link-only stand-in for @a stage_desktop_walk_all (stage/
  *  desktops.c): walks a real 'cdlist_td' this file builds itself,
  *  the same pattern tests/policy/test_urgency.c already uses
  *  @note Complexity: @e O(n), where @e n is the number of desktops on
- *        @p surface
+ *        @p stage
  */
-void surface_desktop_walk_all(const surface_td *surface,
-        surface_desktop_visitor_fn visit, void *data)
+void stage_desktop_walk_all(const stage_td *stage,
+        stage_desktop_visitor_fn visit, void *data)
 {
     cdlist_item_td *node;
 
-    if (surface == NULL || surface->desktops == NULL || visit == NULL) {
+    if (stage == NULL || stage->desktops == NULL || visit == NULL) {
         return;
     }
 
-    cdlist_foreach(surface->desktops, node) {
+    cdlist_foreach(stage->desktops, node) {
         desktop_td *const desktop = (desktop_td *) cdlist_data(node);
 
         if (desktop != NULL) {
@@ -129,15 +129,15 @@ static void s_sleep_ms(long ms)
 
 int main(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td supported_client;
     client_td plain_client;
-    list_td *surfaces;
+    list_td *stages;
 
     TAP_PLAN(19);
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&supported_client, 0, sizeof(supported_client));
     memset(&plain_client, 0, sizeof(plain_client));
@@ -149,14 +149,14 @@ int main(void)
 
     desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
-    surface.desktops = cdlist_init(NULL);
-    (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
+    stage.desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(stage.desktops, NULL, &desktop);
 
-    surfaces = list_init(NULL);
-    (void) list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    (void) list_ins_next(stages, NULL, &stage);
 
     /* 1-2: no clients registered at all yet: nothing to probe, ever */
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT(ping_ms_remaining(), -1,
             "no client at all: nothing to probe, so nothing to wait"
             " for");
@@ -166,7 +166,7 @@ int main(void)
     /* 3-4: a client that does not support the protocol is still
      * ignored entirely */
     (void) ohtbl_insert(desktop.clients, &plain_client);
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT(ping_ms_remaining(), -1,
             "a client without _NET_WM_PING support changes nothing");
     TAP_EQ_INT(s_call_ping_send, 0,
@@ -178,7 +178,7 @@ int main(void)
      * immediately */
     (void) ohtbl_insert(desktop.clients, &supported_client);
     s_call_ping_send = 0;
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT(s_call_ping_send, 0,
             "the very first tick after a supporting client appears"
             " only arms the timer, sending no probe yet");
@@ -189,7 +189,7 @@ int main(void)
     /* 7-9: ticking again immediately (interval not yet elapsed) still
      * sends nothing */
     s_call_ping_send = 0;
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT(s_call_ping_send, 0,
             "ticking again before the interval elapses sends nothing"
             " yet");
@@ -206,7 +206,7 @@ int main(void)
      * assertions */
     s_sleep_ms(5200);
     s_call_ping_send = 0;
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT(s_call_ping_send, 1,
             "once the interval elapses, exactly the one supporting"
             " client is probed");
@@ -224,7 +224,7 @@ int main(void)
     supported_client.hints_ewmh.ping.pending_ticks = 0u;
     s_sleep_ms(5200);
     s_call_ping_send = 0;
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT((int) supported_client.hints_ewmh.ping.pending_ticks, 1,
             "a client still waiting on a reply has its pending-round"
             " count advanced by one");
@@ -237,10 +237,10 @@ int main(void)
      * 5s/15s ratio) marks the client unresponsive, and it is still
      * sent this round's probe regardless */
     s_sleep_ms(5200);
-    ping_tick(surfaces);
+    ping_tick(stages);
     s_sleep_ms(5200);
     s_call_ping_send = 0;
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_OK((supported_client.properties.flags &
                 CLIENT_FLAG_UNRESPONSIVE) != 0,
             "enough consecutive unanswered rounds marks the client"
@@ -252,7 +252,7 @@ int main(void)
      * back to zero, staying marked unresponsive regardless */
     supported_client.hints_ewmh.ping.pending_ticks = 255u;
     s_sleep_ms(5200);
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT((int) supported_client.hints_ewmh.ping.pending_ticks,
             255,
             "pending_ticks saturates at its maximum rather than"
@@ -261,18 +261,18 @@ int main(void)
     /* 18-19: once the client stops supporting the protocol
      * altogether, the next tick reports nothing left to probe again */
     supported_client.hints_ewmh.ping.is_supported = false;
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT(ping_ms_remaining(), -1,
             "once no client supports the protocol anymore, there is"
             " nothing left to wait for");
     s_call_ping_send = 0;
-    ping_tick(surfaces);
+    ping_tick(stages);
     TAP_EQ_INT(s_call_ping_send, 0,
             "and no further probe is ever sent");
 
     ohtbl_destroy(desktop.clients);
-    cdlist_destroy(surface.desktops);
-    list_destroy(surfaces);
+    cdlist_destroy(stage.desktops);
+    list_destroy(stages);
 
     return TAP_DONE();
 }

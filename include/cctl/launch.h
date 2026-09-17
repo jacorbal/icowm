@@ -23,17 +23,17 @@
 /**
  * @brief Dispatch a program-launch event on the active desktop
  *
- * Locates the currently active desktop for @p surface and enqueues
- * a launch event for @p prog.  Does nothing if either @p surface or
+ * Locates the currently active desktop for @p stage and enqueues
+ * a launch event for @p prog.  Does nothing if either @p stage or
  * @p prog is @c NULL or empty.
  *
- * @param surface    Active surface (screen); may be null
+ * @param stage      Active stage (screen); may be null
  * @param prog       Program command string to launch; may be null
  * @param class_name Optional @c WM_CLASS override string; may be null
  *
  * @note Complexity: @e O(1)
  */
-void cctl_launch_dispatch(surface_td *surface,
+void cctl_launch_dispatch(stage_td *stage,
         const char *restrict prog, const char *restrict class_name);
 
 

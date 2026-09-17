@@ -33,7 +33,7 @@
 #include <utils/safe/safestr.h>
 
 /* Command includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -47,11 +47,11 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <enact/surface.h>
+#include <enact/stage.h>
 #include <logger.h>
 #include <memguard.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Render includes */
@@ -87,7 +87,7 @@ static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
 
 /**
  * @brief Entries for each desktop's submenu, allocated afresh on every
- *  @a winlist_show and sized to the real @c surface->desktop_count
+ *  @a winlist_show and sized to the real @c stage->desktop_count
  *  clamped to @c WINLIST_MAX_DESKTOPS, then released by
  *  @a winlist_close
  *
@@ -141,7 +141,7 @@ static int s_appgroup_capacity = 0;
  * @brief Userdata structure for a window-list menu entry
  */
 typedef struct {
-    surface_td *surface;    /**< Surface that owns the desktop */
+    stage_td *stage;    /**< Stage that owns the desktop */
     client_td *client;      /**< Client to focus, or @c NULL */
     uint32_t desktop_id;    /**< Destination desktop index */
 } winlist_entry_data_td;
@@ -159,21 +159,21 @@ static int s_entry_data_used = 0;
 
 
 /**
- * @brief Request a desktop switch on the given surface
+ * @brief Request a desktop switch on the given stage
  *
  * Shared by @c s_cb_goto_desktop and @c s_cb_focus_client below, both
- * of which switch @p surface to a target desktop by ID before doing
+ * of which switch @p stage to a target desktop by ID before doing
  * anything else specific to their entry type.
  *
- * @param surface    Surface to switch
+ * @param stage      Stage to switch
  * @param desktop_id Target desktop ID
  *
  * @note Complexity: @e O(1)
  */
-static void s_switch_to_desktop(surface_td *surface,
+static void s_switch_to_desktop(stage_td *stage,
         uint32_t desktop_id)
 {
-    enact_surface_desktop_switch(surface, desktop_id);
+    enact_stage_desktop_switch(stage, desktop_id);
 }
 
 
@@ -186,7 +186,7 @@ static void s_switch_to_desktop(surface_td *surface,
  *
  * @param connection XCB connection (unused)
  * @param userdata   Pointer to a @c winlist_entry_data_td with the
- *                   target surface and desktop ID
+ *                   target stage and desktop ID
  */
 static void s_cb_goto_desktop(xcb_connection_t *connection,
         void *userdata)
@@ -196,25 +196,25 @@ static void s_cb_goto_desktop(xcb_connection_t *connection,
     (void) connection;
 
     data = (winlist_entry_data_td *) userdata;
-    if (data == NULL || data->surface == NULL) {
+    if (data == NULL || data->stage == NULL) {
         return;
     }
 
-    s_switch_to_desktop(data->surface, data->desktop_id);
+    s_switch_to_desktop(data->stage, data->desktop_id);
 }
 
 
 /**
- * @brief Add a new, empty desktop to the surface
+ * @brief Add a new, empty desktop to the stage
  *
  * Callback invoked from the window list's trailing "Add new desktop"
  * entry.  Not about any particular desktop, unlike @a s_cb_goto_desktop
- * just above: only @p data->surface is read, @p data->desktop_id is
+ * just above: only @p data->stage is read, @p data->desktop_id is
  * left unused.
  *
  * @param connection XCB connection (unused)
  * @param userdata   Pointer to a @c winlist_entry_data_td with the
- *                   target surface
+ *                   target stage
  */
 static void s_cb_add_desktop(xcb_connection_t *connection,
         void *userdata)
@@ -224,27 +224,27 @@ static void s_cb_add_desktop(xcb_connection_t *connection,
     (void) connection;
 
     data = (winlist_entry_data_td *) userdata;
-    if (data == NULL || data->surface == NULL) {
+    if (data == NULL || data->stage == NULL) {
         return;
     }
 
-    enact_surface_desktop_add(data->surface);
+    enact_stage_desktop_add(data->stage);
 }
 
 
 /**
- * @brief Remove the surface's last desktop
+ * @brief Remove the stage's last desktop
  *
  * Callback invoked from the window list's trailing "Remove last
  * desktop" entry.  A no-op, silently, when only one desktop remains;
- * see @a surface_action_desktop_remove (@c surface.h) for the exact
+ * see @a stage_action_desktop_remove (@c stage.h) for the exact
  * refusal conditions, and this same entry's @c is_disabled below
  * (@a winlist_show) for how that state reaches the user before they
  * even try.
  *
  * @param connection XCB connection (unused)
  * @param userdata   Pointer to a @c winlist_entry_data_td with the
- *                   target surface
+ *                   target stage
  */
 static void s_cb_remove_desktop(xcb_connection_t *connection,
         void *userdata)
@@ -254,11 +254,11 @@ static void s_cb_remove_desktop(xcb_connection_t *connection,
     (void) connection;
 
     data = (winlist_entry_data_td *) userdata;
-    if (data == NULL || data->surface == NULL) {
+    if (data == NULL || data->stage == NULL) {
         return;
     }
 
-    enact_surface_desktop_remove(data->surface);
+    enact_stage_desktop_remove(data->stage);
 }
 
 
@@ -278,7 +278,7 @@ static void s_cb_remove_desktop(xcb_connection_t *connection,
  *
  * @param connection XCB connection (unused)
  * @param userdata   Pointer to a @c winlist_entry_data_td with the
- *                   target surface, desktop ID, and optional client
+ *                   target stage, desktop ID, and optional client
  */
 static void s_cb_focus_client(xcb_connection_t *connection,
         void *userdata)
@@ -290,7 +290,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
     (void) connection;
 
     data = (winlist_entry_data_td *) userdata;
-    if (data == NULL || data->surface == NULL) {
+    if (data == NULL || data->stage == NULL) {
         return;
     }
 
@@ -313,7 +313,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
      * desktop's submenu the entry was actually picked from. */
     target_did = data->desktop_id;
 
-    s_switch_to_desktop(data->surface, target_did);
+    s_switch_to_desktop(data->stage, target_did);
     if (data->client == NULL) {
         return;
     }
@@ -330,8 +330,8 @@ static void s_cb_focus_client(xcb_connection_t *connection,
         enact_client_unshade(data->client);
     }
 
-    target_desktop = surface_desktop_get(data->surface, target_did);
-    focus_apply(wm_get_surfaces(), data->surface, target_desktop,
+    target_desktop = stage_desktop_get(data->stage, target_did);
+    focus_apply(wm_get_stages(), data->stage, target_desktop,
             data->client, true, NULL);
 }
 
@@ -405,14 +405,14 @@ static winlist_entry_data_td *s_alloc_entry_data(void)
  *
  * @param client      Client to add
  * @param did         Desktop this entry switches to when activated
- * @param surface     Surface that owns the desktop
+ * @param stage       Stage that owns the desktop
  * @param out_entries Destination entries array
  * @param out_cap     Capacity of @p out_entries
  * @param out_count   Current entry count in @p out_entries; advanced by
  *                    one on success
  */
 static void s_client_entry_append(client_td *client, uint32_t did,
-        surface_td *surface, ctxmenu_entry_td *out_entries,
+        stage_td *stage, ctxmenu_entry_td *out_entries,
         int out_cap, int *out_count)
 {
     const char *cname;
@@ -420,7 +420,7 @@ static void s_client_entry_append(client_td *client, uint32_t did,
     winlist_entry_data_td *data;
     int n;
 
-    if (client == NULL || surface == NULL || out_count == NULL) {
+    if (client == NULL || stage == NULL || out_count == NULL) {
         return;
     }
 
@@ -455,7 +455,7 @@ static void s_client_entry_append(client_td *client, uint32_t did,
     out_entries[n].type = CTXMENU_COMMAND;
     safe_strncpy(out_entries[n].label, name_buf,
             sizeof(out_entries[n].label) - 1u);
-    data->surface = surface;
+    data->stage = stage;
     data->client = client;
     data->desktop_id = did;
     out_entries[n].on_activate = s_cb_focus_client;
@@ -515,9 +515,9 @@ static void s_appgroup_label(client_td * const *members, int member_n,
  * other desktops), which otherwise repeated the same bounds-checked
  * append.
  *
- * @param client      Client to append
- * @param collected   Destination array
- * @param placed      Parallel "already grouped" array; the new slot is
+ * @param client    Client to append
+ * @param collected Destination array
+ * @param placed    Parallel "already grouped" array; the new slot is
  *                    initialized to @c false
  * @param collected_n Current count in @p collected; incremented on
  *                    success
@@ -557,12 +557,12 @@ static void s_client_collect(client_td *client,
  * per-desktop cap still applies identically either way) and, once
  * found, @p out_appgroup_count.
  *
- * @param surface            Surface that owns the desktop
- * @param did                Desktop ID whose clients are to be listed
- * @param out_entries        Destination entries array for this
+ * @param stage       Stage that owns the desktop
+ * @param did         Desktop ID whose clients are to be listed
+ * @param out_entries Destination entries array for this
  *                           desktop, or @c NULL for a counting-only
  *                           pass
- * @param out_count          Entry count in @p out_entries; advanced as
+ * @param out_count Entry count in @p out_entries; advanced as
  *                           entries are appended (or would be, in
  *                           a counting-only pass)
  * @param out_appgroup_count @c NULL for a real pass, using the real
@@ -573,7 +573,7 @@ static void s_client_collect(client_td *client,
  *
  * @note Applications with only one window here are listed directly
  */
-static void s_build_desktop_entries(surface_td *surface, uint32_t did,
+static void s_build_desktop_entries(stage_td *stage, uint32_t did,
         ctxmenu_entry_td *out_entries, int *out_count,
         int *out_appgroup_count)
 {
@@ -597,11 +597,11 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
      * arrays were then allocated one single row long; the second group
      * a real pass went on to build wrote past the end of
      * both. */
-    if (surface == NULL || out_count == NULL) {
+    if (stage == NULL || out_count == NULL) {
         return;
     }
 
-    desktop = surface_desktop_get(surface, did);
+    desktop = stage_desktop_get(stage, did);
     if (desktop == NULL) {
         return;
     }
@@ -626,8 +626,8 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
         }
     }
 
-    if (surface->desktops != NULL) {
-        dnode = cdlist_head(surface->desktops);
+    if (stage->desktops != NULL) {
+        dnode = cdlist_head(stage->desktops);
         if (dnode != NULL) {
             const cdlist_item_td *dinitial;
             dinitial = dnode;
@@ -667,7 +667,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 
         leader = client_group_leader(collected[i]);
         if (leader == XCB_WINDOW_NONE) {
-            s_client_entry_append(collected[i], did, surface,
+            s_client_entry_append(collected[i], did, stage,
                     out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
                     out_count);
             placed[i] = true;
@@ -695,7 +695,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 
         if (member_n <= 1) {
             if (member_n == 1) {
-                s_client_entry_append(members[0], did, surface,
+                s_client_entry_append(members[0], did, stage,
                         out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
                         out_count);
             }
@@ -709,7 +709,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
             /* Out of submenu slots: fall back to listing this group's
              * windows directly rather than dropping them silently */
             for (int k = 0; k < member_n; ++k) {
-                s_client_entry_append(members[k], did, surface,
+                s_client_entry_append(members[k], did, stage,
                         out_entries, WINLIST_MAX_ENTRIES_PER_DESKTOP,
                         out_count);
             }
@@ -735,7 +735,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 
         s_appgroup_used++;
         for (int k = 0; k < member_n; ++k) {
-            s_client_entry_append(members[k], did, surface,
+            s_client_entry_append(members[k], did, stage,
                     s_appgroup_entries[group_idx],
                     WINLIST_MAX_APPGROUP_SIZE, &group_n);
         }
@@ -776,7 +776,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
  * regardless of how many groups this desktop count and these clients
  * actually produce.
  *
- * @param surface       Surface whose desktops to count groups across
+ * @param stage         Stage whose desktops to count groups across
  * @param desktop_count Already-clamped desktop count, the same one
  *                      the real build pass right after this call
  *                      goes on to iterate itself
@@ -787,7 +787,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
  * @note Complexity: @e O(n), where @e n is the total number of
  *       clients across every desktop counted
  */
-static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
+static int s_count_appgroups_needed(stage_td *stage, int desktop_count)
 {
     int total;
     int dummy_count;
@@ -795,11 +795,11 @@ static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
     total = 0;
     if (desktop_count <= 1) {
         dummy_count = 0;
-        s_build_desktop_entries(surface, 0u, NULL, &dummy_count, &total);
+        s_build_desktop_entries(stage, 0u, NULL, &dummy_count, &total);
     } else {
         for (uint32_t did = 0; (int) did < desktop_count; ++did) {
             dummy_count = 0;
-            s_build_desktop_entries(surface, did, NULL, &dummy_count,
+            s_build_desktop_entries(stage, did, NULL, &dummy_count,
                     &total);
         }
     }
@@ -812,7 +812,7 @@ static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
  * @brief What @a s_desktop_submenu_visit is building
  */
 struct s_submenu_ctx_s {
-    surface_td *surface;    /**< Surface whose desktops are listed */
+    stage_td *stage;    /**< Stage whose desktops are listed */
     int desktop_count;      /**< How many to list at most */
     uint32_t cur_did;       /**< Desktop showing right now */
     int entry_count;        /**< Root entries written so far */
@@ -851,7 +851,7 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
     ctx->index++;
 
     desktop_n = 0;
-    s_build_desktop_entries(ctx->surface, did, s_desktop_entries[did],
+    s_build_desktop_entries(ctx->stage, did, s_desktop_entries[did],
             &desktop_n, NULL);
 
     is_cur = did == ctx->cur_did;
@@ -892,7 +892,7 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
             s_desktop_entries[did][0].icon_window = XCB_WINDOW_NONE;
             s_desktop_entries[did][0].icon_cache = NULL;
             if (!is_cur) {
-                entry_data->surface = ctx->surface;
+                entry_data->stage = ctx->stage;
                 entry_data->client = NULL;
                 entry_data->desktop_id = did;
                 s_desktop_entries[did][0].on_activate =
@@ -924,7 +924,7 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
     s_desktop_state[did].entries = s_desktop_entries[did];
     s_desktop_state[did].entry_count = desktop_n;
 
-    surface_desktop_label(ctx->surface, did, desktop->name, false,
+    stage_desktop_label(ctx->stage, did, desktop->name, false,
             true, desk_label, sizeof(desk_label));
     (void) snprintf(label_buf, sizeof(label_buf), "%s%s%s",
             MENU_CONTEXT_CTXMENU_LABEL_PREFIX, desk_label,
@@ -943,31 +943,31 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
 /**
  * @brief Build one root entry per desktop, each a submenu of its own
  *
- * Only for a surface with more than one desktop; a single one is
+ * Only for a stage with more than one desktop; a single one is
  * flattened by the caller instead, since there would be nothing to
  * choose between.
  *
- * @param surface       Surface whose desktops are listed
+ * @param stage         Stage whose desktops are listed
  * @param desktop_count How many desktops to list at most
  * @param n_out         Entry count, advanced by what is written
  *
  * @note Complexity: @e O(d * c), where @e d is the number of desktops
  *       and @e c the clients on each
  */
-static void s_winlist_build_desktop_submenus(surface_td *surface,
+static void s_winlist_build_desktop_submenus(stage_td *stage,
         int desktop_count, int *n_out)
 {
-    const uint32_t cur_did = surface->desktop_cur;
+    const uint32_t cur_did = stage->desktop_cur;
     int n = *n_out;
 
     struct s_submenu_ctx_s submenu_ctx;
 
-    submenu_ctx.surface = surface;
+    submenu_ctx.stage = stage;
     submenu_ctx.desktop_count = desktop_count;
     submenu_ctx.cur_did = cur_did;
     submenu_ctx.entry_count = n;
     submenu_ctx.index = 0u;
-    surface_desktop_walk_all(surface, s_desktop_submenu_visit,
+    stage_desktop_walk_all(stage, s_desktop_submenu_visit,
             &submenu_ctx);
     n = submenu_ctx.entry_count;
 
@@ -978,21 +978,21 @@ static void s_winlist_build_desktop_submenus(surface_td *surface,
 /**
  * @brief Append the add and remove desktop actions
  *
- * A surface-wide pair, not tied to any one desktop's window list, so it
+ * A stage-wide pair, not tied to any one desktop's window list, so it
  * belongs after every entry above rather than duplicated into each
  * submenu.  Skipped outright when the buffer is already full, rather
  * than overflowing it, and under restricted-memory mode, which stays
  * locked to exactly one desktop for the life of the process, so neither
  * action could ever succeed there.
  *
- * @param surface       Surface the actions operate on
+ * @param stage         Stage the actions operate on
  * @param root_target   Entry buffer the caller is filling
- * @param desktop_count How many desktops the surface has
+ * @param desktop_count How many desktops the stage has
  * @param n_out         Entry count, advanced by what is written
  *
  * @note Complexity: @e O(1)
  */
-static void s_winlist_append_desktop_actions(surface_td *surface,
+static void s_winlist_append_desktop_actions(stage_td *stage,
         ctxmenu_entry_td *root_target, int desktop_count, int *n_out)
 {
     winlist_entry_data_td *add_data;
@@ -1001,7 +1001,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
 
     /* "Add new desktop" / "Remove last desktop", always appended at the
      * very end after a separator, in both display modes.
-     * A surface-wide action, not tied to any particular desktop's
+     * A stage-wide action, not tied to any particular desktop's
      * window list, so it belongs outside the per-desktop submenu layer
      * above rather than duplicated into every one of them.  Guarded
      * against whichever buffer 'root_target' actually points to being
@@ -1013,7 +1013,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
      * exact same kind of buffer.  Also skipped outright, omitted rather
      * than merely disabled, under restricted-memory mode, which is
      * deliberately locked to exactly one desktop always (see
-     * 'surface_action_desktop_add''s comment).  A user running that
+     * 'stage_action_desktop_add''s comment).  A user running that
      * mode has no use for either action ever succeeding, unlike an
      * ordinary session's "only one desktop remains for now" case just
      * below, where adding a second one back remains a real possibility
@@ -1033,12 +1033,12 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
         safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_ADD),
                 sizeof(root_target[n].label) - 1u);
         root_target[n].is_disabled =
-            (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS);
+            (stage->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS);
         root_target[n].on_activate = s_cb_add_desktop;
         root_target[n].icon_window = XCB_WINDOW_NONE;
         root_target[n].icon_cache = NULL;
         if (add_data != NULL) {
-            add_data->surface = surface;
+            add_data->stage = stage;
             add_data->client = NULL;
             add_data->desktop_id = 0u;
         }
@@ -1056,12 +1056,12 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
         root_target[n].type = CTXMENU_COMMAND;
         safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_REMOVE),
                 sizeof(root_target[n].label) - 1u);
-        root_target[n].is_disabled = (surface->desktop_count <= 1u);
+        root_target[n].is_disabled = (stage->desktop_count <= 1u);
         root_target[n].on_activate = s_cb_remove_desktop;
         root_target[n].icon_window = XCB_WINDOW_NONE;
         root_target[n].icon_cache = NULL;
         if (remove_data != NULL) {
-            remove_data->surface = surface;
+            remove_data->stage = stage;
             remove_data->client = NULL;
             remove_data->desktop_id = 0u;
         }
@@ -1075,7 +1075,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
 
 /* Open the window list menu */
 void winlist_show(xcb_connection_t *connection,
-        surface_td *surface, struct position_s pos,
+        stage_td *stage, struct position_s pos,
         const config_td *config)
 {
     int n;
@@ -1083,7 +1083,7 @@ void winlist_show(xcb_connection_t *connection,
     int needed_appgroups;
     ctxmenu_entry_td *root_target;
 
-    if (connection == NULL || surface == NULL || config == NULL) {
+    if (connection == NULL || stage == NULL || config == NULL) {
         return;
     }
 
@@ -1103,14 +1103,14 @@ void winlist_show(xcb_connection_t *connection,
     memset(s_root_entries, 0, sizeof(s_root_entries));
 
     desktop_count =
-        (surface->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
-        ? (int) surface->desktop_count
+        (stage->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
+        ? (int) stage->desktop_count
         : WINLIST_MAX_DESKTOPS;
 
     /* Sized to 'desktop_count' itself, computed fresh just above from
-     * 'surface->desktop_count' as it stands at this exact moment,
+     * 'stage->desktop_count' as it stands at this exact moment,
      * rather than to 'WINLIST_MAX_DESKTOPS' (the most desktops
-     * a surface could ever have, not how many this one actually does
+     * a stage could ever have, not how many this one actually does
      * right now): a session with only two or three desktops in use no
      * longer pays for the full, far larger worst case every single time
      * this menu opens.
@@ -1147,7 +1147,7 @@ void winlist_show(xcb_connection_t *connection,
      * reason, even though a session with genuinely no multi-window
      * application anywhere would only ever index row zero
      * regardless. */
-    needed_appgroups = s_count_appgroups_needed(surface, desktop_count);
+    needed_appgroups = s_count_appgroups_needed(stage, desktop_count);
     s_appgroup_entries = calloc((size_t) ((needed_appgroups > 0)
                 ? needed_appgroups : 1),
             sizeof(*s_appgroup_entries));
@@ -1181,13 +1181,13 @@ void winlist_show(xcb_connection_t *connection,
      * "Send to desktop" and desktop-cycling key bindings; see
      * 'wincmenu.c' and 'input/kbd/bind.c'. */
     if (desktop_count <= 1) {
-        const desktop_td *desktop = surface_desktop_get(surface, 0u);
+        const desktop_td *desktop = stage_desktop_get(stage, 0u);
         if (desktop != NULL) {
-            s_build_desktop_entries(surface, 0u, s_desktop_entries[0],
+            s_build_desktop_entries(stage, 0u, s_desktop_entries[0],
                     &n, NULL);
         }
     } else {
-        s_winlist_build_desktop_submenus(surface,
+        s_winlist_build_desktop_submenus(stage,
                 desktop_count, &n);
     }
 
@@ -1207,7 +1207,7 @@ void winlist_show(xcb_connection_t *connection,
         ++n;
     }
 
-    s_winlist_append_desktop_actions(surface, root_target,
+    s_winlist_append_desktop_actions(stage, root_target,
             desktop_count, &n);
 
     memset(&s_root, 0, sizeof(s_root));
@@ -1215,7 +1215,7 @@ void winlist_show(xcb_connection_t *connection,
     s_root.entries = root_target;
     s_root.entry_count = n;
 
-    ctxmenu_show(connection, surface, &s_root, pos, config);
+    ctxmenu_show(connection, stage, &s_root, pos, config);
 }
 
 
@@ -1253,10 +1253,10 @@ void winlist_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the window list menu */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int y,
+        stage_td *stage, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_click_window(connection, surface, &s_root,
+    return ctxmenu_tree_handle_click_window(connection, stage, &s_root,
             win, y, config);
 }
 
@@ -1289,10 +1289,10 @@ void winlist_notice_client_destroyed(const client_td *client)
 
 /* Handle a key-press event while the window list menu is open */
 bool winlist_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_keypress_deepest(connection, surface,
+    return ctxmenu_tree_handle_keypress_deepest(connection, stage,
             &s_root, keysym, config);
 }
 

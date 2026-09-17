@@ -30,15 +30,15 @@
 /* Project includes */
 #include <client.h>
 #include <cmds/client/focus.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
 #include <enact/desktop.h>
 #include <logger.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Utils includes */
@@ -137,7 +137,7 @@ static void s_shutdown_kill_client(client_td *client, void *userdata)
 /* Bring one client to the desktop and viewport page being looked at */
 void wm_shutdown_gather_client(client_td *client)
 {
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     uint32_t col;
     uint32_t row;
@@ -146,12 +146,12 @@ void wm_shutdown_gather_client(client_td *client)
         return;
     }
 
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (surface == NULL) {
+    stage = wm_get_stage_by_id(client->screen_id);
+    if (stage == NULL) {
         return;
     }
 
-    desktop = surface_desktop_get(surface, surface->desktop_cur);
+    desktop = stage_desktop_get(stage, stage->desktop_cur);
     if (desktop == NULL) {
         return;
     }
@@ -171,9 +171,9 @@ void wm_shutdown_gather_client(client_td *client)
     }
 
     if (!client_is_sticky(client) &&
-            scmd_surface_viewport_desktop_page(surface, desktop,
+            scmd_stage_viewport_desktop_page(stage, desktop,
                 &col, &row)) {
-        enact_client_send_to_page(surface, client, col, row);
+        enact_client_send_to_page(stage, client, col, row);
     }
 }
 

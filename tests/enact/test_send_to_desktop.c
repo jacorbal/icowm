@@ -51,7 +51,7 @@
 #include <ipc.h>
 #include <menu/cycle.h>
 #include <policy/placement/window.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
@@ -63,14 +63,14 @@
 static desktop_td *s_stub_client_desktop = NULL;
 
 
-/** Link-only stand-in for wm_get_surface_by_id (wm.c): always
- *  reports "no such surface", so 's_enact_desktop_client_send_one'
+/** Link-only stand-in for wm_get_stage_by_id (wm.c): always
+ *  reports "no such stage", so 's_enact_desktop_client_send_one'
  *  never takes its own "currently visible, unmap it" branch, which
  *  this file's own fixtures have no live XCB connection to survive
  *  correctly */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
     return NULL;
 }
 
@@ -181,11 +181,11 @@ void enact_broadcast_client_event(client_td *client, uint32_t type)
  *  active one" branch, deliberately never taken by any test in this
  *  file), so the linker needs it resolved regardless of whether it
  *  is ever actually reached at runtime */
-void client_focus_fallback(desktop_td *desktop, surface_td *surface,
+void client_focus_fallback(desktop_td *desktop, stage_td *stage,
         const client_td *exclude)
 {
     (void) desktop;
-    (void) surface;
+    (void) stage;
     (void) exclude;
 }
 
@@ -209,12 +209,12 @@ void ccmd_client_unmap_decorated(client_td *client,
 
 
 /** Link-only stand-in for cycle_init (menu/cycle.c) */
-void cycle_init(xcb_connection_t *connection, surface_td *surface,
+void cycle_init(xcb_connection_t *connection, stage_td *stage,
         desktop_td *desktop, bool is_icon, int preselect,
         uint16_t modifier, const config_td *cfg)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) is_icon;
     (void) preselect;
@@ -273,9 +273,9 @@ int desktop_action_client_deiconify_all(desktop_td *desktop)
 
 /** Link-only stand-in for hi_handle_net_showing_desktop
  *  (handler/ewmh.c) */
-void hi_handle_net_showing_desktop(surface_td *surface, bool show)
+void hi_handle_net_showing_desktop(stage_td *stage, bool show)
 {
-    (void) surface;
+    (void) stage;
     (void) show;
 }
 
@@ -288,15 +288,15 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
 }
 
 
-/** Link-only stand-in for scmd_surface_viewport_desktop_page
- *  (cmds/surface.c): every scenario here runs on a plain 1x1
+/** Link-only stand-in for scmd_stage_viewport_desktop_page
+ *  (cmds/stage.c): every scenario here runs on a plain 1x1
  *  viewport, where the real one reports false too and leaves both
  *  outputs untouched */
-bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+bool scmd_stage_viewport_desktop_page(const stage_td *stage,
         const desktop_td *desktop, uint32_t *col_out,
         uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) col_out;
     (void) row_out;
@@ -305,14 +305,14 @@ bool scmd_surface_viewport_desktop_page(const surface_td *surface,
 }
 
 
-/** Link-only stand-in for scmd_surface_viewport_client_page
- *  (cmds/surface.c): false for the same reason as its sibling above,
+/** Link-only stand-in for scmd_stage_viewport_client_page
+ *  (cmds/stage.c): false for the same reason as its sibling above,
  *  so no client is ever skipped as being on another page */
-bool scmd_surface_viewport_client_page(const surface_td *surface,
+bool scmd_stage_viewport_client_page(const stage_td *stage,
         const desktop_td *desktop, const client_td *client,
         uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) col_out;
@@ -324,22 +324,22 @@ bool scmd_surface_viewport_client_page(const surface_td *surface,
 
 /** Link-only stand-in for place_window_apply
  *  (policy/placement/window.c) */
-void place_window_apply(const wm_td *wm, surface_td *surface,
+void place_window_apply(const wm_td *wm, stage_td *stage,
         client_td *client)
 {
     (void) wm;
-    (void) surface;
+    (void) stage;
     (void) client;
 }
 
 
 /** Link-only stand-in for place_window_apply_cascade
  *  (policy/placement/window.c) */
-void place_window_apply_cascade(const wm_td *wm, surface_td *surface,
+void place_window_apply_cascade(const wm_td *wm, stage_td *stage,
         client_td *client)
 {
     (void) wm;
-    (void) surface;
+    (void) stage;
     (void) client;
 }
 

@@ -298,7 +298,7 @@ This lays desktops `0`-`5` out as:
 [3][4][5]
 ```
 
-| Key           | Type    | Default        | Description |
+| Key           | Type    | Default        | Description        |
 |---------------|---------|----------------|--------------------|
 | `orientation` | string  | `"horizontal"` | `"horizontal"` fills one whole row before moving to the next; `"vertical"` fills one whole column before moving to the next. |
 | `corner`      | string  | `"top-left"`   | Which corner desktop `0` itself starts at, and so which direction IDs advance from there: `"top-left"`, `"top-right"`, `"bottom-left"`, `"bottom-right"`. |
@@ -496,9 +496,9 @@ row}` from the top left:
 Note the two notations side by side.  A desktop is an index in square
 brackets, `[3]`; a viewport page is a pair in braces, `{1, 0}`.  Both
 appear together wherever the manager names a place, as in the overlay's
-`Work: [3 (1, 1)] {1, 0}`: the parenthesised pair there is the
-desktop's own row and column within `layout` above, and the braced one
-is the viewport page.
+`Work: [3 (1, 1)] {1, 0}`: the parenthesised pair there is the desktop's
+row and column within `layout` above, and the braced one is the viewport
+page.
 
 **The screen is a window onto the canvas.**  Panning moves that window,
 not the desktop underneath it, and the origin is not confined to the
@@ -515,9 +515,9 @@ exactly:
    |       |# seen#|       |            |    # s|een#   |       |
    |       |#######|       |            |    ###|####   |       |
    +-------+-------+-------+            +-------+-------+-------+
-   |       |       |       |            |       |       |       |
-   |       |       |       |            |       |       |       |
-   |       |       |       |            |       |       |       |
+   |  |  |  |  |  |  |  |
+   |--|--|--|--|--|--|---|
+   |  |  |  |  |  |  |  |
    +-------+-------+-------+            +-------+-------+-------+
 ```
 
@@ -525,17 +525,17 @@ A view left between pages is reported by whichever page holds its
 middle, so the overlay names the one actually filling the screen rather
 than the sliver its top-left corner happens to fall in.
 
-**A window belongs to one page only.**  Whichever page its own top-left
+**A window belongs to one page only.**  Whichever page its top-left
 corner falls in, whatever else it overlaps:
 
 ```
    +-------+-------+
    |       |       |     window A is seen on both {0,0} and {1,0}
-   |    +--+--+    |     but belongs to {0,0}, the page its own
+   |    +--+--+    |     but belongs to {0,0}, the page its 
    |    | A|  |    |     top-left corner falls in
    +----+--+--+----+
-   |    +--+--+    |
-   |       |       |
+   | +--+--+ |
+   |---|
    +-------+-------+
 ```
 
@@ -630,13 +630,13 @@ pick up a `topology.*` change instead.
 Associates application categories with the executables IcoWM will launch
 for the corresponding keyboard shortcuts.
 
-| Key                     | Type   | Default     | Description          |
-|-------------------------|--------|-------------|----------------------|
-| `programs.terminal`     | string | `"xterm"`   | Terminal emulator.   |
+| Key                     | Type   | Default     | Description        |
+|-------------------------|--------|-------------|--------------------|
+| `programs.terminal`     | string | `"xterm"`   | Terminal emulator. |
 | `programs.launcher`     | string | `"gmrun"`   | Application launcher; see `prompt` (§2.12) for the built-in alternative that can replace spawning this entirely. |
-| `programs.file-manager` | string | `"pcmanfm"` | File manager.        |
-| `programs.editor`       | string | `"gvim"`    | Text editor.         |
-| `programs.web-browser`  | string | `"firefox"` | Web browser.         |
+| `programs.file-manager` | string | `"pcmanfm"` | File manager.      |
+| `programs.editor`       | string | `"gvim"`    | Text editor.       |
+| `programs.web-browser`  | string | `"firefox"` | Web browser.       |
 
 ```json
 "programs": {
@@ -655,8 +655,8 @@ policy, and placement policy.
 
 #### `windows.gravity`
 
-| Key               | Type   | Default        |
-|-------------------|--------|----------------|
+| Key               | Type   | Default |
+|-------------------|--------|---|
 | `windows.gravity` | string | `"north-west"` |
 
 Fallback window gravity, used only for a client that never declares one
@@ -687,11 +687,11 @@ Accepted `windows.gravity` values: `"north-west"`, `"north"`,
 
 #### `windows.edges`
 
-| Key                  | Type    | Default | Description |
-|----------------------|---------|---------|-------------|
-| `edges.snap.window`  | integer | `6`     | Attraction distance in pixels toward another window's edge.  When a window being dragged comes within this many pixels of another window's border, it snaps into alignment with it.  Set to `0` to disable this specifically. |
-| `edges.snap.screen`  | integer | `6`     | Attraction distance in pixels toward the screen's edge.  Set to `0` to disable this specifically. |
-| `edges.resistance`   | integer | `20`    | How many pixels of deliberate extra drag it takes for a horizontally or vertically maximized window's locked axis to actually start changing while being interactively resized with the mouse.  Dragging back under this same threshold before releasing restores the maximized axis, reversibly, for the whole drag.  Set to `0` to remove the axis lock entirely, letting the maximized axis change on the very first pixel of drag. |
+| Key                 | Type    | Default | Description |
+|---------------------|---------|---------|-------------|
+| `edges.snap.window` | integer | `6`     | Attraction distance in pixels toward another window's edge.  When a window being dragged comes within this many pixels of another window's border, it snaps into alignment with it.  Set to `0` to disable this specifically. |
+| `edges.snap.screen` | integer | `6`     | Attraction distance in pixels toward the screen's edge.  Set to `0` to disable this specifically. |
+| `edges.resistance`  | integer | `20`    | How many pixels of deliberate extra drag it takes for a horizontally or vertically maximized window's locked axis to actually start changing while being interactively resized with the mouse.  Dragging back under this same threshold before releasing restores the maximized axis, reversibly, for the whole drag.  Set to `0` to remove the axis lock entirely, letting the maximized axis change on the very first pixel of drag. |
 
 ```json
 "windows": {
@@ -756,17 +756,17 @@ if the client redraws something expensive on each resize.  Icon drags
 are always solid regardless of this setting, moving just the small icon
 window being cheap enough on its own that the distinction would add
 nothing.  Restricted-memory mode (`memguard.json`) always runs with this
-`false`, and does not expose the key for the person to override; see
-§10.2 below.
+`false`, and does not expose the key for the user to override; see §10.2
+below.
 
 #### `windows.focus`
 
-| Key                        | Type    | Default   | Description |
-|----------------------------|---------|-----------|-------------|
-| `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
-| `focus.focus-new`          | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
-| `focus.raise`              | boolean | `false`   | When `true`, a window is also raised when it gains focus by pointer or wheel. |
-| `focus.delay-ms`           | integer | `250`     | Milliseconds the pointer must sit still over a window before it is focused. Only takes effect under `"sloppy"`; has no effect under `"click"`. |
+| Key               | Type    | Default   | Description |
+|-------------------|---------|-----------|-------------|
+| `focus.policy`    | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
+| `focus.focus-new` | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
+| `focus.raise`     | boolean | `false`   | When `true`, a window is also raised when it gains focus by pointer or wheel. |
+| `focus.delay-ms`  | integer | `250`     | Milliseconds the pointer must sit still over a window before it is focused. Only takes effect under `"sloppy"`; has no effect under `"click"`. |
 
 ```json
 "windows": {
@@ -791,7 +791,7 @@ anyone asking for it to come forward: the pointer entering it under
 `"sloppy"` focus, and the wheel over the desktop shading or unshading
 it.  With `false` those move the keyboard without disturbing the
 stacking order, so a window can be typed into while staying under
-whatever the person had deliberately placed above it.
+whatever the user had deliberately placed above it.
 
 It therefore makes no observable difference under `"click"` focus, where
 none of those paths is reached.
@@ -809,15 +809,15 @@ the way to another one never steals focus along the way.  Under
 | Key                       | Type              | Default     | Description |
 |---------------------------|-------------------|-------------|-------------|
 | `placement.policy`        | string            | `"smart"`   | How newly mapped windows are placed. |
-| `placement.monitor`       | string or integer | `"pointer"` | Which physical monitor a placement decision targets, on a surface with more than one. |
+| `placement.monitor`       | string or integer | `"pointer"` | Which physical monitor a placement decision targets, on a stage with more than one. |
 | `placement.group-related` | boolean           | `false`     | Cluster windows of the same application together. |
 
 Accepted placement policy values:
 
-| Value           | Behavior |
-|-----------------|----------|
-| `"cascade"`     | Places windows in a stepped diagonal sequence. |
-| `"centered"`    | Centers the window on the screen. |
+| Value           | Behavior                                              |
+|-----------------|-------------------------------------------------------|
+| `"cascade"`     | Places windows in a stepped diagonal sequence.        |
+| `"centered"`    | Centers the window on the screen.                     |
 | `"under-mouse"` | Places the window under the current pointer position. |
 | `"smart"`       | Finds the position that minimizes overlap with existing windows. |
 | `"manual"`      | Shows an outline following the pointer and waits for a click to say where the window goes. |
@@ -846,7 +846,7 @@ requests a position itself, a dialog centered over its parent, a dock,
 a scratchpad window, and a window asking to start iconified are all
 placed the way they always are and never asked about.
 
-Accepted placement monitor values (only meaningful on a surface made up
+Accepted placement monitor values (only meaningful on a stage made up
 of more than one physical monitor sharing the same combined X screen;
 has no effect otherwise):
 
@@ -857,9 +857,9 @@ has no effect otherwise):
 | `"primary"` | Always targets the monitor RandR reports as primary. |
 
 `placement.monitor` also accepts a plain number instead of one of the
-strings above, a zero-based index into the surface's monitor list, e.g.,
+strings above, a zero-based index into the stage's monitor list, e.g.,
 `"monitor": 1` targets that specific monitor directly.  Falls back to
-monitor 0 if the surface does not have that many, logging a warning, the
+monitor 0 if the stage does not have that many, logging a warning, the
 same as `systray.monitor.index` and `rules.json`'s `apply.monitor`.
 
 Transient (dialog) windows are always centered over their parent window,
@@ -909,8 +909,8 @@ the icon.
 
 Controls how iconified windows are laid out on the desktop.
 
-| Key                      | Type   | Default   | Description |
-|--------------------------|--------|-----------|-------------|
+| Key                      | Type   | Default   | Description               |
+|--------------------------|--------|-----------|---------------------------|
 | `icons.placement.policy` | string | `"smart"` | How new icons are placed. |
 
 Accepted icon placement values:
@@ -946,12 +946,12 @@ up with theirs.
 
 ### 2.6. `shutdown` / `fortune`
 
-| Key                                     | Type    | Default     |
-|-----------------------------------------|---------|-------------|
-| `shutdown.enable-emergency-shortcut`    | boolean | `false`     |
-| `shutdown.timeout-seconds`              | integer | `15`        |
-| `fortune.is-enabled`                    | boolean | `true`      |
-| `fortune.command`                       | string  | `"fortune"` |
+| Key                                  | Type    | Default |
+|--------------------------------------|---------|---|
+| `shutdown.enable-emergency-shortcut` | boolean | `false` |
+| `shutdown.timeout-seconds`           | integer | `15` |
+| `fortune.is-enabled`                 | boolean | `true` |
+| `fortune.command`                    | string  | `"fortune"` |
 
 `shutdown` groups every setting about how the window manager itself
 shuts down: the hardcoded emergency exit shortcut, and the wait the
@@ -1009,7 +1009,7 @@ in-joke message suggesting it should be.  `fortune.command` is run
 literally, exactly as configured, so it may be any shell command line,
 not just a bare executable name; e.g., `"fortune -s"` for short-only
 fortunes, `"fortune -o"` for offensive ones, or a specific fortune
-database or language, whatever a person's installed `fortune` supports.
+database or language, whatever a user's installed `fortune` supports.
 Purely for fun; harmless to leave off, and harmless to turn on.
 
 ```json
@@ -1060,14 +1060,14 @@ window on every desktop (opened by `keyboard.wm.menus.windows`).
 
 Accepted values:
 
-| Value              | Behavior |
-|--------------------|----------|
-| `"center"`         | Always opens the menu in the center of the screen. |
-| `"under-mouse"`    | Opens the menu under the current mouse pointer position instead, matching the naming of `windows.placement.policy`. |
-| `"top-left"`       | Pins the menu to the top-left corner of the current desktop's work area. |
-| `"top-right"`      | Pins the menu to the top-right corner of the current desktop's work area. |
-| `"bottom-left"`    | Pins the menu to the bottom-left corner of the current desktop's work area. |
-| `"bottom-right"`   | Pins the menu to the bottom-right corner of the current desktop's work area. |
+| Value            | Behavior |
+|------------------|----------|
+| `"center"`       | Always opens the menu in the center of the screen. |
+| `"under-mouse"`  | Opens the menu under the current mouse pointer position instead, matching the naming of `windows.placement.policy`. |
+| `"top-left"`     | Pins the menu to the top-left corner of the current desktop's work area. |
+| `"top-right"`    | Pins the menu to the top-right corner of the current desktop's work area. |
+| `"bottom-left"`  | Pins the menu to the bottom-left corner of the current desktop's work area. |
+| `"bottom-right"` | Pins the menu to the bottom-right corner of the current desktop's work area. |
 
 This setting has no effect when a menu is opened with the mouse (e.g.,
 right-click on the desktop for the root menu), since it already opens
@@ -1145,15 +1145,15 @@ Has no effect while `reserve-space` is `false`.
 ```
 
 `monitor` selects which physical monitor `position`'s corner is measured
-against, on a surface made up of more than one sharing the same combined
+against, on a stage made up of more than one sharing the same combined
 X screen; it has no effect otherwise.  It is an object with an `anchor`
 field and, only when `anchor` is `"index"`, an `index` field:
 
 | Value       | Behavior |
 |-------------|----------|
-| `"surface"` | Measures `position` against the whole combined surface, exactly as if there were only one monitor (default). |
+| `"stage"`   | Measures `position` against the whole combined stage, exactly as if there were only one monitor (default). |
 | `"primary"` | Measures `position` against whichever monitor RandR reports as primary. |
-| `"index"`   | Measures `position` against `monitor.index` specifically, a zero-based index into that surface's monitor list.  Falls back to monitor `0` if it does not exist, logging a warning. |
+| `"index"`   | Measures `position` against `monitor.index` specifically, a zero-based index into that stage's monitor list.  Falls back to monitor `0` if it does not exist, logging a warning. |
 
 ```json
 "systray": {
@@ -1348,7 +1348,7 @@ everything here **does** take effect on a configuration reload.
 
 | Key                 | Type    | Default | Description |
 |---------------------|---------|---------|-------------|
-| `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Deferred entirely to `pan-on-edge-drag` below for as long as the current desktop's viewport still has room to pan toward that same edge instead; only once the viewport's own bound is reached does holding the edge switch desktops.  Meaningless with only one desktop. |
+| `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Deferred entirely to `pan-on-edge-drag` below for as long as the current desktop's viewport still has room to pan toward that same edge instead; only once the viewport's bound is reached does holding the edge switch desktops.  Meaningless with only one desktop. |
 | `wrap-at-bounds`    | boolean | `true`  | Whether switching past the edge of the desktop grid, in any of the four compass directions, however triggered (keyboard binding, mouse scroll, an edge drag, or otherwise), wraps around to the other end of that same row or column, rather than stopping there.  Meaningless with only one desktop. |
 | `margins.top`       | integer | `0`     | Extra space reserved at the top of every desktop's workarea, in pixels, on every screen. |
 | `margins.right`     | integer | `0`     | Extra space reserved on the right, in pixels. |
@@ -1433,14 +1433,14 @@ command-line tool with no display, e.g., `"gvim ~/docs/my_notes.txt"` to
 always have the same notes file one toggle away, exactly as much as
 a shell would be.
 
-| Key                      | Type               | Default                    | Description |
-|--------------------------|--------------------|----------------------------|-------------|
-| `is-enabled`             | boolean            | `true`                     | Enables the toggle action; a `toggle_scratchpad` command or its keybind does nothing at all while this is `false`. |
-| `command`                | string             | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) itself, so any command works here, not only ones able to pass their `-class`; see the note above on what kind of command this can be. |
-| `edge`                   | string             | `"top"`                    | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
-| `width`                  | integer or `"max"` | `"max"`                    | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
-| `height`                 | integer or `"max"` | `200`                      | Always-applied height, in pixels, or `"max"` (see `width` above). |
-| `ignore-margins`         | boolean            | `false`                    | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
+| Key              | Type               | Default                                 | Description |
+|------------------|--------------------|-----------------------------------------|-------------|
+| `is-enabled`     | boolean            | `true`                                  | Enables the toggle action; a `toggle_scratchpad` command or its keybind does nothing at all while this is `false`. |
+| `command`        | string             | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) itself, so any command works here, not only ones able to pass their `-class`; see the note above on what kind of command this can be. |
+| `edge`           | string             | `"top"`                                 | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
+| `width`          | integer or `"max"` | `"max"`                                 | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
+| `height`         | integer or `"max"` | `200`                                   | Always-applied height, in pixels, or `"max"` (see `width` above). |
+| `ignore-margins` | boolean            | `false`                                 | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
 
 Its border is themed separately from every other window, since it never
 has any other decoration; see `themes.md` §10.
@@ -1465,8 +1465,8 @@ command shows an informational dialog (never a blocking warning or
 error) rather than doing nothing silently or interrupting further than
 necessary, and a successful one closes the box right away.
 
-| Key          | Type    | Default | Description |
-|--------------|---------|---------|-------------|
+| Key          | Type    | Default                                                         | Description |
+|--------------|---------|-----------------------------------------------------------------|-------------|
 | `is-enabled` | boolean | `false` in normal mode; `true` in restricted-memory mode (`-M`) | When `true`, the `launcher` keyboard shortcut opens this built-in box instead of spawning `programs.launcher`.  Restricted-memory mode defaults this to `true` specifically to avoid that extra process, even a minimal one such as this same mode's default for `programs.launcher`. |
 
 ```json
@@ -1478,13 +1478,13 @@ necessary, and a successful one closes the box right away.
 ### 2.13. `urgency`
 
 What the manager does when a window asks for attention.  Not to be
-confused with `a11y.json`'s own `urgency` object (§6), which holds
+confused with `a11y.json`'s `urgency` object (§6), which holds
 `sound-bell` and `blink-interval-ms`: those say how the request is
 made perceptible once the accessibility mode is switched on, while
 this says whether one the user cannot see at all is announced.
 
 | Key               | Type    | Default | Description |
-|-------------------|---------|---------|--------------|
+|-------------------|---------|---------|-------------|
 | `notify-activity` | boolean | `true`  | Whether a window turning urgent somewhere the user is not looking raises an informational dialog saying where. |
 
 ```json
@@ -1495,8 +1495,8 @@ this says whether one the user cannot see at all is announced.
 
 One dialog, naming whatever the user would still have to do to reach
 the window.  A different desktop is named: `Detected activity on
-desktop [2] Web`, with a surface disambiguator appended when more
-than one surface is managed.  A viewport page other than the one that
+desktop [2] Web`, with a stage disambiguator appended when more
+than one stage is managed.  A viewport page other than the one that
 desktop is panned to is named too, appended as ` {column, row}`, since
 switching desktops alone would land on the page that desktop was left
 on and the window would still be off screen.  When only the page
@@ -1532,8 +1532,8 @@ The popup names only what there is to name.  With one desktop and
 a single-page viewport nothing about the view can change, so no popup is
 shown at all.  With one desktop and a viewport of several pages it reads
 `Page {1, 0}`.  With several desktops and a single-page viewport it
-reads the desktop alone, its own name first: `Web: [2]`, or `[2]` when
-that desktop has no name, or `Work: [3 (1, 1)]` when
+reads the desktop alone, its name first: `Web: [2]`, or `[2]` when that
+desktop has no name, or `Work: [3 (1, 1)]` when
 `topology.screens.desktops[].layout` has more than one row.  With both,
 the page is appended after the desktop: `Web: [2] {1, 0}`.
 
@@ -1551,7 +1551,7 @@ that drag instead, unaffected by this setting.
 | Key                 | Type    | Default     | Description |
 |---------------------|---------|-------------|-------------|
 | `pan-icons`         | boolean | `true`      | Whether panning also moves the desktop icons, rather than leaving them fixed on the physical screen while the canvas scrolls under them.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
-| `pan-on-edge-drag`  | boolean | `true`      | While dragging a window or icon to move it, holding the pointer against a screen edge pans the current desktop's viewport toward that edge instead, carrying the dragged window or icon along with every other non-sticky client on the desktop, after a short delay, repeating for as long as the pointer stays held there and the viewport still has room left that direction.  Takes priority over `warp-on-edge-drag` above whenever there is room to pan; once the viewport's own bound is reached, holding the edge further switches desktops instead, exactly as if this were disabled.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `pan-on-edge-drag`  | boolean | `true`      | While dragging a window or icon to move it, holding the pointer against a screen edge pans the current desktop's viewport toward that edge instead, carrying the dragged window or icon along with every other non-sticky client on the desktop, after a short delay, repeating for as long as the pointer stays held there and the viewport still has room left that direction.  Takes priority over `warp-on-edge-drag` above whenever there is room to pan; once the viewport's bound is reached, holding the edge further switches desktops instead, exactly as if this were disabled.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
 | `pan-on-edge-hover` | boolean | `true`      | With no drag in progress, merely resting the pointer against a screen edge pans the current desktop's viewport toward that edge instead, after a short delay, repeating for as long as the pointer stays held there.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured); an edge held during a drag is `pan-on-edge-drag` or `warp-on-edge-drag` above's to answer instead, never this one's. |
 | `pan-step`          | integer | `40`        | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
 | `mesh`              | object  | *see below* | Dot pattern painted on the root window whose offset follows the viewport origin, so that a pan reads as a movement. |
@@ -1608,13 +1608,13 @@ or clearing a wallpaper while the manager is running, or reloading
 a configuration that switches `is-enabled`, takes effect without
 a restart.
 
-| Key                   | Type    | Default | Range                            | Description |
-|-----------------------|---------|---------|----------------------------------|-------------|
-| `is-enabled`          | boolean | `true`  |                                  | Whether to paint a mesh at all, where the two conditions above allow one. |
-| `spacing.horizontal`  | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots across. |
-| `spacing.vertical`    | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots down. |
-| `thickness`           | integer | `3`     | `1`-1/4 of the smaller `spacing` | Side of one square dot, in pixels. |
-| `tone-shift`          | integer | `20`    | `10`-`100`                       | How far the dot color is pushed away from the desktop background color, as a percentage. |
+| Key                  | Type    | Default | Range                            | Description |
+|----------------------|---------|---------|----------------------------------|-------------|
+| `is-enabled`         | boolean | `true`  |                                  | Whether to paint a mesh at all, where the two conditions above allow one. |
+| `spacing.horizontal` | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots across. |
+| `spacing.vertical`   | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots down. |
+| `thickness`          | integer | `3`     | `1`-1/4 of the smaller `spacing` | Side of one square dot, in pixels. |
+| `tone-shift`         | integer | `20`    | `10`-`100`                       | How far the dot color is pushed away from the desktop background color, as a percentage. |
 
 The dot color is not configurable, and there is no color key here or in
 the theme for it.  It is derived from whichever background color the
@@ -1656,7 +1656,7 @@ the theme file.  A window that was decorated when it was mapped stays
 decorated after a reload even if the reloaded theme now says
 `"is-decorated": false` (and vice versa).  Only newly mapped windows,
 and windows whose decoration is toggled by hand, pick up that setting.
-This is deliberate: undoing a decoration choice a person made for
+This is deliberate: undoing a decoration choice a user made for
 a specific window just because the theme file changed would be
 a surprising, unrequested side effect.
 
@@ -1800,17 +1800,17 @@ desktop that way, or (north/south only, on a screen with no
 `topology.screens.desktops[].layout` configured, or one with a single
 row) there is no second row to move to in the first place.
 
-| Key     | Default binding       |
-|---------|-----------------------|
-| `north` | `modc+mod1+mods+Up`   |
-| `south` | `modc+mod1+mods+Down` |
-| `east`  | `modc+mod1+mods+Right`|
-| `west`  | `modc+mod1+mods+Left` |
+| Key     | Default binding        |
+|---------|------------------------|
+| `north` | `modc+mod1+mods+Up`    |
+| `south` | `modc+mod1+mods+Down`  |
+| `east`  | `modc+mod1+mods+Right` |
+| `west`  | `modc+mod1+mods+Left`  |
 
 #### `keyboard.window.send-to.monitor`
 
 Move the focused window to the monitor north/south/east/west of the
-current one on its surface, resolved by real physical position (from
+current one on its stage, resolved by real physical position (from
 RandR) rather than detection order.  Unlike `send-to.desktop` just
 above, never wraps around at all, and has no equivalent of
 `desktops.wrap-at-bounds` to make that configurable: wrapping
@@ -1818,15 +1818,15 @@ a definite, ordered list (a desktop's) has one obviously correct
 meaning, but wrapping a genuinely 2-D physical arrangement does not
 (does "east, wrapped" mean the westmost monitor overall, or only the
 westmost one still on the same row?), so no attempt is made to invent
-one.  A no-op on a surface with one monitor or none, or when no monitor
+one.  A no-op on a stage with one monitor or none, or when no monitor
 lies in that direction at all.
 
-| Key     | Default binding            |
-|---------|----------------------------|
-| `north` | `modc+mod1+mod4+mods+Up`   |
-| `south` | `modc+mod1+mod4+mods+Down` |
-| `east`  | `modc+mod1+mod4+mods+Right`|
-| `west`  | `modc+mod1+mod4+mods+Left` |
+| Key     | Default binding             |
+|---------|-----------------------------|
+| `north` | `modc+mod1+mod4+mods+Up`    |
+| `south` | `modc+mod1+mod4+mods+Down`  |
+| `east`  | `modc+mod1+mod4+mods+Right` |
+| `west`  | `modc+mod1+mod4+mods+Left`  |
 
 ```json
 "window": {
@@ -1851,16 +1851,16 @@ lies in that direction at all.
 
 Window manager control shortcuts.
 
-| Key                             | Default binding        | Action |
-|---------------------------------|------------------------|--------|
-| `search`                        | `modc+mod4+mods+s`     | Open the fuzzy window-search widget. |
-| `scratchpad`                    | `modc+mod1+mods+F12`   | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (§2.11). |
-| `toggle-strutless-maximization` | *(unbound)*            | Toggle whether panel/tray struts are set aside when computing work areas on this surface (strutless maximization); also reachable via IPC (`toggle_strutless_maximize`) and its entry in the root menu. |
-| `redraw`                        | `modc+mod1+mods+r`     | Force a full redraw of all windows. |
-| `reload`                        | `modc+mod1+mods+c`     | Reload the configuration files (equivalent to `SIGHUP`). |
-| `quit`                          | `modc+mod1+mods+x`     | Exit IcoWM. |
-| `shortcuts`                     | `modc+mod4+F1`         | Show a dialog listing every currently active keyboard shortcut. |
-| `fortune`                       | `modc+mod4+Backspace`  | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (§2.6). |
+| Key                             | Default binding       | Action |
+|---------------------------------|-----------------------|--------|
+| `search`                        | `modc+mod4+mods+s`    | Open the fuzzy window-search widget. |
+| `scratchpad`                    | `modc+mod1+mods+F12`  | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (§2.11). |
+| `toggle-strutless-maximization` | *(unbound)*           | Toggle whether panel/tray struts are set aside when computing work areas on this stage (strutless maximization); also reachable via IPC (`toggle_strutless_maximize`) and its entry in the root menu. |
+| `redraw`                        | `modc+mod1+mods+r`    | Force a full redraw of all windows. |
+| `reload`                        | `modc+mod1+mods+c`    | Reload the configuration files (equivalent to `SIGHUP`). |
+| `quit`                          | `modc+mod1+mods+x`    | Exit IcoWM. |
+| `shortcuts`                     | `modc+mod4+F1`        | Show a dialog listing every currently active keyboard shortcut. |
+| `fortune`                       | `modc+mod4+Backspace` | Open the `fortune` easter-egg dialog; only active when `fortune.is-enabled` is also true (§2.6). |
 
 `search` opens a centered, live-filtered list of every window across
 every desktop.  Typing narrows the list by fuzzy subsequence match
@@ -1870,7 +1870,7 @@ but not necessarily contiguous); `Up`/`Down` or the mouse select a row,
 switches to the window's desktop, restores it first if it was iconified,
 hidden, or shaded, then focuses and raises it.  Each row shows the
 window's icon (when `theme.menu.show-pixmaps` is enabled), its name, its
-desktop's name (when the surface has more than one desktop) alongside
+desktop's name (when the stage has more than one desktop) alongside
 its index and, once `topology.screens.desktops[].layout` configures
 genuinely more than one row, its `(row,column)` position too, and any
 bracketed state hints that apply (`f`/`m`/`h`/`v` for fullscreen or one
@@ -1916,18 +1916,18 @@ not really a good fit for `keyboard.wm`'s remaining, much more disparate
 set of window-manager-lifecycle actions (`quit`, `reload`, `redraw`, and
 the like) either.
 
-| Key      | Default binding     | Action |
-|----------|---------------------|--------|
-| `add`    | *(unbound)*         | Add a new, empty desktop to the end of the list. |
-| `remove` | *(unbound)*         | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
-| `show`   | `modc+mod4+mods+d`  | Hide all windows and show the empty desktop. |
+| Key      | Default binding    | Action |
+|----------|--------------------|--------|
+| `add`    | *(unbound)*        | Add a new, empty desktop to the end of the list. |
+| `remove` | *(unbound)*        | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
+| `show`   | `modc+mod4+mods+d` | Hide all windows and show the empty desktop. |
 
 `add` and `remove` ship unbound, unlike every other action in this
-section, to leave the modifier combination free for a person to choose
+section, to leave the modifier combination free for a user to choose
 without risking a collision with something else already using it by
 default.
 
-`add`/`remove` always act on the surface's last desktop.  A new one is
+`add`/`remove` always act on the stage's last desktop.  A new one is
 always appended at the end; removing one always takes the last one,
 moving any client still on it to the new last desktop first (its EWMH
 `_NET_WM_DESKTOP` is updated to match, unless it is pinned, whose
@@ -1979,12 +1979,12 @@ Switches the view to the desktop north/south/east/west of the current
 one, without moving any window along; see
 `keyboard.window.send-to.desktop` above for the one that does.
 
-| Key     | Default binding    | Action                            |
-|---------|---------------------|-----------------------------------|
-| `north` | `modc+mod1+Up`      | Switch to the desktop north of the current one. |
-| `south` | `modc+mod1+Down`    | Switch to the desktop south of the current one. |
-| `east`  | `modc+mod1+Right`   | Switch to the desktop east of the current one.  |
-| `west`  | `modc+mod1+Left`    | Switch to the desktop west of the current one.  |
+| Key     | Default binding   | Action |
+|---------|-------------------|--------|
+| `north` | `modc+mod1+Up`    | Switch to the desktop north of the current one. |
+| `south` | `modc+mod1+Down`  | Switch to the desktop south of the current one. |
+| `east`  | `modc+mod1+Right` | Switch to the desktop east of the current one. |
+| `west`  | `modc+mod1+Left`  | Switch to the desktop west of the current one. |
 
 #### `keyboard.cycle.window`
 
@@ -1994,7 +1994,7 @@ windows.
 | Key    | Default binding | Action                                       |
 |--------|-----------------|----------------------------------------------|
 | `prev` | `mod1+mods+Tab` | Focus the previous window in the cycle list. |
-| `next` | `mod1+Tab`      | Focus the next window in the cycle list.     |
+| `next` | `mod1+Tab`      | Focus the next window in the cycle list. |
 
 #### `keyboard.cycle.icon`
 
@@ -2023,7 +2023,7 @@ screen as the viewport is panned with the shortcuts in this section,
 the way a note stuck to a monitor's bezel would not move if the
 desktop behind it scrolled.  A window can be pinned, sticky, both, or
 neither; only sticky has no EWMH counterpart, since a panning viewport
-is this manager's own concept.
+is this manager's concept.
 
 #### `keyboard.viewport.pan`
 
@@ -2034,31 +2034,31 @@ desktop's virtual canvas; unlike `keyboard.cycle.desktop` above, the
 active desktop never changes, only where within it the physical screen
 is looking.
 
-| Key     | Default binding      | Action                                   |
-|---------|-----------------------|--------------------------------------------|
-| `north` | `modc+mod4+mods+Up`   | Pan the viewport `move-step` pixels north.  |
-| `south` | `modc+mod4+mods+Down` | Pan the viewport `move-step` pixels south.  |
-| `east`  | `modc+mod4+mod5+Right`| Pan the viewport `move-step` pixels east.   |
-| `west`  | `modc+mod4+mod5+Left` | Pan the viewport `move-step` pixels west.   |
+| Key     | Default binding        | Action |
+|---------|------------------------|--------|
+| `north` | `modc+mod4+mods+Up`    | Pan the viewport `move-step` pixels north. |
+| `south` | `modc+mod4+mods+Down`  | Pan the viewport `move-step` pixels south. |
+| `east`  | `modc+mod4+mod5+Right` | Pan the viewport `move-step` pixels east. |
+| `west`  | `modc+mod4+mod5+Left`  | Pan the viewport `move-step` pixels west. |
 
 #### `keyboard.viewport.page`
 
 Moves the current desktop's viewport a whole page in the given
 direction, the discrete counterpart to `keyboard.viewport.pan` above:
 where that one slides by `viewport.pan-step` (§2.15) pixels, this jumps
-straight to the neighboring page.  Clamped at the grid's own bounds
+straight to the neighboring page.  Clamped at the grid's bounds
 rather than wrapping around, so it is a no-op where there is no page
 that way.  Because it is a jump rather than a slide, it raises the
 desktop overlay, whose label carries the page it landed on, exactly as
 switching desktops does; the pixel-sized steps of `pan` deliberately do
 not.
 
-| Key     | Default binding   | Action                                   |
-|---------|-------------------|--------------------------------------------|
-| `north` | `modc+mod4+Up`    | Move the viewport one whole page north.  |
-| `south` | `modc+mod4+Down`  | Move the viewport one whole page south.  |
-| `east`  | `modc+mod4+Right` | Move the viewport one whole page east.   |
-| `west`  | `modc+mod4+Left`  | Move the viewport one whole page west.   |
+| Key     | Default binding   | Action |
+|---------|-------------------|--------|
+| `north` | `modc+mod4+Up`    | Move the viewport one whole page north. |
+| `south` | `modc+mod4+Down`  | Move the viewport one whole page south. |
+| `east`  | `modc+mod4+Right` | Move the viewport one whole page east. |
+| `west`  | `modc+mod4+Left`  | Move the viewport one whole page west. |
 
 ```json
 "viewport": {
@@ -2097,28 +2097,28 @@ first row, and each following number moves one page right until the
 row ends, then wraps to the first page of the next row.  Pages beyond
 index 9 are not reachable by these shortcuts.
 
-| Key     | Default binding  | Destination                    |
-|---------|------------------|--------------------------------|
-| `page0` | `modc+mod4+0`    | Page 0 (first page, top-left). |
-| `page1` | `modc+mod4+1`    | Page 1.                        |
-| `page2` | `modc+mod4+2`    | Page 2.                        |
-| `page3` | `modc+mod4+3`    | Page 3.                        |
-| `page4` | `modc+mod4+4`    | Page 4.                        |
-| `page5` | `modc+mod4+5`    | Page 5.                        |
-| `page6` | `modc+mod4+6`    | Page 6.                        |
-| `page7` | `modc+mod4+7`    | Page 7.                        |
-| `page8` | `modc+mod4+8`    | Page 8.                        |
-| `page9` | `modc+mod4+9`    | Page 9.                        |
+| Key     | Default binding | Destination |
+|---------|-----------------|---|
+| `page0` | `modc+mod4+0`   | Page 0 (first page, top-left). |
+| `page1` | `modc+mod4+1`   | Page 1. |
+| `page2` | `modc+mod4+2`   | Page 2. |
+| `page3` | `modc+mod4+3`   | Page 3. |
+| `page4` | `modc+mod4+4`   | Page 4. |
+| `page5` | `modc+mod4+5`   | Page 5. |
+| `page6` | `modc+mod4+6`   | Page 6. |
+| `page7` | `modc+mod4+7`   | Page 7. |
+| `page8` | `modc+mod4+8`   | Page 8. |
+| `page9` | `modc+mod4+9`   | Page 9. |
 
 ### 3.9. `mouse.window`
 
 Mouse button bindings for window management.
 
-| Key      | Default binding | Action                                       |
-|----------|-----------------|----------------------------------------------|
-| `move`   | `mod1+button1`  | Click and drag to move the window.           |
+| Key      | Default binding | Action |
+|----------|-----------------|---|
+| `move`   | `mod1+button1`  | Click and drag to move the window. |
 | `lower`  | `mod1+button2`  | Lower the window to the bottom of the stack. |
-| `resize` | `mod1+button3`  | Click and drag to resize the window.         |
+| `resize` | `mod1+button3`  | Click and drag to resize the window. |
 
 ### 3.10. `mouse.cycle`
 
@@ -2134,12 +2134,12 @@ titlebar) shading/unshading or maximizing/restoring it instead:
   unlike shade/unshade, since a maximized or restored window stays
   exactly as interactable either side of the change.
 
-| Key     | Default binding   |
-|---------|-------------------|
-| `north` | `mods+button4`    |
-| `south` | `mods+button5`    |
-| `east`  | `button5`         |
-| `west`  | `button4`         |
+| Key     | Default binding |
+|---------|-----------------|
+| `north` | `mods+button4`  |
+| `south` | `mods+button5`  |
+| `east`  | `button5`       |
+| `west`  | `button4`       |
 
 ```json
 "mouse": {
@@ -2175,7 +2175,7 @@ a plain middle click does so only over the titlebar.
 
 A window declaring `_NET_WM_STATE_MODAL` can neither be maximized nor
 put into fullscreen, whichever way it is asked: the titlebar button, the
-window menu entry, a keyboard binding, or the application's own EWMH
+window menu entry, a keyboard binding, or the application's EWMH
 request.  The maximize button is drawn disabled, the same as it already
 is for a window that has fixed its size.
 
@@ -2238,9 +2238,9 @@ Accepted `rotation` values are: `"normal"`, `"left"` (90°), `"right"`
 RandR is scoped to a single X screen: CRTCs, outputs, and modes are
 queried and configured against one screen's root window, with no
 cross-screen notion at the protocol level.  RandR profiles are applied
-once per surface (X screen managed), querying and applying RandR state
+once per stage (X screen managed), querying and applying RandR state
 independently for each.  `outputs[]` itself, however, is a single list
-shared by every surface, with no per-screen field.  On a multi-GPU setup
+shared by every stage, with no per-screen field.  On a multi-GPU setup
 where two X screens each expose an output of the same name, the matching
 profile is applied identically to both, with no way to scope it to one
 screen only.  Not applicable to the common case of one X screen managing
@@ -2266,7 +2266,7 @@ countdown reach zero undoes it, restoring every changed output's prior
 mode, position, rotation, and primary status exactly.  The countdown
 defaults to 10 seconds (as per default values).  No dialog appears at
 all when nothing actually changed (see the comparison below), nor at
-startup or on a hotplug event; only a reload, the one moment a person is
+startup or on a hotplug event; only a reload, the one moment a user is
 at the keyboard to have triggered it, offers this.
 
 With more than one screen, every screen still gets its profiles applied
@@ -2319,7 +2319,7 @@ merging on top of whatever an earlier load left in place.
 `is-enabled` (default `false`) gates every field below at once, the same
 opt-in-only posture `randr.json`'s `is-enabled` (§5) already has: a file
 that exists but never turns this on is read without error, same as ever,
-but has no effect at all, the same as if it were absent.  A person can
+but has no effect at all, the same as if it were absent.  Any user can
 keep an `a11y.json` around, ready to reference or hand off, without it
 applying until they explicitly turn this on.
 
@@ -2527,22 +2527,22 @@ matching rule for each property are applied.
 | Key                      | Type                 | Default | Description |
 |--------------------------|----------------------|---------|-------------|
 | `apply.desktop`          | integer              | *unset* | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
-| `apply.monitor`          | integer              | *unset* | Zero-based monitor index, within the window's surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
+| `apply.monitor`          | integer              | *unset* | Zero-based monitor index, within the window's stage, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
 | `apply.layer`            | string               | *unset* | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
 | `apply.focus`            | boolean              | *unset* | Whether the matched window should receive focus. |
 | `apply.pinned`           | boolean              | *unset* | Whether the window should be visible on all desktops. |
 | `apply.decorated`        | boolean              | *unset* | Whether the window should keep its decorations. |
-| `apply.iconified`        | boolean              | *unset* | Whether the window should be iconified, turned into an actual icon on the desktop instead of a taskbar entry, the same as pressing `iconify` by hand.  Overrides the window's own `WM_HINTS` initial-state request. |
-| `apply.fullscreen`       | boolean              | *unset* | Whether the window should be fullscreen.  Overrides the window's own EWMH initial-state hint, and takes precedence over `apply.maximized` when a rule asks for both, the same precedence entering fullscreen by hand already has over a maximized window. |
-| `apply.maximized`        | boolean              | *unset* | Whether the window should be maximized, both horizontally and vertically together; there is no field here for maximizing only one axis.  Overrides the window's own EWMH initial-state hint. |
+| `apply.iconified`        | boolean              | *unset* | Whether the window should be iconified, turned into an actual icon on the desktop instead of a taskbar entry, the same as pressing `iconify` by hand.  Overrides the window's `WM_HINTS` initial-state request. |
+| `apply.fullscreen`       | boolean              | *unset* | Whether the window should be fullscreen.  Overrides the window's EWMH initial-state hint, and takes precedence over `apply.maximized` when a rule asks for both, the same precedence entering fullscreen by hand already has over a maximized window. |
+| `apply.maximized`        | boolean              | *unset* | Whether the window should be maximized, both horizontally and vertically together; there is no field here for maximizing only one axis.  Overrides the window's EWMH initial-state hint. |
 | `apply.shaded`           | boolean              | *unset* | Whether the window should be shaded, rolled up to just its titlebar.  Ignored, with a warning logged, if the window is not decorated, if the same rule also asks for `apply.fullscreen`, or if the same rule also asks for `apply.iconified`. |
 | `apply.hidden`           | boolean              | *unset* | Whether the window should be hidden: withdrawn from the desktop and any pager or taskbar alike, without being iconified. |
 | `apply.opacity`          | integer or object    | *unset* | Desired opacity, 0 to 100, published on the window through `_NET_WM_WINDOW_OPACITY`, overriding the theme's `window.active.opacity`/`window.inactive.opacity` (`themes.md` §1) for this one window; see below. |
 | `apply.opacity.active`   | integer              | *unset* | Opacity while the window is focused (when `opacity` is an object). |
 | `apply.opacity.inactive` | integer              | *unset* | Opacity while the window is not focused (when `opacity` is an object). |
 | `apply.position`         | object or `"center"` | *unset* | Where to place the window; see below. |
-| `apply.position.x`       | integer              | *unset* | X position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the surface's otherwise. |
-| `apply.position.y`       | integer              | *unset* | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the surface's otherwise. |
+| `apply.position.x`       | integer              | *unset* | X position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the stage's otherwise. |
+| `apply.position.y`       | integer              | *unset* | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the stage's otherwise. |
 | `apply.size.width`       | integer              | *unset* | Window width in pixels; must be greater than `0`. |
 | `apply.size.height`      | integer              | *unset* | Window height in pixels; must be greater than `0`. |
 
@@ -2591,16 +2591,16 @@ a fixed point:
 Combining `"position": "center"` with a `size` object centers the window
 at that new size, not whatever size it happened to already have.
 
-`monitor` selects one physical monitor within the window's surface (only
-meaningful on a surface made up of more than one monitor sharing the
+`monitor` selects one physical monitor within the window's stage (only
+meaningful on a stage made up of more than one monitor sharing the
 same combined X screen; not named `screen`, since this project's
 `screens[]`/`screen_id` terminology refers to a whole X screen, and this
-codebase has no notion of moving a window to a *different* surface at
+codebase has no notion of moving a window to a *different* stage at
 all, so a field with that name would misleadingly suggest a capability
 that does not exist).  It changes what `position` is relative to rather
 than being a distinct placement action.  Explicit `x`/`y` become offsets
-from that monitor's top-left corner instead of the whole surface's, and
-`"center"` centers on that monitor instead of the whole surface.  A rule
+from that monitor's top-left corner instead of the whole stage's, and
+`"center"` centers on that monitor instead of the whole stage.  A rule
 that sets `monitor` without also setting `position` still centers the
 window on that monitor by default, since otherwise `monitor` alone would
 have no visible effect at all:
@@ -2619,7 +2619,7 @@ have no visible effect at all:
 ```
 
 The second example places the window 20 pixels from the top-left corner
-of monitor `1`, not of the whole surface.
+of monitor `1`, not of the whole stage.
 
 ## 8. `session.json`: Session lifecycle hooks
 
@@ -2750,34 +2750,34 @@ not merely refuse to act.
 
 ### 10.1. Configurable fields
 
-| Key                                      | Type              | Default        | Description |
-|------------------------------------------|-------------------|----------------|-------------|
+| Key                                      | Type              | Default                       | Description |
+|------------------------------------------|-------------------|-------------------------------|-------------|
 | `theme`                                  | string            | `""` (built-in default theme) | Same as `config.json`'s `theme`: the filename (without `.json`) of a theme under `themes/`. |
-| `programs.editor`                        | string            | `"gvim"`       | Same as `config.json`'s `programs.editor`. |
-| `programs.file-manager`                  | string            | `"pcmanfm"`    | Same as `config.json`'s `programs.file-manager`. |
-| `programs.launcher`                      | string            | `"gmrun"`      | Same as `config.json`'s `programs.launcher`. |
-| `programs.terminal`                      | string            | `"xterm"`      | Same as `config.json`'s `programs.terminal`. |
-| `programs.web-browser`                   | string            | `"firefox"`    | Same as `config.json`'s `programs.web-browser`. |
-| `prompt.is-enabled`                      | boolean           | `true`         | Same as `config.json`'s `prompt.is-enabled` (§2.12), except restricted-memory mode defaults this to `true` rather than `false`, to avoid spawning `programs.launcher` as a separate process. |
-| `desktops.margins.top/right/bottom/left` | integer           | `0`            | Same as `config.json`'s `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
-| `windows.move-step`                      | integer           | `10`           | Same as `config.json`'s `windows.move-step`. |
-| `windows.show-geom`                      | boolean           | `true`         | Same as `config.json`'s `windows.show-geom`: shows a small overlay with the exact position (moving) or size (resizing) while dragging. |
-| `windows.edges.snap.window`              | integer           | `6`            | Same as `config.json`'s `windows.edges.snap.window`: attraction distance in pixels toward another window's edge. |
-| `windows.edges.snap.screen`              | integer           | `6`            | Same as `config.json`'s `windows.edges.snap.screen`: attraction distance in pixels toward the screen's edge. |
-| `windows.edges.resistance`               | integer           | `20`           | Same as `config.json`'s `windows.edges.resistance`: pixels of deliberate extra drag before a maximized axis starts changing while interactively resizing. |
-| `windows.gravity`                        | string            | `"north-west"` | Same as `config.json`'s `windows.gravity`: a fallback only, for a client that never declares its ; see §2.4 for the accepted values and why this is fallback-only. |
-| `windows.focus.raise`                    | boolean           | `false`        | Same as `config.json`'s `focus.raise`: when `true`, a window is also raised when it gains focus by pointer or wheel. |
-| `windows.focus.delay-ms`                 | integer           | `250`          | Same as `config.json`'s `focus.delay-ms`: milliseconds the pointer must sit still over a window before it is focused; only takes effect under `"sloppy"`. |
-| `windows.focus.focus-new`                | boolean           | `true`         | Same as `config.json`'s `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
-| `windows.focus.policy`                   | string            | `"click"`      | Same as `config.json`'s `focus.policy`: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
-| `windows.placement.policy`               | string            | `"smart"`      | Same as `config.json`'s `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
-| `windows.placement.monitor`              | string or integer | `"pointer"`    | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |
-| `windows.placement.group-related`        | boolean           | `false`        | Same as `config.json`'s `windows.placement.group-related`: cluster windows of the same application together. |
-| `icons.show-geom`                        | boolean           | `false`        | Same as `config.json`'s `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
-| `icons.placement.policy`                 | string            | `"smart"`      | Same as `config.json`'s `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
-| `systray`                                | object            | *see* §10.2    | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
-| `shutdown.enable-emergency-shortcut`     | boolean           | `false`        | Same as `config.json`'s `shutdown.enable-emergency-shortcut`. |
-| `shutdown.timeout-seconds`               | integer           | `15`           | Same as `config.json`'s `shutdown.timeout-seconds`. |
+| `programs.editor`                        | string            | `"gvim"`                      | Same as `config.json`'s `programs.editor`. |
+| `programs.file-manager`                  | string            | `"pcmanfm"`                   | Same as `config.json`'s `programs.file-manager`. |
+| `programs.launcher`                      | string            | `"gmrun"`                     | Same as `config.json`'s `programs.launcher`. |
+| `programs.terminal`                      | string            | `"xterm"`                     | Same as `config.json`'s `programs.terminal`. |
+| `programs.web-browser`                   | string            | `"firefox"`                   | Same as `config.json`'s `programs.web-browser`. |
+| `prompt.is-enabled`                      | boolean           | `true`                        | Same as `config.json`'s `prompt.is-enabled` (§2.12), except restricted-memory mode defaults this to `true` rather than `false`, to avoid spawning `programs.launcher` as a separate process. |
+| `desktops.margins.top/right/bottom/left` | integer           | `0`                           | Same as `config.json`'s `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
+| `windows.move-step`                      | integer           | `10`                          | Same as `config.json`'s `windows.move-step`. |
+| `windows.show-geom`                      | boolean           | `true`                        | Same as `config.json`'s `windows.show-geom`: shows a small overlay with the exact position (moving) or size (resizing) while dragging. |
+| `windows.edges.snap.window`              | integer           | `6`                           | Same as `config.json`'s `windows.edges.snap.window`: attraction distance in pixels toward another window's edge. |
+| `windows.edges.snap.screen`              | integer           | `6`                           | Same as `config.json`'s `windows.edges.snap.screen`: attraction distance in pixels toward the screen's edge. |
+| `windows.edges.resistance`               | integer           | `20`                          | Same as `config.json`'s `windows.edges.resistance`: pixels of deliberate extra drag before a maximized axis starts changing while interactively resizing. |
+| `windows.gravity`                        | string            | `"north-west"`                | Same as `config.json`'s `windows.gravity`: a fallback only, for a client that never declares it; see §2.4 for the accepted values and why this is fallback-only. |
+| `windows.focus.raise`                    | boolean           | `false`                       | Same as `config.json`'s `focus.raise`: when `true`, a window is also raised when it gains focus by pointer or wheel. |
+| `windows.focus.delay-ms`                 | integer           | `250`                         | Same as `config.json`'s `focus.delay-ms`: milliseconds the pointer must sit still over a window before it is focused; only takes effect under `"sloppy"`. |
+| `windows.focus.focus-new`                | boolean           | `true`                        | Same as `config.json`'s `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
+| `windows.focus.policy`                   | string            | `"click"`                     | Same as `config.json`'s `focus.policy`: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
+| `windows.placement.policy`               | string            | `"smart"`                     | Same as `config.json`'s `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
+| `windows.placement.monitor`              | string or integer | `"pointer"`                   | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a stage with more than one. |
+| `windows.placement.group-related`        | boolean           | `false`                       | Same as `config.json`'s `windows.placement.group-related`: cluster windows of the same application together. |
+| `icons.show-geom`                        | boolean           | `false`                       | Same as `config.json`'s `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
+| `icons.placement.policy`                 | string            | `"smart"`                     | Same as `config.json`'s `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
+| `systray`                                | object            | *see* §10.2                   | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
+| `shutdown.timeout-seconds`               | integer           | `15`                          | Same as `config.json`'s `shutdown.timeout-seconds`. |
+| `shutdown.enable-emergency-shortcut`     | boolean           | `true`                        | Same as `config.json`'s `shutdown.enable-emergency-shortcut`, albeit enabled by default in this mode. |
 
 ### 10.2. Fields this mode never lets `memguard.json` change
 
@@ -2940,7 +2940,7 @@ to whatever theme loads, unconditionally.
         "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
         "position": "top-right",
         "monitor": {
-            "anchor": "surface",
+            "anchor": "stage",
             "index": 0
         },
         "order": "left-to-right",

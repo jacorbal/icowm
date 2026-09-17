@@ -18,7 +18,7 @@
  * branches (no client claimed, already hidden, a different desktop,
  * the panned desktop itself), both driven through call-recording
  * stand-ins for enact_client_hide, wm_get_client_desktop and
- * wm_get_surface_by_id rather than any live connection.  Every other
+ * wm_get_stage_by_id rather than any live connection.  Every other
  * non-macro function scratchpad.c calls elsewhere is stubbed below
  * purely to satisfy the linker (this file links the whole of
  * scratchpad.c as one translation unit); none of those remaining
@@ -43,7 +43,7 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <scratchpad.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm/internal.h>
 
 
@@ -232,12 +232,12 @@ void enact_desktop_client_send(desktop_td *desktop, client_td *client,
     (void) target;
 }
 
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -255,18 +255,18 @@ desktop_td *wm_get_client_desktop(const client_td *client)
     return s_stub_client_desktop;
 }
 
-/* Surface pointer wm_get_surface_by_id currently reports, settable
+/* Stage pointer wm_get_stage_by_id currently reports, settable
  * per test, defaulting to NULL to match every existing scenario's
  * own assumption */
-static surface_td *s_stub_surface_by_id = NULL;
+static stage_td *s_stub_stage_by_id = NULL;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_stub_surface_by_id;
+    (void) stage_id;
+    return s_stub_stage_by_id;
 }
 
-/* wm_config and wm_surfaces need no stand-in of their own here:
+/* wm_config and wm_stages need no stand-in of their own here:
  * both are already real, genuine functions in wm/instance.c, which
  * this recipe already links (for wm_config specifically, this
  * matters: every test in this file sets 'wm.config' directly on a
@@ -445,65 +445,65 @@ static void s_test_notice_created_pid_unknown_fallback(void)
 
 /* scratchpad_position is a no-op (no resize issued) for anything
  * that is not the current scratchpad client, or with a NULL desktop
- * or surface */
+ * or stage */
 static void s_test_position_guards(void)
 {
     client_td not_scratchpad;
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     config_td config;
 
     memset(&not_scratchpad, 0, sizeof(not_scratchpad));
     memset(&client, 0, sizeof(client));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
-    surface.config = &config;
+    stage.config = &config;
 
     s_claim_as_scratchpad(&client);
 
     s_resize_called = false;
-    scratchpad_position(&not_scratchpad, &desktop, &surface);
+    scratchpad_position(&not_scratchpad, &desktop, &stage);
     TAP_OK(!s_resize_called, "not the scratchpad client: no resize" \
             " issued");
 
     s_resize_called = false;
-    scratchpad_position(&client, NULL, &surface);
+    scratchpad_position(&client, NULL, &stage);
     TAP_OK(!s_resize_called, "a NULL desktop: no resize issued");
 
     s_resize_called = false;
     scratchpad_position(&client, &desktop, NULL);
-    TAP_OK(!s_resize_called, "a NULL surface: no resize issued");
+    TAP_OK(!s_resize_called, "a NULL stage: no resize issued");
 
     s_resize_called = false;
-    surface.config = NULL;
-    scratchpad_position(&client, &desktop, &surface);
-    TAP_OK(!s_resize_called, "a surface with no config: no resize" \
+    stage.config = NULL;
+    scratchpad_position(&client, &desktop, &stage);
+    TAP_OK(!s_resize_called, "a stage with no config: no resize" \
             " issued");
 }
 
 
 /* scratchpad_position, with ignore_margins set, sizes and positions
- * against the full surface area rather than desktop->workarea; hand-
+ * against the full stage area rather than desktop->workarea; hand-
  * computed for CONFIG_SCRATCHPAD_EDGE_BOTTOM with a fixed size */
 static void s_test_position_ignore_margins_bottom_fixed(void)
 {
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     config_td config;
 
     memset(&client, 0, sizeof(client));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
 
     s_claim_as_scratchpad(&client);
 
-    surface.config = &config;
-    surface.properties.dim.w = 1000u;
-    surface.properties.dim.h = 800u;
+    stage.config = &config;
+    stage.properties.dim.w = 1000u;
+    stage.properties.dim.h = 800u;
     /* A nonzero workarea that must be deliberately ignored */
     desktop.workarea.pos.x = 50;
     desktop.workarea.pos.y = 50;
@@ -518,11 +518,11 @@ static void s_test_position_ignore_margins_bottom_fixed(void)
     config.base.scratchpad.height.pixels = 200u;
 
     s_resize_called = false;
-    scratchpad_position(&client, &desktop, &surface);
+    scratchpad_position(&client, &desktop, &stage);
 
     /* No border (client->frame == 0 but client->theme == NULL means
      * client_border_width returns 0), area is the full 1000x800
-     * surface, width/height fixed at 300x200.  BOTTOM: x centered,
+     * stage, width/height fixed at 300x200.  BOTTOM: x centered,
      * y flush with the bottom: x = (1000-300)/2 = 350,
      * y = 800-200 = 600 */
     TAP_OK(s_resize_called, "a resize was issued");
@@ -534,25 +534,25 @@ static void s_test_position_ignore_margins_bottom_fixed(void)
 
 
 /* scratchpad_position without ignore_margins uses desktop->workarea
- * instead of the full surface; hand-computed for
+ * instead of the full stage; hand-computed for
  * CONFIG_SCRATCHPAD_EDGE_LEFT with a "max" width */
 static void s_test_position_workarea_left_max_width(void)
 {
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     config_td config;
 
     memset(&client, 0, sizeof(client));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
 
     s_claim_as_scratchpad(&client);
 
-    surface.config = &config;
-    surface.properties.dim.w = 1000u;
-    surface.properties.dim.h = 800u;
+    stage.config = &config;
+    stage.properties.dim.w = 1000u;
+    stage.properties.dim.h = 800u;
     desktop.workarea.pos.x = 50;
     desktop.workarea.pos.y = 20;
     desktop.workarea.dim.w = 500u;
@@ -568,7 +568,7 @@ static void s_test_position_workarea_left_max_width(void)
     s_apply_geom_called = false;
     s_constrain_called = false;
     s_call_sync_states = 0;
-    scratchpad_position(&client, &desktop, &surface);
+    scratchpad_position(&client, &desktop, &stage);
 
     /* area = workarea (50,20,500,400), no border.  width = "max" =
      * avail_w = 500.  LEFT: x = area_x = 50,
@@ -610,19 +610,19 @@ static void s_test_position_both_axes_max(void)
 {
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     config_td config;
 
     memset(&client, 0, sizeof(client));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
 
     s_claim_as_scratchpad(&client);
 
-    surface.config = &config;
-    surface.properties.dim.w = 640u;
-    surface.properties.dim.h = 480u;
+    stage.config = &config;
+    stage.properties.dim.w = 640u;
+    stage.properties.dim.h = 480u;
 
     config.base.scratchpad.ignore_margins = true;
     config.base.scratchpad.edge = CONFIG_SCRATCHPAD_EDGE_TOP;
@@ -631,25 +631,25 @@ static void s_test_position_both_axes_max(void)
 
     s_apply_geom_called = false;
     s_call_sync_states = 0;
-    scratchpad_position(&client, &desktop, &surface);
+    scratchpad_position(&client, &desktop, &stage);
 
     TAP_OK(s_apply_geom_called,
             "both axes \"max\" also takes the direct-apply path");
     TAP_EQ_INT(s_apply_geom_x, 0, "both axes \"max\": x is flush" \
-            " with the surface's own left");
+            " with the stage's own left");
     TAP_EQ_INT(s_apply_geom_y, 0, "both axes \"max\": y is flush" \
-            " with the surface's own top");
+            " with the stage's own top");
     TAP_EQ_INT((long) s_apply_geom_w, 640,
-            "both axes \"max\": width fills the whole surface");
+            "both axes \"max\": width fills the whole stage");
     TAP_EQ_INT((long) s_apply_geom_h, 480,
-            "both axes \"max\": height fills the whole surface");
+            "both axes \"max\": height fills the whole stage");
     TAP_OK(client_is_maximized(&client),
             "both axes \"max\" leaves the client fully maximized");
     TAP_EQ_INT(s_call_sync_states, 1,
             "becoming fully maximized republishes EWMH state once");
 
     s_apply_geom_called = false;
-    scratchpad_position(&client, &desktop, &surface);
+    scratchpad_position(&client, &desktop, &stage);
     TAP_OK(s_apply_geom_called,
             "repositioning again reapplies the geometry regardless");
     TAP_EQ_INT(s_call_sync_states, 1,
@@ -664,19 +664,19 @@ static void s_test_position_clamps_oversized_fixed_size(void)
 {
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     config_td config;
 
     memset(&client, 0, sizeof(client));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
 
     s_claim_as_scratchpad(&client);
 
-    surface.config = &config;
-    surface.properties.dim.w = 200u;
-    surface.properties.dim.h = 150u;
+    stage.config = &config;
+    stage.properties.dim.w = 200u;
+    stage.properties.dim.h = 150u;
 
     config.base.scratchpad.ignore_margins = true;
     config.base.scratchpad.edge = CONFIG_SCRATCHPAD_EDGE_TOP;
@@ -685,12 +685,12 @@ static void s_test_position_clamps_oversized_fixed_size(void)
     config.base.scratchpad.height.mode = CONFIG_SCRATCHPAD_SIZE_FIXED;
     config.base.scratchpad.height.pixels = 9999u;
 
-    scratchpad_position(&client, &desktop, &surface);
+    scratchpad_position(&client, &desktop, &stage);
 
     TAP_EQ_INT((long) s_resize_w, 200,
             "an oversized fixed width clamps down to the available area");
     TAP_EQ_INT((long) s_resize_h, 150,
-            "an oversized fixed height clamps down to the surface" \
+            "an oversized fixed height clamps down to the stage" \
             " height");
 }
 
@@ -705,13 +705,13 @@ static void s_test_toggle_repositions_on_unhide(void)
     wm_td wm;
     config_td config;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     client_td client;
 
     memset(&wm, 0, sizeof(wm));
     memset(&config, 0, sizeof(config));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&client, 0, sizeof(client));
 
     config.base.scratchpad.is_enabled = true;
@@ -723,10 +723,10 @@ static void s_test_toggle_repositions_on_unhide(void)
     config.base.scratchpad.height.pixels = 200u;
     wm.config = &config;
 
-    surface.config = &config;
-    surface.properties.dim.w = 1000u;
-    surface.properties.dim.h = 800u;
-    s_stub_surface_by_id = &surface;
+    stage.config = &config;
+    stage.properties.dim.w = 1000u;
+    stage.properties.dim.h = 800u;
+    s_stub_stage_by_id = &stage;
 
     s_claim_as_scratchpad(&client);
 
@@ -749,7 +749,7 @@ static void s_test_toggle_repositions_on_unhide(void)
     TAP_EQ_INT(s_resize_y, 600, "the recalculated position is flush" \
             " with the bottom again, not wherever it drifted to");
 
-    s_stub_surface_by_id = NULL;
+    s_stub_stage_by_id = NULL;
 }
 
 

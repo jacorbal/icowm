@@ -4,10 +4,10 @@
  * @brief Test battery for the shared "Send to desktop" context menu
  *        submenu (menu/context/submenu/desktop.c)
  *
- * 'surface_desktop_walk_all' is test-controlled, walking a small fixture
+ * 'stage_desktop_walk_all' is test-controlled, walking a small fixture
  * array instead of a real circular desktop list, so a scenario can
  * hand 'ctxmenu_submenu_desktop_build' exactly the desktops it wants
- * to see enumerated.  'surface_desktop_label' is also test-controlled,
+ * to see enumerated.  'stage_desktop_label' is also test-controlled,
  * producing a simple, predictable label instead of the real localized
  * one.  'enact_desktop_client_send' and 'enact_client_toggle_pin' are
  * recording stand-ins: a scenario can activate a built entry and
@@ -39,7 +39,7 @@
 #include <harness/tap.h>
 #include <menu/context/ctxmenu.h>
 #include <menu/context/submenu/desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /** Link-only stand-in for @a enact_desktop_client_send; records
@@ -73,20 +73,20 @@ void enact_client_toggle_pin(client_td *client)
 }
 
 
-/** Test-controlled desktop fixture list 'surface_desktop_walk_all' below
+/** Test-controlled desktop fixture list 'stage_desktop_walk_all' below
  *  walks, in order, instead of a real circular desktop list
  * @note Complexity: @e O(1) */
 #define MAX_TEST_DESKTOPS (4)
 static desktop_td *s_desktops[MAX_TEST_DESKTOPS];
 static int s_desktop_count;
 
-/** Test-controlled stand-in for @a surface_desktop_walk_all, walking the
- *  fixture list above instead of a real surface's own desktops
+/** Test-controlled stand-in for @a stage_desktop_walk_all, walking the
+ *  fixture list above instead of a real stage's own desktops
  * @note Complexity: @e O(n), where @e n is @c s_desktop_count */
-void surface_desktop_walk_all(const surface_td *surface,
+void stage_desktop_walk_all(const stage_td *stage,
         void (*visit)(desktop_td *desktop, void *data), void *data)
 {
-    (void) surface;
+    (void) stage;
 
     for (int i = 0; i < s_desktop_count; ++i) {
         visit(s_desktops[i], data);
@@ -94,14 +94,14 @@ void surface_desktop_walk_all(const surface_td *surface,
 }
 
 
-/** Test-controlled stand-in for @a surface_desktop_label, producing a
+/** Test-controlled stand-in for @a stage_desktop_label, producing a
  *  simple, predictable label instead of the real localized one
  * @note Complexity: @e O(1) */
-void surface_desktop_label(const surface_td *surface,
+void stage_desktop_label(const stage_td *stage,
         uint32_t desktop_id, const char *desktop_name, bool is_pinned,
         bool shows_name, char *out_label, size_t length)
 {
-    (void) surface;
+    (void) stage;
     (void) is_pinned;
     (void) shows_name;
 
@@ -125,64 +125,64 @@ static void s_reset(void)
 /* A null argument, in any position, builds nothing */
 static void s_test_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *entries = (ctxmenu_entry_td *) 1;
     ctxmenu_state_td *state = (ctxmenu_state_td *) 1;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
-    surface.desktop_count = 2u;
+    stage.desktop_count = 2u;
 
     TAP_EQ_INT(ctxmenu_submenu_desktop_build(NULL, &desktop, &client,
-                &entries, &state), 0, "a null surface builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&surface, NULL, &client,
+                &entries, &state), 0, "a null stage builds nothing");
+    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&stage, NULL, &client,
                 &entries, &state), 0, "a null desktop builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&surface, &desktop, NULL,
+    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&stage, &desktop, NULL,
                 &entries, &state), 0, "a null client builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&surface, &desktop,
+    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&stage, &desktop,
                 &client, NULL, &state), 0,
             "a null out_entries builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&surface, &desktop,
+    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&stage, &desktop,
                 &client, &entries, NULL), 0,
             "a null out_state builds nothing");
 }
 
 
-/* A surface with only one desktop has nowhere to send a client, so
+/* A stage with only one desktop has nowhere to send a client, so
  * the whole submenu is omitted rather than built with nothing but
  * the pin toggle in it */
 static void s_test_single_desktop_builds_nothing(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *entries = NULL;
     ctxmenu_state_td *state = NULL;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
-    surface.desktop_count = 1u;
+    stage.desktop_count = 1u;
 
-    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&surface, &desktop,
+    TAP_EQ_INT(ctxmenu_submenu_desktop_build(&stage, &desktop,
                 &client, &entries, &state), 0,
-            "a single-desktop surface builds nothing");
+            "a single-desktop stage builds nothing");
     TAP_NULL(entries, "out_entries is left untouched");
     TAP_NULL(state, "out_state is left untouched");
 }
 
 
-/* An unpinned client on a two-desktop surface gets one row per
+/* An unpinned client on a two-desktop stage gets one row per
  * desktop, its own current desktop refused, a separator, and a pin
  * toggle offering to pin */
 static void s_test_unpinned_client_two_desktops(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop_a;
     desktop_td desktop_b;
     client_td client;
@@ -191,7 +191,7 @@ static void s_test_unpinned_client_two_desktops(void)
     int n;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop_a, 0, sizeof(desktop_a));
     memset(&desktop_b, 0, sizeof(desktop_b));
     memset(&client, 0, sizeof(client));
@@ -200,9 +200,9 @@ static void s_test_unpinned_client_two_desktops(void)
     s_desktops[0] = &desktop_a;
     s_desktops[1] = &desktop_b;
     s_desktop_count = 2;
-    surface.desktop_count = 2u;
+    stage.desktop_count = 2u;
 
-    n = ctxmenu_submenu_desktop_build(&surface, &desktop_a, &client,
+    n = ctxmenu_submenu_desktop_build(&stage, &desktop_a, &client,
             &e, &state);
 
     TAP_EQ_INT(n, 4,
@@ -240,7 +240,7 @@ static void s_test_unpinned_client_two_desktops(void)
  * toggle relabeled as an active unpin action instead */
 static void s_test_pinned_client_relabels_toggle(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop_a;
     desktop_td desktop_b;
     client_td client;
@@ -249,7 +249,7 @@ static void s_test_pinned_client_relabels_toggle(void)
     int n;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop_a, 0, sizeof(desktop_a));
     memset(&desktop_b, 0, sizeof(desktop_b));
     memset(&client, 0, sizeof(client));
@@ -258,10 +258,10 @@ static void s_test_pinned_client_relabels_toggle(void)
     s_desktops[0] = &desktop_a;
     s_desktops[1] = &desktop_b;
     s_desktop_count = 2;
-    surface.desktop_count = 2u;
+    stage.desktop_count = 2u;
     client.properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
 
-    n = ctxmenu_submenu_desktop_build(&surface, &desktop_a, &client,
+    n = ctxmenu_submenu_desktop_build(&stage, &desktop_a, &client,
             &e, &state);
 
     TAP_OK(e[0].is_disabled && e[1].is_disabled,

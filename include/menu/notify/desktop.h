@@ -41,24 +41,24 @@ enum notify_desktop_cause_e {
  * @brief Show the notification popup naming where the view has moved
  *        to, centered on screen
  *
- * Names only what there is to name: the desktop when the surface has
+ * Names only what there is to name: the desktop when the stage has
  * more than one, the viewport page when the grid holds more than one,
  * both when both, and nothing at all when neither, in which case no
  * popup is shown.  A desktop that carries a name is announced by it,
  * ahead of the coordinates.
  *
  * @param connection   XCB connection
- * @param surface      Surface on which to center the popup
+ * @param stage        Stage on which to center the popup
  * @param desktop_idx  Zero-based index of the active desktop
  * @param desktop_name Name of the active desktop, or @c NULL
  * @param cause        What moved the view, deciding which of the two
  *                     @c overlay settings gates this call
- * @param config       Active configuration (for theme colors and font)
+ * @param config Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
 void notify_desktop_show(xcb_connection_t *connection,
-        surface_td *surface, uint32_t desktop_idx,
+        stage_td *stage, uint32_t desktop_idx,
         const char *desktop_name,
         enum notify_desktop_cause_e cause, const config_td *config);
 

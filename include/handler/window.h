@@ -50,8 +50,8 @@
  * ICCCM @c ConfigureNotify and the IPC notification, is handed to
  * @a place_manual_enqueue to carry out once that question is settled.
  *
- * @param wm     Window manager state
- * @param event  Map request event
+ * @param wm    Window manager state
+ * @param event Map request event
  *
  * @note Complexity: @e O(g * n), where @e g is the number of grid
  *       positions the placement policy tests and @e n is the number of
@@ -68,14 +68,14 @@ void handler_window_map_request(const wm_td *wm,
  * (tooltips, pop-up menus) are silently ignored.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Map notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_window_map_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_map_notify_event_t *event);
+        list_td *stages, xcb_map_notify_event_t *event);
 
 /**
  * @brief Handle a @c GRAVITY_NOTIFY event
@@ -86,31 +86,31 @@ void handler_window_map_notify(xcb_connection_t *connection,
  * decoration layout and schedules a repaint.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Gravity notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_window_gravity_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_gravity_notify_event_t *event);
+        list_td *stages, xcb_gravity_notify_event_t *event);
 
 /**
  * @brief Handle a @c CIRCULATE_NOTIFY event
  *
- * Marks the affected surface as outdated so that @a wm_ewmh_sync
+ * Marks the affected stage as outdated so that @a wm_ewmh_sync
  * updates @c _NET_CLIENT_LIST_STACKING to reflect the new stacking
  * order on the next main-loop iteration.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Circulate notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_window_circulate_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_circulate_notify_event_t *event);
+        list_td *stages, xcb_circulate_notify_event_t *event);
 
 /**
  * @brief Handle a @c CIRCULATE_REQUEST event (ICCCM §4.1.7)
@@ -121,14 +121,14 @@ void handler_window_circulate_notify(xcb_connection_t *connection,
  * honor this request to remain ICCCM-compliant.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Circulate request event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_window_circulate_request(xcb_connection_t *connection,
-        list_td *surfaces, xcb_circulate_request_event_t *event);
+        list_td *stages, xcb_circulate_request_event_t *event);
 
 /**
  * @brief Handle an @c UNMAP_NOTIFY event
@@ -138,14 +138,14 @@ void handler_window_circulate_request(xcb_connection_t *connection,
  * desktop switching.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Unmap notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_window_unmap_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_unmap_notify_event_t *event);
+        list_td *stages, xcb_unmap_notify_event_t *event);
 
 /**
  * @brief Handle a @c DESTROY_NOTIFY event
@@ -157,14 +157,14 @@ void handler_window_unmap_notify(xcb_connection_t *connection,
  *
  * @param wm         Window-manager singleton
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Destroy notify event
  *
  * @note Complexity: @e O(n + t), where @e n is the number of managed
- *       surfaces and @e t the number of docked systray icons
+ *       stages and @e t the number of docked systray icons
  */
 void handler_window_destroy_notify(wm_td *wm, xcb_connection_t *connection,
-        list_td *surfaces, xcb_destroy_notify_event_t *event);
+        list_td *stages, xcb_destroy_notify_event_t *event);
 
 
 #endif  /* ! HANDLER_WINDOW_H */

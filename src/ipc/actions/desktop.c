@@ -25,8 +25,8 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/desktop.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -40,7 +40,7 @@ cJSON *ipc_action_set_desktop_background(const wm_td *wm,
         const cJSON *args)
 {
     uint32_t color;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop;
     cJSON *error = NULL;
 
@@ -48,7 +48,7 @@ cJSON *ipc_action_set_desktop_background(const wm_td *wm,
         return ipc_response_error("missing or invalid 'color'");
     }
 
-    desktop = ipc_resolve_desktop(wm, args, true, &surface, &error);
+    desktop = ipc_resolve_desktop(wm, args, true, &stage, &error);
     if (desktop == NULL) {
         return error;
     }
@@ -61,7 +61,7 @@ cJSON *ipc_action_set_desktop_background(const wm_td *wm,
 cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args)
 {
     bool show;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop;
     cJSON *error = NULL;
 
@@ -69,7 +69,7 @@ cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args)
         return ipc_response_error("missing or invalid 'show'");
     }
 
-    desktop = ipc_resolve_desktop(wm, args, true, &surface, &error);
+    desktop = ipc_resolve_desktop(wm, args, true, &stage, &error);
     if (desktop == NULL) {
         return error;
     }
@@ -84,7 +84,7 @@ cJSON *ipc_action_send_client_to_desktop(const wm_td *wm,
 {
     uint32_t target_desktop_id;
     client_td *client;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop = NULL;
     desktop_td *target;
     cJSON *error = NULL;
@@ -94,16 +94,16 @@ cJSON *ipc_action_send_client_to_desktop(const wm_td *wm,
         return ipc_response_error("missing or invalid 'target_desktop_id'");
     }
 
-    client = ipc_resolve_client(wm, args, &surface, &desktop, &error);
+    client = ipc_resolve_client(wm, args, &stage, &desktop, &error);
     if (client == NULL) {
         return error;
     }
 
-    if (target_desktop_id >= surface->desktop_count) {
+    if (target_desktop_id >= stage->desktop_count) {
         return ipc_response_error(
-                "no such desktop on that client's own surface");
+                "no such desktop on that client's own stage");
     }
-    target = surface_desktop_get(surface, target_desktop_id);
+    target = stage_desktop_get(stage, target_desktop_id);
     if (target == NULL) {
         return ipc_response_error("no such desktop");
     }
@@ -116,11 +116,11 @@ cJSON *ipc_action_send_client_to_desktop(const wm_td *wm,
 cJSON *ipc_action_send_client_to_front(const wm_td *wm, const cJSON *args)
 {
     client_td *client;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop = NULL;
     cJSON *error = NULL;
 
-    client = ipc_resolve_client(wm, args, &surface, &desktop, &error);
+    client = ipc_resolve_client(wm, args, &stage, &desktop, &error);
     if (client == NULL) {
         return error;
     }
@@ -133,11 +133,11 @@ cJSON *ipc_action_send_client_to_front(const wm_td *wm, const cJSON *args)
 cJSON *ipc_action_send_client_to_back(const wm_td *wm, const cJSON *args)
 {
     client_td *client;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop = NULL;
     cJSON *error = NULL;
 
-    client = ipc_resolve_client(wm, args, &surface, &desktop, &error);
+    client = ipc_resolve_client(wm, args, &stage, &desktop, &error);
     if (client == NULL) {
         return error;
     }
@@ -149,11 +149,11 @@ cJSON *ipc_action_send_client_to_back(const wm_td *wm, const cJSON *args)
 
 cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop;
     cJSON *error = NULL;
 
-    desktop = ipc_resolve_desktop(wm, args, false, &surface, &error);
+    desktop = ipc_resolve_desktop(wm, args, false, &stage, &error);
     if (desktop == NULL) {
         return error;
     }
@@ -165,11 +165,11 @@ cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args)
 
 cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop;
     cJSON *error = NULL;
 
-    desktop = ipc_resolve_desktop(wm, args, false, &surface, &error);
+    desktop = ipc_resolve_desktop(wm, args, false, &stage, &error);
     if (desktop == NULL) {
         return error;
     }
@@ -181,15 +181,15 @@ cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args)
 
 cJSON *ipc_action_rearrange(const wm_td *wm, const cJSON *args)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     const desktop_td *desktop;
     cJSON *error = NULL;
 
-    desktop = ipc_resolve_desktop(wm, args, false, &surface, &error);
+    desktop = ipc_resolve_desktop(wm, args, false, &stage, &error);
     if (desktop == NULL) {
         return error;
     }
 
-    enact_desktop_client_rearrange_all(wm, surface, desktop);
+    enact_desktop_client_rearrange_all(wm, stage, desktop);
     return ipc_response_ok();
 }

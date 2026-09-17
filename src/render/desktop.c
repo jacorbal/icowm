@@ -41,7 +41,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -364,14 +364,14 @@ static void s_desktop_render_client_visit(client_td *client, void *data)
  * Iterates through all clients in the desktop's stacking list and
  * configures their geometry.  Windows are only mapped (made visible)
  * when @p is_current is @c true; for a desktop that is not the one
- * currently displayed on its surface, only geometry/stacking is updated
+ * currently displayed on its stage, only geometry/stacking is updated
  * so that a stale full-render pass (triggered by an unrelated
  * @p is_outdated flag, e.g., after moving/resizing a client) cannot
- * undo an explicit @a surface_client_hide_all and make a client reappear
+ * undo an explicit @a stage_client_hide_all and make a client reappear
  * on top of the desktop the user actually switched to.
  *
  * @param desktop    Pointer to the desktop to draw
- * @param is_current Whether @p desktop is the surface's currently
+ * @param is_current Whether @p desktop is the stage's currently
  *                   displayed desktop; when @c false, clients are not
  *                   (re-)mapped, only their geometry is updated
  *
@@ -504,21 +504,21 @@ void desktop_render_one_client(desktop_td *desktop,
     }
 
     /* Map the window to make it visible.  Only do this when 'desktop'
-     * is the surface's currently displayed desktop.
+     * is the stage's currently displayed desktop.
      *
      * Its also invoked as part of a general
-     * 'surface_render_all_desktops' refresh pass whenever ANY desktop's
+     * 'stage_render_all_desktops' refresh pass whenever ANY desktop's
      * 'is_outdated' flag is set (e.g., after moving or resizing
      * a client, which marks its desktop outdated).
      *
      * If that pass unconditionally mapped clients on a desktop that is
      * not currently shown, it could race with (and undo) an explicit
-     * 'surface_client_hide_all' issued by a desktop switch, making
+     * 'stage_client_hide_all' issued by a desktop switch, making
      * a client reappear on top of the desktop the user just switched
      * to.
      *
      * Visibility of non-current desktops must be governed solely by
-     * 'surface_client_hide_all'/'surface_client_show_all' */
+     * 'stage_client_hide_all'/'stage_client_show_all' */
     if (is_current) {
         if (client->icon_window != 0 && client->is_icon_mapped) {
             xcb_window_hide(client->icon_window);
@@ -578,8 +578,8 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
 
     /* Draw background, but only for the desktop currently shown on
      * screen: a non-current desktop's background is never actually
-     * visible (the surface-level repaint that calls this, in
-     * 'render/surface.c', re-applies the current desktop's background
+     * visible (the stage-level repaint that calls this, in
+     * 'render/stage.c', re-applies the current desktop's background
      * again right after every desktop in the list has been rendered,
      * specifically because earlier ones painting theirs would otherwise
      * overwrite it on the one shared root window), so painting it here
@@ -612,7 +612,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
      * branch in 'desktop_render_one_client' above. */
     desktop->is_focus_dirty = false;
 
-    /* NOTE: Do NOT flush here!  Let the surface handle the flushing */
+    /* NOTE: Do NOT flush here!  Let the stage handle the flushing */
 
     return 0;
 }

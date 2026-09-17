@@ -9,7 +9,7 @@
  * exercises their own branches directly, on top of the real
  * lookup_find_client (lookup.c), and real adt/list.c, adt/cdlist.c,
  * and adt/ohtbl.c fixtures built the same way tests/test_lookup.c
- * already builds its own surface_td/desktop_td/client_td trees by
+ * already builds its own stage_td/desktop_td/client_td trees by
  * hand (a live X connection is never needed for a plain lookup by
  * id).  Every enact_desktop_* entry point is a controllable,
  * recording stand-in, since driving any of them for real needs a
@@ -44,46 +44,46 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <ipc/actions/desktop.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
-/** Controllable stand-in for wm_get_surface_by_id (wm.c) */
-static surface_td *s_surface_by_id_result;
+/** Controllable stand-in for wm_get_stage_by_id (wm.c) */
+static stage_td *s_stage_by_id_result;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_by_id_result;
+    (void) stage_id;
+    return s_stage_by_id_result;
 }
 
 
-/** Controllable stand-in for wm_surfaces (wm.c), reached whenever a
- *  test's own args carry no explicit "surface_id" */
-static list_td s_surfaces_list;
+/** Controllable stand-in for wm_stages (wm.c), reached whenever a
+ *  test's own args carry no explicit "stage_id" */
+static list_td s_stages_list;
 
-list_td *wm_surfaces(const wm_td *wm)
+list_td *wm_stages(const wm_td *wm)
 {
     (void) wm;
-    return &s_surfaces_list;
+    return &s_stages_list;
 }
 
 
-/** Link-only stand-in for surface_desktop_get (surface.c), used by
+/** Link-only stand-in for stage_desktop_get (stage.c), used by
  *  ipc_action_send_client_to_desktop's own resolution of its target
- *  desktop; walks the same fixture surface's circular desktop list
+ *  desktop; walks the same fixture stage's circular desktop list
  *  by id rather than duplicating a second lookup table */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
     cdlist_item_td *node;
     const cdlist_item_td *initial;
 
-    if (surface == NULL || surface->desktops == NULL ||
-            cdlist_size(surface->desktops) == 0) {
+    if (stage == NULL || stage->desktops == NULL ||
+            cdlist_size(stage->desktops) == 0) {
         return NULL;
     }
 
-    node = cdlist_head(surface->desktops);
+    node = cdlist_head(stage->desktops);
     initial = node;
     do {
         desktop_td *const desktop = (desktop_td *) cdlist_data(node);
@@ -209,11 +209,11 @@ void enact_desktop_client_deiconify_all(desktop_td *desktop)
  *
  * @note Complexity: @e O(1)
  */
-void enact_desktop_client_rearrange_all(const wm_td *wm, surface_td *surface,
+void enact_desktop_client_rearrange_all(const wm_td *wm, stage_td *stage,
         const desktop_td *desktop)
 {
     (void) wm;
-    (void) surface;
+    (void) stage;
     (void) desktop;
     s_call_rearrange++;
 }
@@ -263,9 +263,9 @@ static client_td *s_make_client(xcb_window_t id)
 }
 
 
-/** Fixtures every scenario shares: one surface with two desktops,
+/** Fixtures every scenario shares: one stage with two desktops,
  *  desktop 0 holding one client */
-static surface_td *s_surface;
+static stage_td *s_stage;
 static desktop_td *s_desktop0;
 static desktop_td *s_desktop1;
 static client_td *s_client;
@@ -291,30 +291,30 @@ static void s_destroy_desktop(void *data)
 
 static void s_reset(void)
 {
-    if (s_surface != NULL) {
-        cdlist_destroy(s_surface->desktops);
-        free(s_surface);
+    if (s_stage != NULL) {
+        cdlist_destroy(s_stage->desktops);
+        free(s_stage);
     }
-    list_clear(&s_surfaces_list);
-    s_surfaces_list.destroy = NULL;
+    list_clear(&s_stages_list);
+    s_stages_list.destroy = NULL;
 
-    s_surface = calloc(1, sizeof(surface_td));
-    s_surface->desktop_count = 2u;
-    s_surface->desktop_cur = 0u;
-    s_surface->desktops = cdlist_init(s_destroy_desktop);
+    s_stage = calloc(1, sizeof(stage_td));
+    s_stage->desktop_count = 2u;
+    s_stage->desktop_cur = 0u;
+    s_stage->desktops = cdlist_init(s_destroy_desktop);
 
     s_desktop0 = s_make_desktop(0u);
     s_desktop1 = s_make_desktop(1u);
-    cdlist_ins_next(s_surface->desktops, cdlist_tail(s_surface->desktops),
+    cdlist_ins_next(s_stage->desktops, cdlist_tail(s_stage->desktops),
             s_desktop0);
-    cdlist_ins_next(s_surface->desktops, cdlist_tail(s_surface->desktops),
+    cdlist_ins_next(s_stage->desktops, cdlist_tail(s_stage->desktops),
             s_desktop1);
 
     s_client = s_make_client(42u);
     ohtbl_insert(s_desktop0->clients, s_client);
 
-    s_surface_by_id_result = s_surface;
-    list_ins_next(&s_surfaces_list, NULL, s_surface);
+    s_stage_by_id_result = s_stage;
+    list_ins_next(&s_stages_list, NULL, s_stage);
 
     s_call_set_background = 0;
     s_last_background_color = 0u;
@@ -453,7 +453,7 @@ static void s_test_send_client_to_desktop_ok(void)
 
 
 /* ipc_action_send_client_to_desktop: a target_desktop_id past the
- * client's own surface's desktop_count is an error, never sent */
+ * client's own stage's desktop_count is an error, never sent */
 static void s_test_send_client_to_desktop_out_of_range_is_error(void)
 {
     cJSON *args = cJSON_CreateObject();
@@ -556,7 +556,7 @@ static void s_test_send_client_to_front_no_such_client_is_error(void)
 
 
 /* ipc_action_iconify_all/deiconify_all: desktop_id is optional here,
- * falling back to the surface's own current desktop */
+ * falling back to the stage's own current desktop */
 static void s_test_iconify_and_deiconify_all_ok(void)
 {
     cJSON *args = cJSON_CreateObject();
@@ -603,23 +603,23 @@ static void s_test_rearrange_ok(void)
 }
 
 
-/* ipc_action_rearrange: no resolvable surface at all is an error,
+/* ipc_action_rearrange: no resolvable stage at all is an error,
  * never rearranged */
-static void s_test_rearrange_no_surface_is_error(void)
+static void s_test_rearrange_no_stage_is_error(void)
 {
     cJSON *args = cJSON_CreateObject();
     cJSON *resp;
     cJSON *ok_field;
 
     s_reset();
-    s_surface_by_id_result = NULL;
-    list_clear(&s_surfaces_list);
+    s_stage_by_id_result = NULL;
+    list_clear(&s_stages_list);
 
     resp = ipc_action_rearrange(s_wm, args);
 
     ok_field = cJSON_GetObjectItem(resp, "ok");
     TAP_OK(ok_field != NULL && !cJSON_IsTrue(ok_field),
-            "no resolvable surface: an error response");
+            "no resolvable stage: an error response");
     TAP_EQ_INT(s_call_rearrange, 0,
             "enact_desktop_client_rearrange_all is never called on that"
             " error path");
@@ -644,7 +644,7 @@ int main(void)
     s_test_send_client_to_front_no_such_client_is_error();
     s_test_iconify_and_deiconify_all_ok();
     s_test_rearrange_ok();
-    s_test_rearrange_no_surface_is_error();
+    s_test_rearrange_no_stage_is_error();
 
     return TAP_DONE();
 }

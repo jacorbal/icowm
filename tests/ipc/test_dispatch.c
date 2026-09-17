@@ -31,23 +31,23 @@
 #include <wm/internal.h>
 
 
-/** Link-only stand-in for surface_desktop_get (surface.c): lookup.c
+/** Link-only stand-in for stage_desktop_get (stage.c): lookup.c
  *  as a whole references it, though nothing here ever reaches that
  *  particular path (see test_lookup.c's own identical note) */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     return NULL;
 }
 
-/** Link-only stand-in for wm_get_surface_by_id (wm.c): ipc/resolve.c
- *  as a whole references it (from ipc_resolve_surface, which this
+/** Link-only stand-in for wm_get_stage_by_id (wm.c): ipc/resolve.c
+ *  as a whole references it (from ipc_resolve_stage, which this
  *  file never exercises directly), so the linker needs a definition
  *  somewhere */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
     return NULL;
 }
 
@@ -74,26 +74,26 @@ static bool s_id_match(const void *key1, const void *key2)
 static bool s_action_called;
 static const wm_td *s_action_wm;
 static client_td *s_action_client;
-static surface_td *s_action_surface;
+static stage_td *s_action_stage;
 static desktop_td *s_action_desktop;
 
 static void s_recording_action(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
     s_action_called = true;
     s_action_wm = wm;
     s_action_client = client;
-    s_action_surface = surface;
+    s_action_stage = stage;
     s_action_desktop = desktop;
 }
 
 
 /* A resolvable client_id runs the action with the correctly resolved
- * client/surface/desktop, and reports success */
+ * client/stage/desktop, and reports success */
 static void s_test_dispatch_runs_action_on_success(void)
 {
     wm_td wm;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_screen_t screen;
     client_td client;
@@ -102,7 +102,7 @@ static void s_test_dispatch_runs_action_on_success(void)
     cJSON *ok_field;
 
     memset(&wm, 0, sizeof(wm));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
     memset(&client, 0, sizeof(client));
@@ -111,11 +111,11 @@ static void s_test_dispatch_runs_action_on_success(void)
     desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
     ohtbl_insert(desktop.clients, &client);
-    surface.screen = &screen;
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, &desktop);
-    wm.surfaces = list_init(NULL);
-    list_ins_next(wm.surfaces, NULL, &surface);
+    stage.screen = &screen;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, &desktop);
+    wm.stages = list_init(NULL);
+    list_ins_next(wm.stages, NULL, &stage);
     cJSON_AddNumberToObject(args, "client_id", 55);
 
     s_action_called = false;
@@ -125,8 +125,8 @@ static void s_test_dispatch_runs_action_on_success(void)
     TAP_OK(s_action_wm == &wm, "the action received the right wm");
     TAP_OK(s_action_client == &client,
             "the action received the resolved client");
-    TAP_OK(s_action_surface == &surface,
-            "the action received the resolved surface");
+    TAP_OK(s_action_stage == &stage,
+            "the action received the resolved stage");
     TAP_OK(s_action_desktop == &desktop,
             "the action received the resolved desktop");
 
@@ -135,8 +135,8 @@ static void s_test_dispatch_runs_action_on_success(void)
     TAP_OK(cJSON_IsTrue(ok_field), "the response reports success");
 
     cJSON_Delete(resp);
-    list_destroy(wm.surfaces);
-    cdlist_destroy(surface.desktops);
+    list_destroy(wm.stages);
+    cdlist_destroy(stage.desktops);
     ohtbl_destroy(desktop.clients);
     cJSON_Delete(args);
 }
@@ -152,7 +152,7 @@ static void s_test_dispatch_skips_action_on_failure(void)
     cJSON *ok_field;
 
     memset(&wm, 0, sizeof(wm));
-    wm.surfaces = list_init(NULL);
+    wm.stages = list_init(NULL);
     cJSON_AddNumberToObject(args, "client_id", 999);
 
     s_action_called = false;
@@ -167,7 +167,7 @@ static void s_test_dispatch_skips_action_on_failure(void)
             "the response carries the resolution failure's own reason");
 
     cJSON_Delete(resp);
-    list_destroy(wm.surfaces);
+    list_destroy(wm.stages);
     cJSON_Delete(args);
 }
 

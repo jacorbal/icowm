@@ -8,7 +8,7 @@
  * ipc_resolve_desktop, itself already covered directly by
  * tests/ipc/test_resolve.c, so this file links the real
  * ipc/resolve.c, ipc/args.c, ipc/response.c, and lookup.c, following
- * the same wm_get_surface_by_id and surface_desktop_get controllable
+ * the same wm_get_stage_by_id and stage_desktop_get controllable
  * stand-ins tests/ipc/test_resolve.c already established, rather
  * than duplicating ipc_resolve_desktop's own branch coverage here.
  * scratchpad_toggle (scratchpad.c) is a recording stand-in below,
@@ -37,40 +37,40 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <ipc/actions/scratchpad.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
-/** Controllable stand-in for wm_get_surface_by_id (wm.c) */
-static surface_td *s_surface_by_id_result;
+/** Controllable stand-in for wm_get_stage_by_id (wm.c) */
+static stage_td *s_stage_by_id_result;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_by_id_result;
+    (void) stage_id;
+    return s_stage_by_id_result;
 }
 
 
-/** Controllable stand-in for wm_surfaces (wm.c): reached only when a
- *  test's own args carry no explicit "surface_id" at all, in which
- *  case ipc_resolve_surface falls back to the first surface on this
+/** Controllable stand-in for wm_stages (wm.c): reached only when a
+ *  test's own args carry no explicit "stage_id" at all, in which
+ *  case ipc_resolve_stage falls back to the first stage on this
  *  list */
-static list_td s_surfaces_list;
+static list_td s_stages_list;
 
-list_td *wm_surfaces(const wm_td *wm)
+list_td *wm_stages(const wm_td *wm)
 {
     (void) wm;
-    return &s_surfaces_list;
+    return &s_stages_list;
 }
 
 
-/** Controllable stand-in for surface_desktop_get (surface.c), indexed
+/** Controllable stand-in for stage_desktop_get (stage.c), indexed
  *  by desktop_id */
 static desktop_td *s_desktops_by_id[8];
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     if (desktop_id >= 8u) {
         return NULL;
     }
@@ -96,7 +96,7 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
  *  scratchpad_toggle's own stand-in above */
 static int s_wm_storage;
 static wm_td *const s_wm = (wm_td *) &s_wm_storage;
-static surface_td s_surface;
+static stage_td s_stage;
 static desktop_td s_desktop;
 
 
@@ -104,42 +104,42 @@ static void s_reset(void)
 {
     size_t i;
 
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
     memset(&s_desktop, 0, sizeof(s_desktop));
     for (i = 0u; i < 8u; i++) {
         s_desktops_by_id[i] = NULL;
     }
     s_desktop.id = 0u;
     s_desktops_by_id[0] = &s_desktop;
-    s_surface.desktop_count = 1u;
-    s_surface.desktop_cur = 0u;
-    s_surface_by_id_result = &s_surface;
+    s_stage.desktop_count = 1u;
+    s_stage.desktop_cur = 0u;
+    s_stage_by_id_result = &s_stage;
     s_call_scratchpad_toggle = 0;
     s_last_toggle_desktop = NULL;
 
-    list_clear(&s_surfaces_list);
-    s_surfaces_list.destroy = NULL;
-    list_ins_next(&s_surfaces_list, NULL, &s_surface);
+    list_clear(&s_stages_list);
+    s_stages_list.destroy = NULL;
+    list_ins_next(&s_stages_list, NULL, &s_stage);
 }
 
 
-/* No surface at all (surface_id explicit but unresolved, and no
- * fallback surface either): an error response, never toggled */
-static void s_test_no_surface_is_error(void)
+/* No stage at all (stage_id explicit but unresolved, and no
+ * fallback stage either): an error response, never toggled */
+static void s_test_no_stage_is_error(void)
 {
     cJSON *args = cJSON_CreateObject();
     cJSON *resp;
     cJSON *ok_field;
 
     s_reset();
-    s_surface_by_id_result = NULL;
-    cJSON_AddNumberToObject(args, "surface_id", 9);
+    s_stage_by_id_result = NULL;
+    cJSON_AddNumberToObject(args, "stage_id", 9);
 
     resp = ipc_action_toggle_scratchpad(s_wm, args);
 
     ok_field = cJSON_GetObjectItem(resp, "ok");
     TAP_OK(ok_field != NULL && !cJSON_IsTrue(ok_field),
-            "no resolvable surface: an error response");
+            "no resolvable stage: an error response");
     TAP_EQ_INT(s_call_scratchpad_toggle, 0,
             "scratchpad_toggle is never called on that error path");
 
@@ -148,7 +148,7 @@ static void s_test_no_surface_is_error(void)
 }
 
 
-/* desktop_id omitted: falls back to the surface's own current
+/* desktop_id omitted: falls back to the stage's own current
  * desktop, and toggles it */
 static void s_test_missing_desktop_id_falls_back_and_toggles(void)
 {
@@ -174,7 +174,7 @@ static void s_test_missing_desktop_id_falls_back_and_toggles(void)
 
 
 /* desktop_id given and in range: that exact desktop is resolved and
- * toggled, not the surface's current one */
+ * toggled, not the stage's current one */
 static void s_test_explicit_desktop_id_is_used(void)
 {
     desktop_td other;
@@ -185,7 +185,7 @@ static void s_test_explicit_desktop_id_is_used(void)
     memset(&other, 0, sizeof(other));
     other.id = 1u;
     s_desktops_by_id[1] = &other;
-    s_surface.desktop_count = 2u;
+    s_stage.desktop_count = 2u;
     cJSON_AddNumberToObject(args, "desktop_id", 1);
 
     resp = ipc_action_toggle_scratchpad(s_wm, args);
@@ -199,7 +199,7 @@ static void s_test_explicit_desktop_id_is_used(void)
 }
 
 
-/* desktop_id given but out of range for the resolved surface: an
+/* desktop_id given but out of range for the resolved stage: an
  * error, never toggled */
 static void s_test_out_of_range_desktop_id_is_error(void)
 {
@@ -227,7 +227,7 @@ int main(void)
 {
     TAP_PLAN(8);
 
-    s_test_no_surface_is_error();
+    s_test_no_stage_is_error();
     s_test_missing_desktop_id_falls_back_and_toggles();
     s_test_explicit_desktop_id_is_used();
     s_test_out_of_range_desktop_id_is_error();

@@ -4,7 +4,7 @@
  * @brief Shared "Send to desktop" context menu submenu
  *
  * Builds the entries for a "Send to desktop" submenu: one row per
- * desktop on the target client's surface, followed by a separator and
+ * desktop on the target client's stage, followed by a separator and
  * an "All desktops"/"Unpin" toggle row.  Shared by every top-level
  * context menu that offers this action on a client (the window menu,
  * and the icon menu), so the entry list, the pin toggle, and the
@@ -34,24 +34,24 @@
 /**
  * @brief Build the "Send to desktop" submenu entries for @p client
  *
- * @param surface     Surface that owns the desktops
+ * @param stage       Stage that owns the desktops
  * @param desktop     Desktop @p client is currently on
  * @param client      Target client
  * @param out_entries Set, on success, to this module's own entry
  *                    storage; valid until the next call to this
  *                    function
- * @param out_state   Set, on success, to this module's own submenu
+ * @param out_state Set, on success, to this module's own submenu
  *                    state; valid until the next call to this function
  *
- * @return Number of entries built, or @c 0 when @p surface has only one
+ * @return Number of entries built, or @c 0 when @p stage has only one
  *         desktop, in which case @p out_entries and @p out_state are
  *         left untouched
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops (a
- *       single walk of the surface's circular desktop list, not one
+ *       single walk of the stage's circular desktop list, not one
  *       lookup per index)
  */
-int ctxmenu_submenu_desktop_build(surface_td *surface,
+int ctxmenu_submenu_desktop_build(stage_td *stage,
         desktop_td *desktop, client_td *client,
         ctxmenu_entry_td **out_entries, ctxmenu_state_td **out_state);
 

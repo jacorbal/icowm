@@ -57,7 +57,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <render/outdate.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Default initial values */
@@ -105,7 +105,7 @@ static enum window_operation_e s_drag_start_operation;
 
 
 /**
- * @brief Link-only stand-in for @a surface_viewport_has_room
+ * @brief Link-only stand-in for @a stage_viewport_has_room
  *
  * Only ever reaches @a client_titlebar_layout above as its
  * @c hide_sticky argument, which that stand-in ignores, so no
@@ -113,9 +113,9 @@ static enum window_operation_e s_drag_start_operation;
  *
  * @note Complexity: @e O(1)
  */
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return false;
 }
@@ -352,12 +352,12 @@ void enact_client_lower(client_td *client)
  * @brief Recording stand-in for @a wincmenu_show
  * @note Complexity: @e O(1)
  */
-void wincmenu_show(xcb_connection_t *connection, surface_td *surface,
+void wincmenu_show(xcb_connection_t *connection, stage_td *stage,
         desktop_td *desktop, client_td *client, struct position_s pos,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) pos;
@@ -775,31 +775,31 @@ static void s_test_middle_click_lowers_client(void)
 
 
 /* Right-click on the drag area (no button hit) opens the window
- * context menu, only when both surface and desktop are available */
+ * context menu, only when both stage and desktop are available */
 static void s_test_right_click_opens_wincmenu(void)
 {
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     xcb_button_press_event_t event = s_make_event(1, 3, 100, 5, 1000);
 
     s_reset();
     s_make_client(&client);
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     im_press_titlebar((xcb_connection_t *) 1, NULL, &event, &client,
-            &desktop, &surface, NULL);
+            &desktop, &stage, NULL);
 
     TAP_EQ_INT(s_wincmenu_show_calls, 1,
-            "right-click on drag area, surface and desktop present:"
+            "right-click on drag area, stage and desktop present:"
             " window menu shown");
 }
 
 
-/* Right-click on the drag area with no surface or desktop resolved:
+/* Right-click on the drag area with no stage or desktop resolved:
  * the window menu never shows */
-static void s_test_right_click_without_surface_skips_wincmenu(void)
+static void s_test_right_click_without_stage_skips_wincmenu(void)
 {
     client_td client;
     xcb_button_press_event_t event = s_make_event(1, 3, 100, 5, 1000);
@@ -811,7 +811,7 @@ static void s_test_right_click_without_surface_skips_wincmenu(void)
             NULL, NULL, NULL);
 
     TAP_EQ_INT(s_wincmenu_show_calls, 0,
-            "right-click, no surface/desktop: window menu not shown");
+            "right-click, no stage/desktop: window menu not shown");
 }
 
 
@@ -842,7 +842,7 @@ static void s_test_button_hit_suppresses_middle_click_lower(void)
 
 int main(void)
 {
-    TAP_PLAN(25);
+    TAP_PLAN(30);
 
     s_test_click_on_close_button_dispatches_close();
     s_test_click_on_sticky_button_dispatches_toggle_stick();
@@ -859,7 +859,7 @@ int main(void)
     s_test_left_click_on_fullscreen_skips_drag();
     s_test_middle_click_lowers_client();
     s_test_right_click_opens_wincmenu();
-    s_test_right_click_without_surface_skips_wincmenu();
+    s_test_right_click_without_stage_skips_wincmenu();
     s_test_button_hit_suppresses_middle_click_lower();
 
     return TAP_DONE();

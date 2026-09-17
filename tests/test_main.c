@@ -4,7 +4,7 @@
  * @brief Test battery for main.c's argv-parsing and flag-validation
  *        guard clauses
  *
- * main.c's own 'main' is, on the surface, "mostly argv parsing and
+ * main.c's own 'main' is, on the stage, "mostly argv parsing and
  * a real X connection/event-loop handoff", but reading its actual
  * body shows every option branch either terminates before ever
  * reaching 'wm_start' (the '-h', '-v', and default/unknown-option

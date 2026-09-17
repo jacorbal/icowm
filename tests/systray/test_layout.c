@@ -8,7 +8,7 @@
  * the same way test_text.c does.  Every XCB entry point layout.c
  * calls (both the raw xcb_* requests and this project's own thin
  * wrappers around them), plus text.c's renderer and the handful of
- * wm.h/surface.h lookups it makes, are stubbed below as controllable,
+ * wm.h/stage.h lookups it makes, are stubbed below as controllable,
  * call-recording stand-ins, so every branch can be driven and checked
  * without a real X server or a real window manager around it.
  */
@@ -34,7 +34,7 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray/internal.h>
 
 
@@ -90,7 +90,7 @@ static uint32_t s_last_strut_right = 0u;
 static uint32_t s_last_strut_top = 0u;
 static uint32_t s_last_strut_bottom = 0u;
 
-static list_td *s_surfaces_stub = NULL;
+static list_td *s_stages_stub = NULL;
 
 static monitor_td s_primary_monitor_stub = { 0, 0, 0u, 0u };
 static int s_refresh_workareas_calls = 0;
@@ -397,33 +397,33 @@ const char *systray_text_for_item(enum config_systray_text_item_e item,
 }
 
 
-/* 'surface.h' / 'wm.h' stand-ins */
+/* 'stage.h' / 'wm.h' stand-ins */
 
 static desktop_td *s_desktop_get_stub = NULL;
 
-desktop_td *surface_desktop_get(surface_td *surface,
+desktop_td *stage_desktop_get(stage_td *stage,
         uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     return s_desktop_get_stub;
 }
 
-monitor_td surface_monitor_primary(const surface_td *surface)
+monitor_td stage_monitor_primary(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return s_primary_monitor_stub;
 }
 
-void surface_workarea_refresh_all(surface_td *surface)
+void stage_workarea_refresh_all(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_refresh_workareas_calls++;
 }
 
-list_td *wm_get_surfaces(void)
+list_td *wm_get_stages(void)
 {
-    return s_surfaces_stub;
+    return s_stages_stub;
 }
 
 /** Stand-in for 'logger_msg', behind the 'LOGGER_WARNING' macro
@@ -470,7 +470,7 @@ static void s_reset_stub_state(void)
     s_last_strut_right = 0u;
     s_last_strut_top = 0u;
     s_last_strut_bottom = 0u;
-    s_surfaces_stub = NULL;
+    s_stages_stub = NULL;
     s_primary_monitor_stub = (monitor_td) { 0, 0, 0u, 0u };
     s_refresh_workareas_calls = 0;
     s_text_draw_calls = 0;
@@ -480,41 +480,41 @@ static void s_reset_stub_state(void)
     s_logger_warning_calls = 0;
 }
 
-/** A ready, active, empty tray sitting on a 1000x800 surface, docked
+/** A ready, active, empty tray sitting on a 1000x800 stage, docked
  *  top-left by default, with no theme (skips every text/pixmap path
  *  that reads 's_tray.theme'); callers fill in whatever else their
  *  own scenario needs on top of this */
-static void s_reset_tray_minimal(surface_td *surface)
+static void s_reset_tray_minimal(stage_td *stage)
 {
     memset(&s_tray, 0, sizeof(s_tray));
     s_tray.is_window_ready = true;
     s_tray.is_active = true;
-    s_tray.surface = surface;
+    s_tray.stage = stage;
     s_tray.window = 500u;
     s_tray.height = 24u;
     s_tray.pixmap_size = 16u;
     s_tray.pixmap_pad = 4u;
 }
 
-/** One fake screen every fixture surface points to, needed only for
+/** One fake screen every fixture stage points to, needed only for
  *  its 'root_depth' field ('systray_layout_reflow''s offscreen
- *  buffer path reads 'surface->screen->root_depth' before even
+ *  buffer path reads 'stage->screen->root_depth' before even
  *  checking whether a buffer could be created) */
 static xcb_screen_t s_fake_screen;
 
-/** A bare surface_td fixture of the given combined dimensions, with
+/** A bare stage_td fixture of the given combined dimensions, with
  *  no monitors and no desktops, sufficient for every reflow/restack
  *  scenario that does not itself need to walk desktops or monitors */
-static surface_td s_make_surface(uint32_t w, uint32_t h)
+static stage_td s_make_stage(uint32_t w, uint32_t h)
 {
-    surface_td surface;
+    stage_td stage;
 
     memset(&s_fake_screen, 0, sizeof(s_fake_screen));
-    memset(&surface, 0, sizeof(surface));
-    surface.properties.dim.w = w;
-    surface.properties.dim.h = h;
-    surface.screen = &s_fake_screen;
-    return surface;
+    memset(&stage, 0, sizeof(stage));
+    stage.properties.dim.w = w;
+    stage.properties.dim.h = h;
+    stage.screen = &s_fake_screen;
+    return stage;
 }
 
 
@@ -525,10 +525,10 @@ static surface_td s_make_surface(uint32_t w, uint32_t h)
 /* Neither ready nor connected: no stub is ever touched */
 static void s_test_restack_not_ready(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.is_window_ready = false;
 
     systray_layout_restack();
@@ -539,10 +539,10 @@ static void s_test_restack_not_ready(void)
 
 static void s_test_restack_no_connection(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_connection_stub = NULL;
 
     systray_layout_restack();
@@ -555,12 +555,12 @@ static void s_test_restack_no_connection(void)
  * every mapped icon below the tray */
 static void s_test_restack_below_layer(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
-    s_surfaces_stub = NULL; /* s_systray_icon_push_below_all: no surfaces */
+    s_stages_stub = NULL; /* s_systray_icon_push_below_all: no stages */
 
     systray_layout_restack();
 
@@ -573,21 +573,21 @@ static void s_test_restack_below_layer(void)
             "BELOW layer marks the stacking as now known");
 }
 
-/* BELOW layer with a real client/desktop/surface graph behind
- * 'wm_get_surfaces': every mapped icon window across every desktop of
- * every surface is pushed below the tray, and an unmapped icon (or a
+/* BELOW layer with a real client/desktop/stage graph behind
+ * 'wm_get_stages': every mapped icon window across every desktop of
+ * every stage is pushed below the tray, and an unmapped icon (or a
  * client with no icon window at all) is left alone */
 static void s_test_restack_below_pushes_mapped_icons(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
-    surface_td *other_surface;
+    stage_td stage = s_make_stage(1000u, 800u);
+    stage_td *other_stage;
     desktop_td desktop;
     client_td mapped_icon;
     client_td unmapped_icon;
     client_td no_icon_window;
     ohtbl_td *clients;
     cdlist_td *desktops;
-    list_td *surfaces;
+    list_td *stages;
 
     memset(&desktop, 0, sizeof(desktop));
     memset(&mapped_icon, 0, sizeof(mapped_icon));
@@ -617,16 +617,16 @@ static void s_test_restack_below_pushes_mapped_icons(void)
     desktops = cdlist_init(NULL);
     cdlist_ins_next(desktops, NULL, &desktop);
 
-    other_surface = calloc(1, sizeof(*other_surface));
-    other_surface->desktops = desktops;
+    other_stage = calloc(1, sizeof(*other_stage));
+    other_stage->desktops = desktops;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, other_surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, other_stage);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
-    s_surfaces_stub = surfaces;
+    s_stages_stub = stages;
 
     systray_layout_restack();
 
@@ -638,19 +638,19 @@ static void s_test_restack_below_pushes_mapped_icons(void)
     TAP_EQ_INT((long) s_stack_below_sibling, (long) s_tray.window,
             "...stacked directly below the tray window itself");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
     cdlist_destroy(desktops);
     ohtbl_destroy(clients);
-    free(other_surface);
+    free(other_stage);
 }
 
 /* BELOW, already stacked there: skipped entirely, no further lower */
 static void s_test_restack_below_already_stacked(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
     s_tray.is_stacking_known = true;
     s_tray.stacked_layer = CONFIG_SYSTRAY_LAYER_BELOW;
@@ -664,13 +664,13 @@ static void s_test_restack_below_already_stacked(void)
 /* ABOVE, no fullscreen client anywhere: raises to the very top */
 static void s_test_restack_above_no_fullscreen(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.layer = CONFIG_SYSTRAY_LAYER_ABOVE;
-    /* surface->desktops == NULL: s_systray_fullscreen_target_find's
-     * surface_desktop_get lookup below always yields no desktop */
+    /* stage->desktops == NULL: s_systray_fullscreen_target_find's
+     * stage_desktop_get lookup below always yields no desktop */
 
     systray_layout_restack();
 
@@ -684,7 +684,7 @@ static void s_test_restack_above_no_fullscreen(void)
  * stacks directly below that client's frame instead of raising */
 static void s_test_restack_above_with_fullscreen(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
     desktop_td desktop;
     client_td client;
     cdlist_td *desktops;
@@ -708,10 +708,10 @@ static void s_test_restack_above_with_fullscreen(void)
 
     s_reset_stub_state();
     s_desktop_get_stub = &desktop;
-    s_reset_tray_minimal(&surface);
-    s_tray.surface->desktops = desktops;
-    s_tray.surface->desktop_count = 1u;
-    s_tray.surface->desktop_cur = 0u;
+    s_reset_tray_minimal(&stage);
+    s_tray.stage->desktops = desktops;
+    s_tray.stage->desktop_count = 1u;
+    s_tray.stage->desktop_cur = 0u;
     s_tray.layer = CONFIG_SYSTRAY_LAYER_ABOVE;
 
     systray_layout_restack();
@@ -732,10 +732,10 @@ static void s_test_restack_above_with_fullscreen(void)
  * since its fullscreen_target is never even looked up */
 static void s_test_restack_overlay_always_raises(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.layer = CONFIG_SYSTRAY_LAYER_OVERLAY;
 
     systray_layout_restack();
@@ -749,10 +749,10 @@ static void s_test_restack_overlay_always_raises(void)
 /* ABOVE/OVERLAY, already settled against the same target: skipped */
 static void s_test_restack_above_already_settled(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.layer = CONFIG_SYSTRAY_LAYER_ABOVE;
     s_tray.is_stacking_known = true;
     s_tray.stacked_layer = CONFIG_SYSTRAY_LAYER_ABOVE;
@@ -766,14 +766,14 @@ static void s_test_restack_above_already_settled(void)
 
 
 /* Monitor anchor CONFIG_SYSTRAY_MONITOR_PRIMARY: the tray docks
- * against whatever 'surface_monitor_primary' reports, not the whole
- * combined surface */
+ * against whatever 'stage_monitor_primary' reports, not the whole
+ * combined stage */
 static void s_test_reflow_anchor_primary_monitor(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     s_tray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_PRIMARY;
@@ -791,17 +791,17 @@ static void s_test_reflow_anchor_primary_monitor(void)
  * against that specific monitor's own rectangle */
 static void s_test_reflow_anchor_index_in_range(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     s_tray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_INDEX;
     s_tray.monitor.index = 1u;
-    s_tray.surface->monitor_count = 2u;
-    s_tray.surface->monitors[0] = (monitor_td) { 0, 0, 500u, 800u };
-    s_tray.surface->monitors[1] = (monitor_td) { 500, 0, 500u, 800u };
+    s_tray.stage->monitor_count = 2u;
+    s_tray.stage->monitors[0] = (monitor_td) { 0, 0, 500u, 800u };
+    s_tray.stage->monitors[1] = (monitor_td) { 500, 0, 500u, 800u };
 
     systray_layout_reflow();
 
@@ -816,17 +816,17 @@ static void s_test_reflow_anchor_index_in_range(void)
  * silently docking nowhere */
 static void s_test_reflow_anchor_index_out_of_range(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     s_tray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_INDEX;
     s_tray.monitor.index = 5u; /* only 2 monitors exist: out of range */
-    s_tray.surface->monitor_count = 2u;
-    s_tray.surface->monitors[0] = (monitor_td) { 10, 20, 500u, 800u };
-    s_tray.surface->monitors[1] = (monitor_td) { 510, 0, 500u, 800u };
+    s_tray.stage->monitor_count = 2u;
+    s_tray.stage->monitors[0] = (monitor_td) { 10, 20, 500u, 800u };
+    s_tray.stage->monitors[1] = (monitor_td) { 510, 0, 500u, 800u };
 
     systray_layout_reflow();
 
@@ -837,25 +837,25 @@ static void s_test_reflow_anchor_index_out_of_range(void)
 }
 
 /* Monitor anchor CONFIG_SYSTRAY_MONITOR_INDEX with zero monitors at
- * all: falls back to the whole combined surface rectangle instead of
+ * all: falls back to the whole combined stage rectangle instead of
  * indexing into an empty array */
 static void s_test_reflow_anchor_index_no_monitors(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     s_tray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_INDEX;
     s_tray.monitor.index = 0u;
-    s_tray.surface->monitor_count = 0u;
+    s_tray.stage->monitor_count = 0u;
 
     systray_layout_reflow();
 
     TAP_EQ_INT(s_place_x, 0,
             "INDEX anchor with no monitors: falls back to the whole"
-            " surface's own x");
+            " stage's own x");
     TAP_EQ_INT(s_logger_warning_calls, 0,
             "...without logging a warning for this particular case");
 }
@@ -867,10 +867,10 @@ static void s_test_reflow_anchor_index_no_monitors(void)
 
 static void s_test_reflow_not_ready(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.is_window_ready = false;
 
     systray_layout_reflow();
@@ -879,7 +879,7 @@ static void s_test_reflow_not_ready(void)
             "not window-ready: reflow does nothing at all");
 }
 
-static void s_test_reflow_no_surface(void)
+static void s_test_reflow_no_stage(void)
 {
     s_reset_stub_state();
     s_reset_tray_minimal(NULL);
@@ -887,17 +887,17 @@ static void s_test_reflow_no_surface(void)
     systray_layout_reflow();
 
     TAP_EQ_INT(s_hide_calls + s_place_calls, 0,
-            "no surface assigned yet: reflow does nothing at all");
+            "no stage assigned yet: reflow does nothing at all");
 }
 
 /* Inactive: hidden and its strut cleared, without even reaching the
  * width computation */
 static void s_test_reflow_inactive_hides_and_clears_strut(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.is_active = false;
     s_tray.icon_count = 3u; /* would otherwise have nonzero width */
 
@@ -914,10 +914,10 @@ static void s_test_reflow_inactive_hides_and_clears_strut(void)
  * hidden, same as being inactive */
 static void s_test_reflow_empty_hides(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 0u;
     s_tray.clock_enabled = false;
     s_tray.battery_enabled = false;
@@ -934,10 +934,10 @@ static void s_test_reflow_empty_hides(void)
  * distinct from the is_active/empty-everything check above it */
 static void s_test_reflow_zero_width_hides(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 0u;
     s_tray.clock_enabled = true;   /* enabled, but text stays empty */
     s_tray.clock_text[0] = '\0';
@@ -948,31 +948,31 @@ static void s_test_reflow_zero_width_hides(void)
             "enabled but empty text still yields zero width: hidden");
 }
 
-/* TOP_LEFT: anchored flush to the surface's own top-left corner */
+/* TOP_LEFT: anchored flush to the stage's own top-left corner */
 static void s_test_reflow_position_top_left(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
 
     systray_layout_reflow();
 
     TAP_EQ_INT(s_place_calls, 1, "a non-empty active tray is placed");
-    TAP_EQ_INT(s_place_x, 0, "TOP_LEFT: x is the surface's own left");
-    TAP_EQ_INT(s_place_y, 0, "TOP_LEFT: y is the surface's own top");
+    TAP_EQ_INT(s_place_x, 0, "TOP_LEFT: x is the stage's own left");
+    TAP_EQ_INT(s_place_y, 0, "TOP_LEFT: y is the stage's own top");
 }
 
 /* TOP_RIGHT: flush right, still against the top */
 static void s_test_reflow_position_top_right(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
     uint16_t expected_w;
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_RIGHT;
 
@@ -982,22 +982,22 @@ static void s_test_reflow_position_top_right(void)
     expected_w = 44u;
     TAP_EQ_INT(s_place_x, (long) (1000u - expected_w),
             "TOP_RIGHT: x sits content width in from the right edge");
-    TAP_EQ_INT(s_place_y, 0, "TOP_RIGHT: y is still the surface's top");
+    TAP_EQ_INT(s_place_y, 0, "TOP_RIGHT: y is still the stage's top");
 }
 
 /* BOTTOM_LEFT: flush left, against the bottom */
 static void s_test_reflow_position_bottom_left(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT;
 
     systray_layout_reflow();
 
-    TAP_EQ_INT(s_place_x, 0, "BOTTOM_LEFT: x is the surface's own left");
+    TAP_EQ_INT(s_place_x, 0, "BOTTOM_LEFT: x is the stage's own left");
     TAP_EQ_INT(s_place_y, (long) (800u - s_tray.height),
             "BOTTOM_LEFT: y sits the tray's height up from the bottom");
 }
@@ -1006,7 +1006,7 @@ static void s_test_reflow_position_bottom_left(void)
  * total border thickness on top of the plain content/height span */
 static void s_test_reflow_position_bottom_right_with_border(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
     struct config_theme_s theme;
     uint16_t expected_w = 44u; /* 4 + 2*(16+4) */
 
@@ -1014,7 +1014,7 @@ static void s_test_reflow_position_bottom_right_with_border(void)
     theme.systray.style.border.width = 3u;
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 2u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT;
     s_tray.theme = &theme;
@@ -1032,10 +1032,10 @@ static void s_test_reflow_position_bottom_right_with_border(void)
  * within the tray's own height */
 static void s_test_reflow_icon_positions(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 3u;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
 
@@ -1047,14 +1047,14 @@ static void s_test_reflow_icon_positions(void)
 }
 
 /* The strut is (re)published on every reflow that leaves the tray
- * visible, and 'surface_workarea_refresh_all' runs only when that strut
+ * visible, and 'stage_workarea_refresh_all' runs only when that strut
  * actually changed from what it was before */
 static void s_test_reflow_strut_change_triggers_workarea_refresh(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 1u;
     s_tray.reserve_space = true;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
@@ -1077,10 +1077,10 @@ static void s_test_reflow_strut_change_triggers_workarea_refresh(void)
  * the published strut's top edge equals the tray's own bottom edge */
 static void s_test_reflow_strut_values_top_left(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 1u;
     s_tray.reserve_space = true;
     s_tray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
@@ -1101,13 +1101,13 @@ static void s_test_reflow_strut_values_top_left(void)
  * exactly once, and a disabled or empty one is skipped */
 static void s_test_reflow_draws_enabled_text_only(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
     struct config_theme_s theme;
 
     memset(&theme, 0, sizeof(theme));
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 0u;
     s_tray.theme = &theme;
     s_tray.text_order[0] = CONFIG_SYSTRAY_TEXT_CLOCK;
@@ -1131,13 +1131,13 @@ static void s_test_reflow_draws_enabled_text_only(void)
  * safety and checks the text is still drawn exactly once */
 static void s_test_reflow_draws_text_via_offscreen_buffer(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
     struct config_theme_s theme;
 
     memset(&theme, 0, sizeof(theme));
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 0u;
     s_tray.theme = &theme;
     s_tray.text_order[0] = CONFIG_SYSTRAY_TEXT_CLOCK;
@@ -1158,10 +1158,10 @@ static void s_test_reflow_draws_text_via_offscreen_buffer(void)
  * past the early-hide checks, whatever the layer */
 static void s_test_reflow_restacks_at_the_end(void)
 {
-    surface_td surface = s_make_surface(1000u, 800u);
+    stage_td stage = s_make_stage(1000u, 800u);
 
     s_reset_stub_state();
-    s_reset_tray_minimal(&surface);
+    s_reset_tray_minimal(&stage);
     s_tray.icon_count = 1u;
     s_tray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
 
@@ -1187,7 +1187,7 @@ int main(void)
     s_test_restack_above_already_settled();
 
     s_test_reflow_not_ready();
-    s_test_reflow_no_surface();
+    s_test_reflow_no_stage();
     s_test_reflow_inactive_hides_and_clears_strut();
     s_test_reflow_empty_hides();
     s_test_reflow_zero_width_hides();

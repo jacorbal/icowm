@@ -4,7 +4,7 @@
  * @brief Test battery for turning a request's own numeric IDs into
  *        real pointers
  *
- * wm_get_surface_by_id (wm.c) and surface_desktop_get (surface.c,
+ * wm_get_stage_by_id (wm.c) and stage_desktop_get (stage.c,
  * reached indirectly through lookup_current_desktop) are both
  * stubbed below as controllable stand-ins rather than no-ops: each
  * reads from a small array this file's own tests populate before
@@ -42,27 +42,27 @@
 #include <wm/internal.h>
 
 
-/** Controllable stand-in for wm_get_surface_by_id (wm.c): tests set
+/** Controllable stand-in for wm_get_stage_by_id (wm.c): tests set
  *  this before calling anything that might reach it */
-static surface_td *s_surface_by_id_result = NULL;
+static stage_td *s_stage_by_id_result = NULL;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_by_id_result;
+    (void) stage_id;
+    return s_stage_by_id_result;
 }
 
 
-/** Controllable stand-in for surface_desktop_get (surface.c):
+/** Controllable stand-in for stage_desktop_get (stage.c):
  *  indexed by desktop_id, so both ipc_resolve_desktop's own direct
  *  call and its indirect one through lookup_current_desktop can be
  *  driven the same realistic way */
 static desktop_td *s_desktops_by_id[8];
 
-desktop_td *surface_desktop_get(surface_td *surface,
+desktop_td *stage_desktop_get(stage_td *stage,
         uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     if (desktop_id >= 8u) {
         return NULL;
     }
@@ -88,128 +88,128 @@ static bool s_id_match(const void *key1, const void *key2)
 }
 
 
-/* ipc_resolve_surface: an explicit, valid "surface_id" is resolved
- * through wm_get_surface_by_id */
-static void s_test_resolve_surface_explicit_id(void)
+/* ipc_resolve_stage: an explicit, valid "stage_id" is resolved
+ * through wm_get_stage_by_id */
+static void s_test_resolve_stage_explicit_id(void)
 {
-    surface_td surface;
+    stage_td stage;
     cJSON *args = cJSON_CreateObject();
-    const surface_td *found;
+    const stage_td *found;
 
-    memset(&surface, 0, sizeof(surface));
-    s_surface_by_id_result = &surface;
-    cJSON_AddNumberToObject(args, "surface_id", 3);
+    memset(&stage, 0, sizeof(stage));
+    s_stage_by_id_result = &stage;
+    cJSON_AddNumberToObject(args, "stage_id", 3);
 
-    found = ipc_resolve_surface(NULL, args);
-    TAP_OK(found == &surface,
-            "an explicit surface_id resolves through wm_get_surface_by_id");
+    found = ipc_resolve_stage(NULL, args);
+    TAP_OK(found == &stage,
+            "an explicit stage_id resolves through wm_get_stage_by_id");
 
     cJSON_Delete(args);
 }
 
 
-/* ipc_resolve_surface: with no "surface_id" given, falls back to the
- * first surface in wm->surfaces */
-static void s_test_resolve_surface_falls_back_to_first(void)
+/* ipc_resolve_stage: with no "stage_id" given, falls back to the
+ * first stage in wm->stages */
+static void s_test_resolve_stage_falls_back_to_first(void)
 {
     wm_td wm;
-    surface_td a;
-    surface_td b;
+    stage_td a;
+    stage_td b;
     cJSON *args = cJSON_CreateObject();
-    const surface_td *found;
+    const stage_td *found;
 
     memset(&wm, 0, sizeof(wm));
     memset(&a, 0, sizeof(a));
     memset(&b, 0, sizeof(b));
-    wm.surfaces = list_init(NULL);
-    list_ins_next(wm.surfaces, NULL, &b);
-    list_ins_next(wm.surfaces, NULL, &a);
+    wm.stages = list_init(NULL);
+    list_ins_next(wm.stages, NULL, &b);
+    list_ins_next(wm.stages, NULL, &a);
     /* list_ins_next(NULL) inserts at the head, so 'a' (inserted
      * last) is the head/first */
 
-    found = ipc_resolve_surface(&wm, args);
-    TAP_OK(found == &a, "no surface_id given: falls back to the" \
-            " first surface in the list");
+    found = ipc_resolve_stage(&wm, args);
+    TAP_OK(found == &a, "no stage_id given: falls back to the" \
+            " first stage in the list");
 
-    list_destroy(wm.surfaces);
+    list_destroy(wm.stages);
     cJSON_Delete(args);
 }
 
 
-/* ipc_resolve_surface: with no "surface_id" and an empty (or NULL)
- * surface list, there is nothing to fall back to */
-static void s_test_resolve_surface_empty_list_fails(void)
+/* ipc_resolve_stage: with no "stage_id" and an empty (or NULL)
+ * stage list, there is nothing to fall back to */
+static void s_test_resolve_stage_empty_list_fails(void)
 {
     wm_td wm;
     cJSON *args = cJSON_CreateObject();
 
     memset(&wm, 0, sizeof(wm));
-    wm.surfaces = list_init(NULL);
+    wm.stages = list_init(NULL);
 
-    TAP_NULL(ipc_resolve_surface(&wm, args),
-            "an empty surface list has nothing to fall back to");
-    TAP_NULL(ipc_resolve_surface(&wm, args),
+    TAP_NULL(ipc_resolve_stage(&wm, args),
+            "an empty stage list has nothing to fall back to");
+    TAP_NULL(ipc_resolve_stage(&wm, args),
             "(consistent across repeated calls)");
 
-    list_destroy(wm.surfaces);
+    list_destroy(wm.stages);
     cJSON_Delete(args);
 }
 
 
-/* ipc_resolve_desktop: when the underlying surface itself cannot be
- * resolved, fails with "no such surface" */
-static void s_test_resolve_desktop_no_surface(void)
+/* ipc_resolve_desktop: when the underlying stage itself cannot be
+ * resolved, fails with "no such stage" */
+static void s_test_resolve_desktop_no_stage(void)
 {
     wm_td wm;
     cJSON *args = cJSON_CreateObject();
-    surface_td *out_surface = NULL;
+    stage_td *out_stage = NULL;
     cJSON *out_error = NULL;
     desktop_td *found;
 
     memset(&wm, 0, sizeof(wm));
-    wm.surfaces = list_init(NULL);
+    wm.stages = list_init(NULL);
 
-    found = ipc_resolve_desktop(&wm, args, false, &out_surface,
+    found = ipc_resolve_desktop(&wm, args, false, &out_stage,
             &out_error);
 
-    TAP_NULL(found, "no resolvable surface: desktop resolution fails");
+    TAP_NULL(found, "no resolvable stage: desktop resolution fails");
     TAP_NOT_NULL(out_error, "an error response is built");
     TAP_EQ_STR(cJSON_GetObjectItem(out_error, "error")->valuestring,
-            "no such surface",
+            "no such stage",
             "the error message names the real cause");
 
     cJSON_Delete(out_error);
-    list_destroy(wm.surfaces);
+    list_destroy(wm.stages);
     cJSON_Delete(args);
 }
 
 
 /* ipc_resolve_desktop: an explicit, in-range "desktop_id" resolves
- * through surface_desktop_get directly */
+ * through stage_desktop_get directly */
 static void s_test_resolve_desktop_explicit_id(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     cJSON *args = cJSON_CreateObject();
-    surface_td *out_surface = NULL;
+    stage_td *out_stage = NULL;
     cJSON *out_error = NULL;
     const desktop_td *found;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
-    surface.desktop_count = 4u;
-    s_surface_by_id_result = &surface;
+    stage.desktop_count = 4u;
+    s_stage_by_id_result = &stage;
     s_desktops_by_id[2] = &desktop;
-    cJSON_AddNumberToObject(args, "surface_id", 0);
+    cJSON_AddNumberToObject(args, "stage_id", 0);
     cJSON_AddNumberToObject(args, "desktop_id", 2);
 
     found = ipc_resolve_desktop(NULL, args, true,
-            &out_surface, &out_error);
+            &out_stage, &out_error);
 
     TAP_OK(found == &desktop,
             "an explicit, in-range desktop_id resolves");
-    TAP_OK(out_surface == &surface, "out_surface is set to the" \
-            " resolved surface");
+    TAP_OK(out_stage == &stage, "out_stage is set to the" \
+            " resolved stage");
 
     s_desktops_by_id[2] = NULL;
     cJSON_Delete(args);
@@ -217,28 +217,28 @@ static void s_test_resolve_desktop_explicit_id(void)
 
 
 /* ipc_resolve_desktop: an explicit "desktop_id" at or beyond the
- * surface's own desktop_count fails, without ever consulting
- * surface_desktop_get for it */
+ * stage's own desktop_count fails, without ever consulting
+ * stage_desktop_get for it */
 static void s_test_resolve_desktop_id_out_of_range(void)
 {
-    surface_td surface;
+    stage_td stage;
     cJSON *args = cJSON_CreateObject();
-    surface_td *out_surface = NULL;
+    stage_td *out_stage = NULL;
     cJSON *out_error = NULL;
     desktop_td *found;
 
-    memset(&surface, 0, sizeof(surface));
-    surface.desktop_count = 2u;
-    s_surface_by_id_result = &surface;
-    cJSON_AddNumberToObject(args, "surface_id", 0);
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_count = 2u;
+    s_stage_by_id_result = &stage;
+    cJSON_AddNumberToObject(args, "stage_id", 0);
     cJSON_AddNumberToObject(args, "desktop_id", 5);
 
     found = ipc_resolve_desktop(NULL, args, true,
-            &out_surface, &out_error);
+            &out_stage, &out_error);
 
     TAP_NULL(found, "an out-of-range desktop_id fails");
     TAP_EQ_STR(cJSON_GetObjectItem(out_error, "error")->valuestring,
-            "no such desktop on that surface",
+            "no such desktop on that stage",
             "the error message names the real cause");
 
     cJSON_Delete(out_error);
@@ -250,19 +250,19 @@ static void s_test_resolve_desktop_id_out_of_range(void)
  * caller marked it required */
 static void s_test_resolve_desktop_missing_id_required(void)
 {
-    surface_td surface;
+    stage_td stage;
     cJSON *args = cJSON_CreateObject();
-    surface_td *out_surface = NULL;
+    stage_td *out_stage = NULL;
     cJSON *out_error = NULL;
     desktop_td *found;
 
-    memset(&surface, 0, sizeof(surface));
-    surface.desktop_count = 2u;
-    s_surface_by_id_result = &surface;
-    cJSON_AddNumberToObject(args, "surface_id", 0);
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_count = 2u;
+    s_stage_by_id_result = &stage;
+    cJSON_AddNumberToObject(args, "stage_id", 0);
 
     found = ipc_resolve_desktop(NULL, args, true,
-            &out_surface, &out_error);
+            &out_stage, &out_error);
 
     TAP_NULL(found, "a missing desktop_id fails when required");
     TAP_EQ_STR(cJSON_GetObjectItem(out_error, "error")->valuestring,
@@ -275,30 +275,30 @@ static void s_test_resolve_desktop_missing_id_required(void)
 
 
 /* ipc_resolve_desktop: a missing "desktop_id" that is not required
- * falls back to the surface's own current desktop */
+ * falls back to the stage's own current desktop */
 static void s_test_resolve_desktop_missing_id_falls_back(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     cJSON *args = cJSON_CreateObject();
-    surface_td *out_surface = NULL;
+    stage_td *out_stage = NULL;
     cJSON *out_error = NULL;
     const desktop_td *found;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
-    surface.desktop_count = 3u;
-    surface.desktop_cur = 1u;
-    s_surface_by_id_result = &surface;
+    stage.desktop_count = 3u;
+    stage.desktop_cur = 1u;
+    s_stage_by_id_result = &stage;
     s_desktops_by_id[1] = &desktop;
-    cJSON_AddNumberToObject(args, "surface_id", 0);
+    cJSON_AddNumberToObject(args, "stage_id", 0);
 
-    found = ipc_resolve_desktop(NULL, args, false, &out_surface,
+    found = ipc_resolve_desktop(NULL, args, false, &out_stage,
             &out_error);
 
     TAP_OK(found == &desktop,
             "a missing, non-required desktop_id falls back to the" \
-            " surface's own current desktop");
+            " stage's own current desktop");
 
     s_desktops_by_id[1] = NULL;
     cJSON_Delete(args);
@@ -330,18 +330,18 @@ static void s_test_resolve_client_missing_id(void)
 static void s_test_resolve_client_found(void)
 {
     wm_td wm;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_screen_t screen;
     client_td client;
     cJSON *args = cJSON_CreateObject();
-    surface_td *out_surface = NULL;
+    stage_td *out_stage = NULL;
     desktop_td *out_desktop = NULL;
     cJSON *out_error = NULL;
     const client_td *found;
 
     memset(&wm, 0, sizeof(wm));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
     memset(&client, 0, sizeof(client));
@@ -351,24 +351,24 @@ static void s_test_resolve_client_found(void)
             s_id_match, NULL);
     ohtbl_insert(desktop.clients, &client);
 
-    surface.screen = &screen;
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, &desktop);
+    stage.screen = &screen;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, &desktop);
 
-    wm.surfaces = list_init(NULL);
-    list_ins_next(wm.surfaces, NULL, &surface);
+    wm.stages = list_init(NULL);
+    list_ins_next(wm.stages, NULL, &stage);
 
     cJSON_AddNumberToObject(args, "client_id", 77);
 
-    found = ipc_resolve_client(&wm, args, &out_surface, &out_desktop,
+    found = ipc_resolve_client(&wm, args, &out_stage, &out_desktop,
             &out_error);
 
     TAP_OK(found == &client, "a real, managed client_id resolves");
-    TAP_OK(out_surface == &surface, "out_surface is correctly set");
+    TAP_OK(out_stage == &stage, "out_stage is correctly set");
     TAP_OK(out_desktop == &desktop, "out_desktop is correctly set");
 
-    list_destroy(wm.surfaces);
-    cdlist_destroy(surface.desktops);
+    list_destroy(wm.stages);
+    cdlist_destroy(stage.desktops);
     ohtbl_destroy(desktop.clients);
     cJSON_Delete(args);
 }
@@ -384,7 +384,7 @@ static void s_test_resolve_client_not_found(void)
     client_td *found;
 
     memset(&wm, 0, sizeof(wm));
-    wm.surfaces = list_init(NULL);
+    wm.stages = list_init(NULL);
     cJSON_AddNumberToObject(args, "client_id", 999);
 
     found = ipc_resolve_client(&wm, args, NULL, NULL, &out_error);
@@ -394,7 +394,7 @@ static void s_test_resolve_client_not_found(void)
             "no such client", "the error message names the real cause");
 
     cJSON_Delete(out_error);
-    list_destroy(wm.surfaces);
+    list_destroy(wm.stages);
     cJSON_Delete(args);
 }
 
@@ -403,10 +403,10 @@ int main(void)
 {
     TAP_PLAN(21);
 
-    s_test_resolve_surface_explicit_id();
-    s_test_resolve_surface_falls_back_to_first();
-    s_test_resolve_surface_empty_list_fails();
-    s_test_resolve_desktop_no_surface();
+    s_test_resolve_stage_explicit_id();
+    s_test_resolve_stage_falls_back_to_first();
+    s_test_resolve_stage_empty_list_fails();
+    s_test_resolve_desktop_no_stage();
     s_test_resolve_desktop_explicit_id();
     s_test_resolve_desktop_id_out_of_range();
     s_test_resolve_desktop_missing_id_required();

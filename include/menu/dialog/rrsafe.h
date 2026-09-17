@@ -48,16 +48,16 @@
  * shown.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the dialog
+ * @param stage      Stage on which to center the dialog
  * @param config     Active configuration (theme colors and font)
  *
  * @note Complexity: @e O(1)
  *
  * @see @c STR_DIALOG_RANDR_CONFIRM_PROMPT and
- *      @a surface_action_randr_revert_profiles
+ *      @a stage_action_randr_revert_profiles
  */
 void dialog_rrsafe_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config);
+        stage_td *stage, const config_td *config);
 
 
 #endif  /* ! MENU_DIALOG_RRSAFE_H */

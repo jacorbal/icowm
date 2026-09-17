@@ -53,7 +53,7 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <cctl/sn.h>
@@ -225,12 +225,12 @@ static char s_sn_begin_id[128] = "startup-id-42";
  * @brief Test-controlled stand-in for @a cctl_sn_begin
  * @note Complexity: @e O(1)
  */
-bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
+bool cctl_sn_begin(xcb_connection_t *connection, list_td *stages,
         const char *restrict name, uint32_t origin_desktop,
         char *restrict out_id, size_t out_id_size)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) name;
     (void) origin_desktop;
 
@@ -248,11 +248,11 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
  * @brief Recording stand-in for @a cctl_sn_cancel
  * @note Complexity: @e O(1)
  */
-void cctl_sn_cancel(xcb_connection_t *connection, list_td *surfaces,
+void cctl_sn_cancel(xcb_connection_t *connection, list_td *stages,
         const char *id)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) id;
     s_call_sn_cancel++;
 }
@@ -273,9 +273,9 @@ void cctl_sn_associate_pid(const char *id, pid_t pid)
 
 /** Fixed answers this file's wm_get_* stand-ins report; set per
  *  scenario */
-static surface_td *s_wm_desktop_surface_answer;
+static stage_td *s_wm_desktop_stage_answer;
 static config_td *s_wm_config_answer;
-static list_td *s_wm_surfaces_answer;
+static list_td *s_wm_stages_answer;
 
 
 /** Viewport page a scenario wants reported for the urgent client and
@@ -291,14 +291,14 @@ static uint32_t s_shown_page_row;
 
 /**
  * @brief Test-controlled stand-in for
- *        @a scmd_surface_viewport_client_page
+ *        @a scmd_stage_viewport_client_page
  * @note Complexity: @e O(1)
  */
-bool scmd_surface_viewport_client_page(const surface_td *surface,
+bool scmd_stage_viewport_client_page(const stage_td *stage,
         const desktop_td *desktop, const client_td *client,
         uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
 
@@ -313,13 +313,13 @@ bool scmd_surface_viewport_client_page(const surface_td *surface,
 
 /**
  * @brief Test-controlled stand-in for
- *        @a scmd_surface_viewport_desktop_page
+ *        @a scmd_stage_viewport_desktop_page
  * @note Complexity: @e O(1)
  */
-bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+bool scmd_stage_viewport_desktop_page(const stage_td *stage,
         const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
 
     if (!s_viewport_has_pages) {
@@ -332,13 +332,13 @@ bool scmd_surface_viewport_desktop_page(const surface_td *surface,
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_desktop_surface
+ * @brief Test-controlled stand-in for @a wm_get_desktop_stage
  * @note Complexity: @e O(1)
  */
-surface_td *wm_get_desktop_surface(const desktop_td *desktop)
+stage_td *wm_get_desktop_stage(const desktop_td *desktop)
 {
     (void) desktop;
-    return s_wm_desktop_surface_answer;
+    return s_wm_desktop_stage_answer;
 }
 
 
@@ -353,12 +353,12 @@ config_td *wm_get_config(void)
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_surfaces
+ * @brief Test-controlled stand-in for @a wm_get_stages
  * @note Complexity: @e O(1)
  */
-list_td *wm_get_surfaces(void)
+list_td *wm_get_stages(void)
 {
-    return s_wm_surfaces_answer;
+    return s_wm_stages_answer;
 }
 
 
@@ -382,11 +382,11 @@ bool menu_message_dialog_is_open(void)
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     (void) message;
     (void) level;
@@ -531,7 +531,7 @@ static bool s_client_match(const void *key1, const void *key2)
 static desktop_td s_desktop_a;
 static desktop_td s_desktop_b;
 static config_td s_config;
-static surface_td s_surface;
+static stage_td s_stage;
 
 
 /**
@@ -601,9 +601,9 @@ static void s_reset(void)
     s_sn_begin_answer = true;
     (void) safe_strncpy(s_sn_begin_id, "startup-id-42",
             sizeof(s_sn_begin_id));
-    s_wm_desktop_surface_answer = NULL;
+    s_wm_desktop_stage_answer = NULL;
     s_wm_config_answer = NULL;
-    s_wm_surfaces_answer = NULL;
+    s_wm_stages_answer = NULL;
     s_call_message_dialog_show = 0;
     s_message_dialog_is_open_answer = false;
     s_viewport_has_pages = false;
@@ -619,7 +619,7 @@ static void s_reset(void)
     s_spawn_command_pid_answer = 4242;
 
     memset(&s_config, 0, sizeof(s_config));
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
 
     s_make_desktop(&s_desktop_a, 1u, "Alpha");
     s_make_desktop(&s_desktop_b, 2u, "Beta");
@@ -970,10 +970,10 @@ static void s_test_recompute_urgent_transition_notifies(void)
     (void) desktop_action_client_add(&s_desktop_a, &client);
     s_desktop_a.is_urgent = false;
 
-    s_surface.desktop_cur = s_desktop_b.id; /* a different desktop is
+    s_stage.desktop_cur = s_desktop_b.id; /* a different desktop is
                                                 currently shown */
     s_config.base.urgency.notify_activity = true;
-    s_wm_desktop_surface_answer = &s_surface;
+    s_wm_desktop_stage_answer = &s_stage;
     s_wm_config_answer = &s_config;
     s_message_dialog_is_open_answer = false;
 
@@ -1006,12 +1006,12 @@ static void s_test_recompute_urgent_other_page_notifies(void)
     (void) desktop_action_client_add(&s_desktop_a, &client);
     s_desktop_a.is_urgent = false;
 
-    s_surface.desktop_cur = s_desktop_a.id;
+    s_stage.desktop_cur = s_desktop_a.id;
     s_viewport_has_pages = true;
     s_client_page_col = 1u;
     s_shown_page_col = 0u;
     s_config.base.urgency.notify_activity = true;
-    s_wm_desktop_surface_answer = &s_surface;
+    s_wm_desktop_stage_answer = &s_stage;
     s_wm_config_answer = &s_config;
 
     desktop_action_recompute_urgent(&s_desktop_a);
@@ -1040,11 +1040,11 @@ static void s_test_recompute_urgent_page_change_notifies_again(void)
     s_desktop_a.is_urgent = false;
     s_desktop_a.has_urgent_page = false;
 
-    s_surface.desktop_cur = s_desktop_a.id;
+    s_stage.desktop_cur = s_desktop_a.id;
     s_viewport_has_pages = true;
     s_shown_page_col = 0u;
     s_config.base.urgency.notify_activity = true;
-    s_wm_desktop_surface_answer = &s_surface;
+    s_wm_desktop_stage_answer = &s_stage;
     s_wm_config_answer = &s_config;
 
     s_client_page_col = 1u;
@@ -1069,7 +1069,7 @@ static void s_test_recompute_urgent_page_change_notifies_again(void)
 
 
 /* The same transition, but on the desktop currently shown on its own
- * surface, never pops a dialog: that case already gets its titlebar
+ * stage, never pops a dialog: that case already gets its titlebar
  * blink elsewhere */
 static void s_test_recompute_urgent_current_desktop_no_dialog(void)
 {
@@ -1081,10 +1081,10 @@ static void s_test_recompute_urgent_current_desktop_no_dialog(void)
     (void) desktop_action_client_add(&s_desktop_a, &client);
     s_desktop_a.is_urgent = false;
 
-    s_surface.desktop_cur = s_desktop_a.id; /* this desktop itself is
+    s_stage.desktop_cur = s_desktop_a.id; /* this desktop itself is
                                                 the one shown */
     s_config.base.urgency.notify_activity = true;
-    s_wm_desktop_surface_answer = &s_surface;
+    s_wm_desktop_stage_answer = &s_stage;
     s_wm_config_answer = &s_config;
 
     desktop_action_recompute_urgent(&s_desktop_a);
@@ -1092,7 +1092,7 @@ static void s_test_recompute_urgent_current_desktop_no_dialog(void)
     TAP_OK(s_desktop_a.is_urgent, "is_urgent still becomes true");
     TAP_EQ_INT(s_call_message_dialog_show, 0,
             "but no dialog is shown for the desktop currently" \
-            " visible on its own surface");
+            " visible on its own stage");
 
     s_destroy_desktop(&s_desktop_a);
     s_destroy_desktop(&s_desktop_b);
@@ -1111,9 +1111,9 @@ static void s_test_recompute_urgent_already_true_no_dialog(void)
     (void) desktop_action_client_add(&s_desktop_a, &client);
     s_desktop_a.is_urgent = true; /* already urgent before this call */
 
-    s_surface.desktop_cur = s_desktop_b.id;
+    s_stage.desktop_cur = s_desktop_b.id;
     s_config.base.urgency.notify_activity = true;
-    s_wm_desktop_surface_answer = &s_surface;
+    s_wm_desktop_stage_answer = &s_stage;
     s_wm_config_answer = &s_config;
 
     desktop_action_recompute_urgent(&s_desktop_a);

@@ -43,7 +43,7 @@
 #include <config.h>
 #include <harness/tap.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray/handle.h>
 #include <systray/icon.h>
 #include <systray/internal.h>
@@ -52,7 +52,7 @@
 
 /** A non-NULL opaque handle standing in for a real wm_td, which this
  *  file never actually builds, since the type is opaque outside wm.c
- *  itself; wm_config/wm_connection/wm_surfaces below never dereference
+ *  itself; wm_config/wm_connection/wm_stages below never dereference
  *  it, only ignore it and return their own fixtures, so a dummy
  *  address is enough, the same pattern tests/rules/test_apply.c and
  *  tests/wm/test_actions.c already use */
@@ -63,9 +63,9 @@ static wm_td *const s_fake_wm = (wm_td *) &s_fake_wm_storage;
  *  s_reset_config before each scenario that needs one */
 static config_td s_config;
 
-/** A fixture surface, only ever compared by address against
- *  's_tray.surface', never dereferenced by anything under test here */
-static surface_td s_fixture_surface;
+/** A fixture stage, only ever compared by address against
+ *  's_tray.stage', never dereferenced by anything under test here */
+static stage_td s_fixture_stage;
 
 
 /* Controllable stand-in state */
@@ -134,7 +134,7 @@ xcb_connection_t *wm_connection(const wm_td *wm)
     return s_connection_stub;
 }
 
-list_td *wm_surfaces(const wm_td *wm)
+list_td *wm_stages(const wm_td *wm)
 {
     (void) wm;
     return NULL;
@@ -594,38 +594,38 @@ static void s_test_below_window_guards(void)
 }
 
 
-/* 'systray_get_reserved_strut' only answers for the exact surface the
+/* 'systray_get_reserved_strut' only answers for the exact stage the
  * tray is docked on, and only once the window is ready */
 static void s_test_get_reserved_strut_guards(void)
 {
     const struct strut_partial_s *strut;
 
     s_reset();
-    s_tray.surface = &s_fixture_surface;
+    s_tray.stage = &s_fixture_stage;
     s_tray.reserved_strut.sides.left = 7;
 
     TAP_OK(systray_get_reserved_strut(NULL) == NULL,
-            "a NULL surface never gets a strut back");
+            "a NULL stage never gets a strut back");
 
-    TAP_OK(systray_get_reserved_strut(&s_fixture_surface) == NULL,
-            "not window-ready yet: NULL even for the right surface");
+    TAP_OK(systray_get_reserved_strut(&s_fixture_stage) == NULL,
+            "not window-ready yet: NULL even for the right stage");
 
     s_tray.is_window_ready = true;
-    TAP_OK(systray_get_reserved_strut(&s_fixture_surface) ==
+    TAP_OK(systray_get_reserved_strut(&s_fixture_stage) ==
             &s_tray.reserved_strut,
-            "window-ready and the right surface: the real strut"
+            "window-ready and the right stage: the real strut"
             " pointer");
 
-    strut = systray_get_reserved_strut(&s_fixture_surface);
+    strut = systray_get_reserved_strut(&s_fixture_stage);
     TAP_EQ_INT(strut->sides.left, 7,
             "pointing at the tray's actual current reservation");
 
-    TAP_OK(systray_get_reserved_strut((surface_td *) 0x9999) == NULL,
-            "a different surface than the one docked on gets NULL");
+    TAP_OK(systray_get_reserved_strut((stage_td *) 0x9999) == NULL,
+            "a different stage than the one docked on gets NULL");
 }
 
 
-/* 'systray_get_geometry' guards on surface/output pointers and state,
+/* 'systray_get_geometry' guards on stage/output pointers and state,
  * then performs a real round trip through the stubbed XCB calls */
 static void s_test_get_geometry(void)
 {
@@ -633,17 +633,17 @@ static void s_test_get_geometry(void)
     bool ok;
 
     s_reset();
-    s_tray.surface = &s_fixture_surface;
+    s_tray.stage = &s_fixture_stage;
     s_tray.is_window_ready = true;
     s_tray.is_active = true;
     s_tray.window = (xcb_window_t) 30u;
 
     TAP_OK(!systray_get_geometry(NULL, &out),
-            "a NULL surface is refused");
-    TAP_OK(!systray_get_geometry(&s_fixture_surface, NULL),
+            "a NULL stage is refused");
+    TAP_OK(!systray_get_geometry(&s_fixture_stage, NULL),
             "a NULL output pointer is refused");
-    TAP_OK(!systray_get_geometry((surface_td *) 0x9999, &out),
-            "a surface other than the one docked on is refused");
+    TAP_OK(!systray_get_geometry((stage_td *) 0x9999, &out),
+            "a stage other than the one docked on is refused");
     TAP_EQ_INT(s_get_geometry_calls, 0,
             "none of the refusals above ever reach the X server");
 
@@ -651,9 +651,9 @@ static void s_test_get_geometry(void)
     s_get_geometry_y = 6;
     s_get_geometry_w = 200u;
     s_get_geometry_h = 40u;
-    ok = systray_get_geometry(&s_fixture_surface, &out);
+    ok = systray_get_geometry(&s_fixture_stage, &out);
 
-    TAP_OK(ok, "a ready, active tray on the right surface succeeds");
+    TAP_OK(ok, "a ready, active tray on the right stage succeeds");
     TAP_EQ_INT(s_get_geometry_calls, 1,
             "exactly one round trip is made");
     TAP_EQ_INT(out.pos.x, 5, "the reply's x coordinate is copied");
@@ -664,7 +664,7 @@ static void s_test_get_geometry(void)
             "the reply's height is copied");
 
     s_get_geometry_reply_is_null = true;
-    ok = systray_get_geometry(&s_fixture_surface, &out);
+    ok = systray_get_geometry(&s_fixture_stage, &out);
     TAP_OK(!ok, "a NULL reply (failed round trip) reports failure");
 }
 
@@ -856,15 +856,15 @@ static void s_test_handle_property_notify(void)
 }
 
 
-/* 'systray_handle_surface_resize' and 'systray_restack' are pure,
+/* 'systray_handle_stage_resize' and 'systray_restack' are pure,
  * unconditional delegates */
-static void s_test_surface_resize_and_restack_delegate(void)
+static void s_test_stage_resize_and_restack_delegate(void)
 {
     s_reset();
 
-    systray_handle_surface_resize(s_fake_wm);
+    systray_handle_stage_resize(s_fake_wm);
     TAP_EQ_INT(s_layout_reflow_calls, 1,
-            "a surface resize always reflows exactly once");
+            "a stage resize always reflows exactly once");
 
     systray_restack();
     TAP_EQ_INT(s_layout_restack_calls, 1,
@@ -1018,7 +1018,7 @@ int main(void)
     s_test_handle_destroy_removes_and_shifts();
     s_test_handle_destroy_noop_when_not_ready();
     s_test_handle_property_notify();
-    s_test_surface_resize_and_restack_delegate();
+    s_test_stage_resize_and_restack_delegate();
     s_test_reload_guards_refuse_cleanly();
     s_test_reload_disabled_to_enabled();
     s_test_reload_enabled_to_disabled_with_selection();

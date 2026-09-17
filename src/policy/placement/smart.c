@@ -41,8 +41,8 @@
 #include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <systray.h>
 #include <wm.h>
 
@@ -97,7 +97,7 @@ struct s_place_window_smart_ctx_s {
  * one placement decision and the next.
  *
  * @param config   Window manager configuration
- * @param surface  Surface the placement decision is for
+ * @param stage    Stage the placement decision is for
  * @param out_geom Receives the systray's rectangle when resolved;
  *                 untouched otherwise
  *
@@ -109,11 +109,11 @@ struct s_place_window_smart_ctx_s {
  */
 static const struct geometry_s
     *s_place_window_smart_resolve_tray_rect(const config_td *config,
-            const surface_td *surface, struct geometry_s *out_geom)
+            const stage_td *stage, struct geometry_s *out_geom)
 {
     if (config->base.systray.avoid_overlap &&
             !config->base.systray.reserve_space &&
-            systray_get_geometry(surface, out_geom)) {
+            systray_get_geometry(stage, out_geom)) {
         return out_geom;
     }
     return NULL;
@@ -127,8 +127,8 @@ static const struct geometry_s
  *
  * @param ctx Placement context; @c best_x / @c best_y / @c best_cost /
  *            @c best_area / @c has_free_rect updated in place
- * @param x   Candidate left coordinate, not yet clamped
- * @param y   Candidate top coordinate, not yet clamped
+ * @param x Candidate left coordinate, not yet clamped
+ * @param y Candidate top coordinate, not yet clamped
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @c ctx->desktop (the cost of one @a placement_free_rect_grow /
@@ -228,7 +228,7 @@ static void s_place_window_edge_visit(client_td *client, void *data)
 
 /* Find a non-overlapping smart position for a newly mapped client */
 bool place_window_smart(const wm_td *wm,
-        surface_td *surface, client_td *client,
+        stage_td *stage, client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y)
 {
     desktop_td *desktop;
@@ -241,20 +241,20 @@ bool place_window_smart(const wm_td *wm,
     const xcb_connection_t *connection = wm_connection(wm);
     const config_td *config = wm_config(wm);
 
-    if (surface == NULL || client == NULL ||
+    if (stage == NULL || client == NULL ||
             out_x == NULL || out_y == NULL || wm == NULL ||
             connection == NULL || config == NULL) {
         return false;
     }
 
-    desktop = surface_desktop_get(surface, surface->desktop_cur);
+    desktop = stage_desktop_get(stage, stage->desktop_cur);
     if (desktop == NULL) {
         return false;
     }
 
-    /* Resolves the workarea (falling back to the full surface
+    /* Resolves the workarea (falling back to the full stage
      * dimensions when none is set) and clips it to whichever physical
-     * monitor 'windows.placement.monitor' resolves to, on a surface
+     * monitor 'windows.placement.monitor' resolves to, on a stage
      * made of more than one (the common case of several monitors
      * sharing one combined X screen).  A new window should land within
      * one monitor, not be scored against the whole combined area, which
@@ -262,14 +262,14 @@ bool place_window_smart(const wm_td *wm,
      * (unclipped) is only needed because 'placement_workarea' requires
      * somewhere to write it; every candidate below is tested against
      * 'mon_wa' instead. */
-    placement_workarea(wm, surface, client, &wa, &mon_wa, &mon_sz);
+    placement_workarea(wm, stage, client, &wa, &mon_wa, &mon_sz);
 
     ctx.desktop = desktop;
     ctx.skip_client = client;
     ctx.fw = client->layout.geometry.cur.dim.w;
     ctx.fh = client->layout.geometry.cur.dim.h;
     ctx.tray_rect = s_place_window_smart_resolve_tray_rect(config,
-            surface, &tray_geom);
+            stage, &tray_geom);
 
     /* Candidate range keeps the top-left corner inside the workarea;
      * 'bound_right'/'bound_bottom' are the workarea's physical edges

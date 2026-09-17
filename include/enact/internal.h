@@ -4,7 +4,7 @@
  * @brief Private declarations shared across the @c enact modules
  *
  * @c enact.c was split by domain into @c enact/client.c,
- * @c enact/desktop.c, and @c enact/surface.c (@c enact.c itself keeps
+ * @c enact/desktop.c, and @c enact/stage.c (@c enact.c itself keeps
  * only the two window-manager-level actions, @a enact_wm_exit and
  * @a enact_wm_configuration_reload, that do not belong to any one of
  * those three domains).  @a enact_broadcast_client_event is the only

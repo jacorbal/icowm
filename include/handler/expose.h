@@ -39,15 +39,15 @@
  * @c (count == 0) triggers a repaint.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Expose event
  * @param cfg        Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_expose(xcb_connection_t *connection,
-        list_td *surfaces, xcb_expose_event_t *event,
+        list_td *stages, xcb_expose_event_t *event,
         const config_td *cfg);
 
 

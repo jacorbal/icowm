@@ -73,9 +73,9 @@ typedef struct spawn_opts_s {
  * or failed to, which is decided by the time the error pipe closes and
  * so costs no measurable wait.
  *
- * @param command  Command line to expand and run
- * @param opts     What the child needs; @c NULL asks for a plain launch
- * @param out_pid  Receives the child's PID on success; may be null
+ * @param command Command line to expand and run
+ * @param opts    What the child needs; @c NULL asks for a plain launch
+ * @param out_pid Receives the child's PID on success; may be null
  *
  * @return Status of the operation
  * @retval  0 The child is running the program

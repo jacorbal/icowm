@@ -407,38 +407,38 @@ void systray_protocol_apply_theme_style(void)
  *   'systray_protocol_selection_acquire'. */
 bool systray_protocol_window_ensure(const wm_td *wm)
 {
-    surface_td *surface;
+    stage_td *stage;
     list_item_td *node;
     char selection_name[32];
     uint32_t mask;
     uint32_t values[4];
     xcb_connection_t *connection = wm_connection(wm);
     config_td *config = wm_config(wm);
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
 
     if (s_tray.is_window_ready) {
         return true;
     }
 
     if (wm == NULL || connection == NULL || config == NULL ||
-            surfaces == NULL) {
+            stages == NULL) {
         return false;
     }
 
-    node = list_head(surfaces);
+    node = list_head(stages);
     if (node == NULL) {
         return false;
     }
 
-    surface = (surface_td *) list_data(node);
-    if (surface == NULL || surface->screen == NULL) {
+    stage = (stage_td *) list_data(node);
+    if (stage == NULL || stage->screen == NULL) {
         return false;
     }
 
-    s_tray.surface = surface;
+    s_tray.stage = stage;
 
     (void) snprintf(selection_name, sizeof(selection_name),
-            "_NET_SYSTEM_TRAY_S%u", (unsigned int) surface->id);
+            "_NET_SYSTEM_TRAY_S%u", (unsigned int) stage->id);
     s_tray.selection_atom = atom_intern(connection, selection_name,
             false);
     s_tray.manager_atom = atom_intern(connection, "MANAGER", false);
@@ -485,7 +485,7 @@ bool systray_protocol_window_ensure(const wm_td *wm)
         XCB_EVENT_MASK_EXPOSURE;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT,
-            s_tray.window, surface->screen->root,
+            s_tray.window, stage->screen->root,
             0, 0, 1, s_tray.height,
             (uint16_t) config->theme.systray.style.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
@@ -525,7 +525,7 @@ bool systray_protocol_selection_acquire(void)
 
     if (!util_xcb_acquire_manager_selection(xcb_connection_get(),
                 s_tray.window, s_tray.selection_atom,
-                s_tray.manager_atom, s_tray.surface->screen->root)) {
+                s_tray.manager_atom, s_tray.stage->screen->root)) {
         LOGGER_NOTICE("Another systray manager already owns the tray" \
                 " selection; built-in systray stays disabled", L_NARG);
         return false;
@@ -537,12 +537,12 @@ bool systray_protocol_selection_acquire(void)
             32, 1, &orientation);
     xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
             s_tray.window, s_tray.visual_atom, XCB_ATOM_VISUALID,
-            32, 1, &s_tray.surface->screen->root_visual);
+            32, 1, &s_tray.stage->screen->root_visual);
 
     s_tray.is_selection_owned = true;
 
-    LOGGER_INFO("Systray dock active on surface %u (selection atom" \
-            " 0x%x, %u icon(s) already docked)", s_tray.surface->id,
+    LOGGER_INFO("Systray dock active on stage %u (selection atom" \
+            " 0x%x, %u icon(s) already docked)", s_tray.stage->id,
             (unsigned int) s_tray.selection_atom,
             (unsigned int) s_tray.icon_count);
 

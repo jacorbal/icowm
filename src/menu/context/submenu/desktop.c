@@ -34,8 +34,8 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <enact/desktop.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -48,7 +48,7 @@
  * @brief Most desktops this submenu ever lists
  *
  * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
- * for how many a surface can ever have, rather than an independent
+ * for how many a stage can ever have, rather than an independent
  * number of its own that could silently drift out of step with it.
  */
 #define S_MAX_DESKTOPS CONFIG_MAX_DESKTOPS
@@ -80,7 +80,7 @@ static s_send_data_td s_send_data[S_MAX_DESKTOPS + 1];
 struct s_desk_entry_ctx_s {
     client_td *client;          /**< Client the entries send */
     desktop_td *current;        /**< Desktop it is on already */
-    const surface_td *surface;  /**< Surface being offered */
+    const stage_td *stage;  /**< Stage being offered */
     uint32_t count;             /**< Entries built so far */
     uint32_t index;             /**< Desktop index reached */
     bool is_pinned;             /**< Whether it is on all already */
@@ -156,7 +156,7 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
     }
 
     n = ctx->count;
-    surface_desktop_label(ctx->surface, ctx->index, desktop->name,
+    stage_desktop_label(ctx->stage, ctx->index, desktop->name,
             false, true, label, sizeof(label));
     (void) snprintf(s_desk_entries[n].label,
             sizeof(s_desk_entries[n].label), "%s%s%s",
@@ -181,7 +181,7 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
 
 
 /* Build the "Send to desktop" submenu entries for 'client' */
-int ctxmenu_submenu_desktop_build(surface_td *surface,
+int ctxmenu_submenu_desktop_build(stage_td *stage,
         desktop_td *desktop, client_td *client,
         ctxmenu_entry_td **out_entries, ctxmenu_state_td **out_state)
 {
@@ -189,9 +189,9 @@ int ctxmenu_submenu_desktop_build(surface_td *surface,
     int n;
     bool is_pinned;
 
-    if (surface == NULL || desktop == NULL || client == NULL ||
+    if (stage == NULL || desktop == NULL || client == NULL ||
             out_entries == NULL || out_state == NULL ||
-            surface->desktop_count <= 1u) {
+            stage->desktop_count <= 1u) {
         return 0;
     }
 
@@ -201,16 +201,16 @@ int ctxmenu_submenu_desktop_build(surface_td *surface,
 
     desk_ctx.client = client;
     desk_ctx.current = desktop;
-    desk_ctx.surface = surface;
+    desk_ctx.stage = stage;
     desk_ctx.count = 0u;
     desk_ctx.index = 0u;
     desk_ctx.is_pinned = is_pinned;
-    surface_desktop_walk_all(surface, s_desktop_entry_visit, &desk_ctx);
+    stage_desktop_walk_all(stage, s_desktop_entry_visit, &desk_ctx);
     n = (int) desk_ctx.count;
 
     /* Separates the numbered-desktop entries above from the pin/unpin
      * one below, only when there actually are any.  With none (an empty
-     * or single-surface edge case), a bare separator would lead
+     * or single-stage edge case), a bare separator would lead
      * nowhere. */
     if (n > 0) {
         s_desk_entries[n].type = CTXMENU_SEPARATOR;

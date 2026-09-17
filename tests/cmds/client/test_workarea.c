@@ -6,17 +6,17 @@
  *
  * 'ccmd_client_resolve_workarea' is exercised linked against the
  * real 'ccmd_client_monitor' (cmds/client/screen.c), so a client's
- * surface lookup by 'screen_id' and its center-point-to-monitor
+ * stage lookup by 'screen_id' and its center-point-to-monitor
  * resolution both run for real, exactly as they would in the window
- * manager itself.  'surface_desktop_get' is a test-controlled
+ * manager itself.  'stage_desktop_get' is a test-controlled
  * stand-in answering from a small table this file fills directly,
  * so a test never has to build a well-formed cdlist just to satisfy
  * a lookup neither function under test is itself the one exercising.
- * 'surface_monitor_for_point' is a test-controlled stand-in too,
+ * 'stage_monitor_for_point' is a test-controlled stand-in too,
  * returning whichever single monitor rectangle a test registers, so
  * each case can pick apart the clip between a desktop's workarea and
  * a monitor's rectangle without any real RandR geometry math running
- * underneath it.  'wm_get_surfaces', 'xcb_connection_get',
+ * underneath it.  'wm_get_stages', 'xcb_connection_get',
  * 'xcb_get_setup', 'xcb_setup_roots_iterator', and 'xcb_screen_next'
  * are all link-only stand-ins, reached only by 'ccmd_screen_dim',
  * which nothing here calls.
@@ -47,24 +47,24 @@
 #include <cmds/client/workarea.h>
 #include <desktop.h>
 #include <harness/tap.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_surfaces
+ * @brief Test-controlled stand-in for @a wm_get_stages
  *
  * 'ccmd_client_monitor' walks whatever this answers to find a
- * client's own surface by 'screen_id'; every test here registers
- * its own one-entry list through @a s_make_surfaces_list before
+ * client's own stage by 'screen_id'; every test here registers
+ * its own one-entry list through @a s_make_stages_list before
  * calling the function under test
  *
  * @note Complexity: @e O(1)
  */
-static list_td *s_surfaces_list;
+static list_td *s_stages_list;
 
-list_td *wm_get_surfaces(void)
+list_td *wm_get_stages(void)
 {
-    return s_surfaces_list;
+    return s_stages_list;
 }
 
 
@@ -116,26 +116,26 @@ void xcb_screen_next(xcb_screen_iterator_t *iter)
 }
 
 
-/** The one monitor @a surface_monitor_for_point answers with,
+/** The one monitor @a stage_monitor_for_point answers with,
  *  registered by @a s_set_monitor */
 static monitor_td s_monitor;
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_monitor_for_point
+ * @brief Test-controlled stand-in for @a stage_monitor_for_point
  *
  * Answers whichever single monitor rectangle @a s_set_monitor last
  * registered, regardless of @p pos: what each test here picks apart
  * is the clip between a desktop's workarea and a monitor rectangle,
- * not the point-containment search a real multi-monitor surface
+ * not the point-containment search a real multi-monitor stage
  * would need.
  *
  * @note Complexity: @e O(1)
  */
-monitor_td surface_monitor_for_point(const surface_td *surface,
+monitor_td stage_monitor_for_point(const stage_td *stage,
         struct position_s pos)
 {
-    (void) surface;
+    (void) stage;
     (void) pos;
 
     return s_monitor;
@@ -151,7 +151,7 @@ static void s_set_monitor(int32_t x, int32_t y, uint32_t w, uint32_t h)
 }
 
 
-/** Desktops this file's own 'surface_desktop_get' stand-in answers
+/** Desktops this file's own 'stage_desktop_get' stand-in answers
  *  from, registered by @a s_make_desktop */
 #define MAX_TEST_DESKTOPS (4)
 static desktop_td *s_desktops_by_id[MAX_TEST_DESKTOPS];
@@ -159,13 +159,13 @@ static int s_desktops_registered;
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_desktop_get
+ * @brief Test-controlled stand-in for @a stage_desktop_get
  * @note Complexity: @e O(n), where @e n is the number of desktops
  *       registered
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
 
     for (int i = 0; i < s_desktops_registered; ++i) {
         if (s_desktops_by_id[i] != NULL &&
@@ -178,7 +178,7 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 }
 
 
-/** Every client, desktop, and surfaces list this file allocates,
+/** Every client, desktop, and stages list this file allocates,
  *  freed in one place by @a s_teardown rather than at each test's
  *  own end */
 #define MAX_TEST_CLIENTS (8)
@@ -225,13 +225,13 @@ static client_td *s_make_client(uint32_t screen_id, uint32_t desktop_id,
 }
 
 
-/* Build a one-entry surfaces list holding 'surface', matched by
+/* Build a one-entry stages list holding 'stage', matched by
  * 'ccmd_client_monitor' on its 'id' field against a client's own
- * 'screen_id', and register it as what 'wm_get_surfaces' answers */
-static void s_make_surfaces_list(surface_td *surface)
+ * 'screen_id', and register it as what 'wm_get_stages' answers */
+static void s_make_stages_list(stage_td *stage)
 {
-    s_surfaces_list = list_init(NULL);
-    (void) list_ins_next(s_surfaces_list, NULL, surface);
+    s_stages_list = list_init(NULL);
+    (void) list_ins_next(s_stages_list, NULL, stage);
 }
 
 
@@ -245,9 +245,9 @@ static void s_reset(void)
 
 static void s_teardown(void)
 {
-    if (s_surfaces_list != NULL) {
-        list_destroy(s_surfaces_list);
-        s_surfaces_list = NULL;
+    if (s_stages_list != NULL) {
+        list_destroy(s_stages_list);
+        s_stages_list = NULL;
     }
 
     for (int i = 0; i < s_owned_desktops_used; ++i) {
@@ -285,11 +285,11 @@ static void s_test_null_arguments_refused(void)
 }
 
 
-/* A client whose 'screen_id' matches no surface in the list fails to
+/* A client whose 'screen_id' matches no stage in the list fails to
  * resolve, since 'ccmd_client_monitor' cannot place it anywhere */
 static void s_test_unknown_screen_fails(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     int32_t x = 0;
     int32_t y = 0;
@@ -298,9 +298,9 @@ static void s_test_unknown_screen_fails(void)
     bool ok;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    s_make_stages_list(&stage);
 
     client = s_make_client(99u, 0u, 0, 0, 100u, 100u);
 
@@ -316,7 +316,7 @@ static void s_test_unknown_screen_fails(void)
  * fails to resolve, rather than handing back a bogus empty rectangle */
 static void s_test_zero_workarea_fails(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     int32_t x = 0;
     int32_t y = 0;
@@ -324,10 +324,10 @@ static void s_test_zero_workarea_fails(void)
     uint16_t h = 0;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_cur = 0u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_cur = 0u;
+    s_make_stages_list(&stage);
     (void) s_make_desktop(0u, 0, 0, 0u, 0u);
     s_set_monitor(0, 0, 1920u, 1080u);
 
@@ -345,7 +345,7 @@ static void s_test_zero_workarea_fails(void)
  * one) fails outright */
 static void s_test_unknown_desktop_fails(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     int32_t x = 0;
     int32_t y = 0;
@@ -353,10 +353,10 @@ static void s_test_unknown_desktop_fails(void)
     uint16_t h = 0;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_cur = 0u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_cur = 0u;
+    s_make_stages_list(&stage);
     s_set_monitor(0, 0, 1920u, 1080u);
 
     /* No desktop registered at all */
@@ -373,7 +373,7 @@ static void s_test_unknown_desktop_fails(void)
 /* A desktop workarea fully inside its monitor is returned unclipped */
 static void s_test_workarea_inside_monitor_unclipped(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     int32_t x = -1;
     int32_t y = -1;
@@ -382,10 +382,10 @@ static void s_test_workarea_inside_monitor_unclipped(void)
     bool ok;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_cur = 0u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_cur = 0u;
+    s_make_stages_list(&stage);
     (void) s_make_desktop(0u, 10, 20, 800u, 600u);
     s_set_monitor(0, 0, 1920u, 1080u);
 
@@ -406,7 +406,7 @@ static void s_test_workarea_inside_monitor_unclipped(void)
  * clipped down to the overlap, not handed back in full */
 static void s_test_workarea_clipped_to_monitor(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     int32_t x = 0;
     int32_t y = 0;
@@ -415,10 +415,10 @@ static void s_test_workarea_clipped_to_monitor(void)
     bool ok;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_cur = 0u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_cur = 0u;
+    s_make_stages_list(&stage);
     /* Workarea spans two monitors' worth of width; the monitor below
      * only covers the left half of it */
     (void) s_make_desktop(0u, 0, 0, 2000u, 1000u);
@@ -439,7 +439,7 @@ static void s_test_workarea_clipped_to_monitor(void)
  * an empty rectangle and is refused */
 static void s_test_no_overlap_fails(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     int32_t x = 0;
     int32_t y = 0;
@@ -447,10 +447,10 @@ static void s_test_no_overlap_fails(void)
     uint16_t h = 0;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_cur = 0u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_cur = 0u;
+    s_make_stages_list(&stage);
     (void) s_make_desktop(0u, 0, 0, 100u, 100u);
     /* Monitor sits entirely to the right, no overlap at all */
     s_set_monitor(500, 500, 400u, 400u);
@@ -466,11 +466,11 @@ static void s_test_no_overlap_fails(void)
 
 
 /* A client pinned to every desktop (WM_DESKTOP_ID_ALL) resolves
- * against its surface's currently shown desktop instead of its own
+ * against its stage's currently shown desktop instead of its own
  * (nonexistent) one */
 static void s_test_pinned_client_uses_current_desktop(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     int32_t x = 0;
     int32_t y = 0;
@@ -479,10 +479,10 @@ static void s_test_pinned_client_uses_current_desktop(void)
     bool ok;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_cur = 2u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_cur = 2u;
+    s_make_stages_list(&stage);
     (void) s_make_desktop(0u, 0, 0, 100u, 100u);
     (void) s_make_desktop(2u, 40, 50, 300u, 200u);
     s_set_monitor(0, 0, 1920u, 1080u);
@@ -490,7 +490,7 @@ static void s_test_pinned_client_uses_current_desktop(void)
     client = s_make_client(0u, WM_DESKTOP_ID_ALL, 10, 10, 10u, 10u);
 
     ok = ccmd_client_resolve_workarea(client, &x, &y, &w, &h);
-    TAP_OK(ok, "a pinned client resolves against its surface's"
+    TAP_OK(ok, "a pinned client resolves against its stage's"
             " current desktop");
     TAP_EQ_INT(x, 40, "using desktop 2's workarea, not desktop 0's");
     TAP_EQ_INT(w, 300, "width comes from desktop 2, not desktop 0");
@@ -503,17 +503,17 @@ static void s_test_pinned_client_uses_current_desktop(void)
  * are mandatory */
 static void s_test_optional_position_outputs(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td *client;
     uint16_t w = 0;
     uint16_t h = 0;
     bool ok;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_cur = 0u;
-    s_make_surfaces_list(&surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_cur = 0u;
+    s_make_stages_list(&stage);
     (void) s_make_desktop(0u, 5, 6, 640u, 480u);
     s_set_monitor(0, 0, 1920u, 1080u);
 

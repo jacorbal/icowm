@@ -266,9 +266,9 @@ static void s_test_systray_text_valign(void)
 
 
 /* s_load_theme_colors' full shape (font, color.background/foreground,
- * border.color/width) loads correctly for one themeable surface, and
+ * border.color/width) loads correctly for one themeable stage, and
  * the same block shape is correctly reused for a second, independent
- * surface elsewhere in the file */
+ * stage elsewhere in the file */
 static void s_test_theme_colors_full_shape(void)
 {
     char path[1024];

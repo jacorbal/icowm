@@ -99,16 +99,16 @@ void cctl_sn_set_timeout_seconds(uint32_t seconds);
  * purely so a later @a cctl_sn_desktop_for_window can recover it; it
  * has no other effect on the sequence itself.
  *
- * @param connection     XCB connection
- * @param surfaces       Managed surfaces, one root window per screen
- * @param name           Human-readable application name to publish in
+ * @param connection XCB connection
+ * @param stages     Managed stages, one root window per screen
+ * @param name       Human-readable application name to publish in
  *                       the message (e.g., the command being launched);
  *                       may be null
  * @param origin_desktop Desktop the launch was requested from
  * @param out_id         Buffer to receive the generated startup ID,
  *                       suitable for passing to the child process as
  *                       @c DESKTOP_STARTUP_ID
- * @param out_id_size    Size of @p out_id in bytes
+ * @param out_id_size Size of @p out_id in bytes
  *
  * @return Status of the operation
  * @retval  true on success
@@ -116,9 +116,9 @@ void cctl_sn_set_timeout_seconds(uint32_t seconds);
  *               prevented broadcasting the message
  *
  * @note Complexity: @e O(s), where @e s is the number of managed
- *       surfaces
+ *       stages
  */
-bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
+bool cctl_sn_begin(xcb_connection_t *connection, list_td *stages,
         const char *restrict name, uint32_t origin_desktop,
         char *restrict out_id, size_t out_id_size);
 
@@ -192,7 +192,7 @@ bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
  * would), clearing the busy cursor once no sequence remains pending.
  *
  * @param connection XCB connection
- * @param surfaces   Every managed surface, to clear the busy cursor on
+ * @param stages     Every managed stage, to clear the busy cursor on
  * @param window     Newly mapped window to check
  *
  * @return Whether a pending sequence was matched and ended
@@ -201,7 +201,7 @@ bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
  *       pending sequences
  */
 bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window);
+        list_td *stages, xcb_window_t window);
 
 /**
  * @brief Handle a @c _NET_STARTUP_INFO_BEGIN or @c _NET_STARTUP_INFO
@@ -215,14 +215,14 @@ bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
  * sequence is still pending.
  *
  * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
+ * @param stages     Managed stages, one root window per screen
  * @param event      The @c ClientMessage event
  *
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
  */
 void cctl_sn_handle_client_message(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_client_message_event_t *event);
+        list_td *stages, const xcb_client_message_event_t *event);
 
 /**
  * @brief Milliseconds until the next pending sequence times out
@@ -242,14 +242,14 @@ int cctl_sn_ms_remaining(void);
  * Restores the normal cursor if no other sequence remains pending.
  *
  * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
+ * @param stages     Managed stages, one root window per screen
  * @param id         Startup ID previously returned by @a cctl_sn_begin
  *
  * @note A no-op if @p id does not name a currently pending sequence
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
  */
-void cctl_sn_cancel(xcb_connection_t *connection, list_td *surfaces,
+void cctl_sn_cancel(xcb_connection_t *connection, list_td *stages,
         const char *id);
 
 /**
@@ -260,12 +260,12 @@ void cctl_sn_cancel(xcb_connection_t *connection, list_td *surfaces,
  * an earlier call to @a cctl_sn_handle_client_message.
  *
  * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
+ * @param stages     Managed stages, one root window per screen
  *
  * @note Complexity: @e O(s + p), where @e s is the number of managed
- *       surfaces and @e p is the number of currently pending sequences
+ *       stages and @e p is the number of currently pending sequences
  */
-void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces);
+void cctl_sn_tick(xcb_connection_t *connection, list_td *stages);
 
 
 #endif  /* ! CCTL_SN_H */

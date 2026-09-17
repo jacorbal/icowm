@@ -35,8 +35,8 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
-#include <surface/monitor.h>
+#include <stage.h>
+#include <stage/monitor.h>
 #include <wm.h>
 
 /* Local includes */
@@ -52,9 +52,9 @@
  * Shared by the four public entry points below, which differ from one
  * another in nothing but the direction they ask for.
  *
- * A surface with a single monitor has nowhere to move to, and so does
+ * A stage with a single monitor has nowhere to move to, and so does
  * one where the search comes back with the monitor the client is
- * already on, which is what @a surface_monitor_direction returns when
+ * already on, which is what @a stage_monitor_direction returns when
  * there is no neighbor that way.
  *
  * @param client    Client to move; may be null
@@ -63,14 +63,14 @@
  * @note A fullscreen client is refused outright, the same as
  *       @a ccmd_client_move_to_monitor itself already refuses one
  * @note Complexity: @e O(n), where @e n is the number of monitors on
- *       the client's surface, scanned to turn the neighbor's
+ *       the client's stage, scanned to turn the neighbor's
  *       coordinates back into the index @a ccmd_client_move_to_monitor
  *       takes
  */
 static void s_move_to_monitor_toward(client_td *client,
         enum compass_direction_e direction)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     monitor_td cur_monitor;
     monitor_td target_monitor;
 
@@ -78,12 +78,12 @@ static void s_move_to_monitor_toward(client_td *client,
         return;
     }
 
-    if (!ccmd_client_monitor(client, &surface, &cur_monitor) ||
-            surface == NULL || surface->monitor_count <= 1u) {
+    if (!ccmd_client_monitor(client, &stage, &cur_monitor) ||
+            stage == NULL || stage->monitor_count <= 1u) {
         return;
     }
 
-    target_monitor = surface_monitor_direction(surface, cur_monitor,
+    target_monitor = stage_monitor_direction(stage, cur_monitor,
             direction);
     if (target_monitor.x == cur_monitor.x &&
             target_monitor.y == cur_monitor.y) {
@@ -91,9 +91,9 @@ static void s_move_to_monitor_toward(client_td *client,
         return;
     }
 
-    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
-        if (surface->monitors[i].x == target_monitor.x &&
-                surface->monitors[i].y == target_monitor.y) {
+    for (uint32_t i = 0u; i < stage->monitor_count; ++i) {
+        if (stage->monitors[i].x == target_monitor.x &&
+                stage->monitors[i].y == target_monitor.y) {
             ccmd_client_move_to_monitor(client, i);
             return;
         }
@@ -262,11 +262,11 @@ void ccmd_client_center(client_td *client)
 }
 
 
-/* Move the client to a specific monitor on its own surface */
+/* Move the client to a specific monitor on its own stage */
 void ccmd_client_move_to_monitor(client_td *client,
         uint32_t monitor_index)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     monitor_td cur_monitor;
     monitor_td target_monitor;
     xcb_window_t target;
@@ -280,20 +280,20 @@ void ccmd_client_move_to_monitor(client_td *client,
         return;
     }
 
-    if (!ccmd_client_monitor(client, &surface, &cur_monitor) ||
-            surface == NULL || surface->monitor_count == 0u) {
+    if (!ccmd_client_monitor(client, &stage, &cur_monitor) ||
+            stage == NULL || stage->monitor_count == 0u) {
         return;
     }
 
     idx = monitor_index;
-    if (idx >= surface->monitor_count) {
+    if (idx >= stage->monitor_count) {
         LOGGER_WARNING("Move-to-monitor targets monitor %u, which" \
-                " does not exist on surface %u (%u monitor(s));" \
+                " does not exist on stage %u (%u monitor(s));" \
                 " falling back to monitor 0", monitor_index,
-                surface->id, surface->monitor_count);
+                stage->id, stage->monitor_count);
         idx = 0u;
     }
-    target_monitor = surface->monitors[idx];
+    target_monitor = stage->monitors[idx];
 
     if (target_monitor.x == cur_monitor.x &&
             target_monitor.y == cur_monitor.y) {

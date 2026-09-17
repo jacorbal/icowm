@@ -16,7 +16,7 @@
 #include <config/lint/common.h>
 
 
-const config_lint_key_td s_schema_desktops_margins[] = {
+const config_lint_key_td schema_desktops_margins[] = {
     {"top", NULL, 0u,
         0, NULL, 0u, NULL},
     {"right", NULL, 0u,
@@ -27,7 +27,7 @@ const config_lint_key_td s_schema_desktops_margins[] = {
         0, NULL, 0u, NULL}
 };
 
-const config_lint_key_td s_schema_programs[] = {
+const config_lint_key_td schema_programs[] = {
     {"terminal", NULL, 0u,
         0, NULL, 0u, NULL},
     {"launcher", NULL, 0u,
@@ -43,12 +43,12 @@ const config_lint_key_td s_schema_programs[] = {
 /* Accepted at config.json's top level (built-in run-box) and
  * reused verbatim by memguard.json, same reasoning as 'programs' and
  * 'shutdown' above having one shared schema each */
-const config_lint_key_td s_schema_prompt[] = {
+const config_lint_key_td schema_prompt[] = {
     {"is-enabled", NULL, 0u,
         0, NULL, 0u, NULL}
 };
 
-const config_lint_key_td s_schema_windows_focus[] = {
+const config_lint_key_td schema_windows_focus[] = {
     {"policy", NULL, 0u,
         0, NULL, 0u, NULL},
     {"focus-new", NULL, 0u,
@@ -59,7 +59,7 @@ const config_lint_key_td s_schema_windows_focus[] = {
         0, NULL, 0u, NULL}
 };
 
-const config_lint_key_td s_schema_windows_placement[] = {
+const config_lint_key_td schema_windows_placement[] = {
     {"policy", NULL, 0u,
         0, NULL, 0u, NULL},
     {"monitor", NULL, 0u,
@@ -68,7 +68,7 @@ const config_lint_key_td s_schema_windows_placement[] = {
         0, NULL, 0u, NULL}
 };
 
-const config_lint_key_td s_schema_shutdown[] = {
+const config_lint_key_td schema_shutdown[] = {
     {"enable-emergency-shortcut", NULL, 0u,
         0, NULL, 0u, NULL},
     {"timeout-seconds", NULL, 0u,
@@ -127,7 +127,7 @@ static const config_lint_key_td s_schema_systray_monitor[] = {
         0, NULL, 0u, NULL}
 };
 
-const config_lint_key_td s_schema_systray[] = {
+const config_lint_key_td schema_systray[] = {
     {"is-enabled", NULL, 0u,
         0, NULL, 0u, NULL},
     {"reserve-space", NULL, 0u,
@@ -137,9 +137,9 @@ const config_lint_key_td s_schema_systray[] = {
     /* Reuses 'desktops.margins''s schema array.  Identical shape
      * (top/right/bottom/left), so no separate one is needed just for
      * this section. */
-    {"margins", s_schema_desktops_margins,
-        sizeof(s_schema_desktops_margins) /
-            sizeof(s_schema_desktops_margins[0]),
+    {"margins", schema_desktops_margins,
+        sizeof(schema_desktops_margins) /
+            sizeof(schema_desktops_margins[0]),
         0, NULL, 0u, NULL},
     {"position", NULL, 0u,
         0, NULL, 0u, NULL},
@@ -165,50 +165,50 @@ const config_lint_key_td s_schema_systray[] = {
 
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_desktops_margins_size_check
-    [(sizeof(s_schema_desktops_margins) /
-      sizeof(s_schema_desktops_margins[0]) ==
+    [(sizeof(schema_desktops_margins) /
+      sizeof(schema_desktops_margins[0]) ==
           CONFIG_LINT_DESKTOPS_MARGINS_KEYS)
      ? 1 : -1];
 
 
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_programs_size_check
-    [(sizeof(s_schema_programs) /
-      sizeof(s_schema_programs[0]) == CONFIG_LINT_PROGRAMS_KEYS)
+    [(sizeof(schema_programs) /
+      sizeof(schema_programs[0]) == CONFIG_LINT_PROGRAMS_KEYS)
      ? 1 : -1];
 
 
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_prompt_size_check
-    [(sizeof(s_schema_prompt) /
-      sizeof(s_schema_prompt[0]) == CONFIG_LINT_PROMPT_KEYS)
+    [(sizeof(schema_prompt) /
+      sizeof(schema_prompt[0]) == CONFIG_LINT_PROMPT_KEYS)
      ? 1 : -1];
 
 
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_shutdown_size_check
-    [(sizeof(s_schema_shutdown) /
-      sizeof(s_schema_shutdown[0]) == CONFIG_LINT_SHUTDOWN_KEYS)
+    [(sizeof(schema_shutdown) /
+      sizeof(schema_shutdown[0]) == CONFIG_LINT_SHUTDOWN_KEYS)
      ? 1 : -1];
 
 
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_systray_size_check
-    [(sizeof(s_schema_systray) /
-      sizeof(s_schema_systray[0]) == CONFIG_LINT_SYSTRAY_KEYS)
+    [(sizeof(schema_systray) /
+      sizeof(schema_systray[0]) == CONFIG_LINT_SYSTRAY_KEYS)
      ? 1 : -1];
 
 
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_windows_focus_size_check
-    [(sizeof(s_schema_windows_focus) /
-      sizeof(s_schema_windows_focus[0]) == CONFIG_LINT_WINDOWS_FOCUS_KEYS)
+    [(sizeof(schema_windows_focus) /
+      sizeof(schema_windows_focus[0]) == CONFIG_LINT_WINDOWS_FOCUS_KEYS)
      ? 1 : -1];
 
 
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_windows_placement_size_check
-    [(sizeof(s_schema_windows_placement) /
-      sizeof(s_schema_windows_placement[0]) ==
+    [(sizeof(schema_windows_placement) /
+      sizeof(schema_windows_placement[0]) ==
           CONFIG_LINT_WINDOWS_PLACEMENT_KEYS)
      ? 1 : -1];

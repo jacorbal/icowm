@@ -40,16 +40,16 @@
 
 
 /** @c set_desktop_background: arguments @c desktop_id (required),
- *  @c surface_id" (optional), @c color (required, a packed @c 0xRRGGBB
+ *  @c stage_id" (optional), @c color (required, a packed @c 0xRRGGBB
  *  value) */
 cJSON *ipc_action_set_desktop_background(const wm_td *wm, const cJSON *args);
 
-/** @c show_desktop: arguments @c desktop_id (required), @c surface_id
+/** @c show_desktop: arguments @c desktop_id (required), @c stage_id
  *  (optional), @c show (required boolean) */
 cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c send_client_to_desktop: arguments @c client_id,
- *  @c target_desktop_id (on the client's current surface) */
+ *  @c target_desktop_id (on the client's current stage) */
 cJSON *ipc_action_send_client_to_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c send_client_to_front: raise the client to the front of its own
@@ -61,15 +61,15 @@ cJSON *ipc_action_send_client_to_front(const wm_td *wm, const cJSON *args);
 cJSON *ipc_action_send_client_to_back(const wm_td *wm, const cJSON *args);
 
 /** @c iconify_all: arguments @c desktop_id, optional and defaulting
- *  to the resolved surface's current desktop, and
- *  @c surface_id, optional */
+ *  to the resolved stage's current desktop, and
+ *  @c stage_id, optional */
 cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args);
 
 /** @c deiconify_all: same arguments as @c iconify_all */
 cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args);
 
 /** @c rearrange_desktop: arguments @c desktop_id (optional; the
- * resolved surface's current desktop otherwise), @c surface_id
+ * resolved stage's current desktop otherwise), @c stage_id
  * (optional) */
 cJSON *ipc_action_rearrange(const wm_td *wm, const cJSON *args);
 

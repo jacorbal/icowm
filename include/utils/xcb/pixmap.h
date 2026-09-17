@@ -41,11 +41,11 @@
  * @param connection Active XCB connection
  * @param depth      Depth to create the pixmap at, matching whatever
  *                   window it is going to stand in for
- * @param reference  Any drawable on the same screen the pixmap is
+ * @param reference Any drawable on the same screen the pixmap is
  *                   created against; only its screen matters here, not
  *                   its contents
- * @param width      Pixmap width
- * @param height     Pixmap height
+ * @param width  Pixmap width
+ * @param height Pixmap height
  *
  * @return The new pixmap, or @c XCB_NONE when @p width or @p height is
  *         zero

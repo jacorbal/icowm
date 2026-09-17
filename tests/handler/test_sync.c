@@ -5,13 +5,13 @@
  *        @c AlarmNotify event handler
  *
  * handler_sync_event's static helper, s_find_client_by_alarm, walks a
- * real list_td of surfaces, each with a real cdlist_td of desktops
+ * real list_td of stages, each with a real cdlist_td of desktops
  * (src/adt/list.c, src/adt/cdlist.c linked for real, being small,
  * side-effect-free leaf data-structure code, the same rationale
  * already used for cdlist.c in
  * tests/input/mouse/event/test_press.c), and each desktop's clients
  * kept in a real ohtbl_td (src/adt/ohtbl.c, likewise a leaf ADT).
- * wm_surfaces/wm_sync_available/wm_sync_base_event reach a real,
+ * wm_stages/wm_sync_available/wm_sync_base_event reach a real,
  * stack-built 'struct wm_s' (wm/internal.h, safe to include; see the
  * same rationale used in tests/handler/test_crossing.c) through
  * src/wm/instance.c, itself nothing but narrow field accessors, also
@@ -49,7 +49,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -126,30 +126,30 @@ static void s_build_client(client_td *client, xcb_window_t id,
 }
 
 
-/** Build one surface with a single desktop whose client hash table
+/** Build one stage with a single desktop whose client hash table
  *  holds exactly @p client */
-static void s_build_single_client_surface(surface_td *surface,
+static void s_build_single_client_stage(stage_td *stage,
         desktop_td *desktop, ohtbl_td *table, client_td *client)
 {
-    memset(surface, 0, sizeof(*surface));
+    memset(stage, 0, sizeof(*stage));
     memset(desktop, 0, sizeof(*desktop));
 
     (void) ohtbl_insert(table, client);
     desktop->clients = table;
 
-    surface->desktops = cdlist_init(NULL);
-    (void) cdlist_ins_next(surface->desktops, NULL, desktop);
-    surface->desktop_count = 1u;
+    stage->desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(stage->desktops, NULL, desktop);
+    stage->desktop_count = 1u;
 }
 
 
 /** Build a minimal, real 'struct wm_s' on the stack */
-static wm_td s_make_wm(list_td *surfaces, bool sync_available)
+static wm_td s_make_wm(list_td *stages, bool sync_available)
 {
     wm_td local_wm;
 
     memset(&local_wm, 0, sizeof(local_wm));
-    local_wm.surfaces = surfaces;
+    local_wm.stages = stages;
     local_wm.is_sync_available = sync_available;
     local_wm.sync_base_event = 64u;
 
@@ -158,17 +158,17 @@ static wm_td s_make_wm(list_td *surfaces, bool sync_available)
 
 
 /**
- * @brief Exercise two surfaces, the match landing on the second
+ * @brief Exercise two stages, the match landing on the second
  *        one's desktop
  *
- * Proves handler_sync_event's own outer surfaces walk keeps going
- * past a surface whose desktop table found nothing
+ * Proves handler_sync_event's own outer stages walk keeps going
+ * past a stage whose desktop table found nothing
  */
-static void s_test_two_surfaces_second_match(void)
+static void s_test_two_stages_second_match(void)
 {
-    list_td *surfaces2;
-    surface_td surface_a;
-    surface_td surface_b;
+    list_td *stages2;
+    stage_td stage_a;
+    stage_td stage_b;
     desktop_td desktop_a;
     desktop_td desktop_b;
     ohtbl_td *table_a;
@@ -181,19 +181,19 @@ static void s_test_two_surfaces_second_match(void)
     table_a = ohtbl_init(4u, 0u, s_test_h1, s_test_h2, s_test_match,
             NULL);
     s_build_client(&client_a, 10u, 0x10u);
-    s_build_single_client_surface(&surface_a, &desktop_a, table_a,
+    s_build_single_client_stage(&stage_a, &desktop_a, table_a,
             &client_a);
 
     table_b = ohtbl_init(4u, 0u, s_test_h1, s_test_h2, s_test_match,
             NULL);
     s_build_client(&client_b, 11u, 0x20u);
-    s_build_single_client_surface(&surface_b, &desktop_b, table_b,
+    s_build_single_client_stage(&stage_b, &desktop_b, table_b,
             &client_b);
 
-    surfaces2 = list_init(NULL);
-    (void) list_ins_next(surfaces2, NULL, &surface_a);
-    (void) list_ins_next(surfaces2, NULL, &surface_b);
-    wm2 = s_make_wm(surfaces2, true);
+    stages2 = list_init(NULL);
+    (void) list_ins_next(stages2, NULL, &stage_a);
+    (void) list_ins_next(stages2, NULL, &stage_b);
+    wm2 = s_make_wm(stages2, true);
 
     memset(&event, 0, sizeof(event));
     event.response_type = 64u + XCB_SYNC_ALARM_NOTIFY;
@@ -202,22 +202,22 @@ static void s_test_two_surfaces_second_match(void)
     handler_sync_event(&wm2, (xcb_generic_event_t *) &event);
     TAP_EQ_INT(s_flush_calls, 1,
             "exactly one flush happens once the match is found" \
-            " on the second surface");
+            " on the second stage");
     TAP_OK(s_flush_last_client == &client_b,
-            "the second surface's client is the one flushed");
+            "the second stage's client is the one flushed");
 
     ohtbl_destroy(table_a);
     ohtbl_destroy(table_b);
-    cdlist_destroy(surface_a.desktops);
-    cdlist_destroy(surface_b.desktops);
-    list_destroy(surfaces2);
+    cdlist_destroy(stage_a.desktops);
+    cdlist_destroy(stage_b.desktops);
+    list_destroy(stages2);
 }
 
 
 int main(void)
 {
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     ohtbl_td *table;
     client_td client;
@@ -226,7 +226,7 @@ int main(void)
 
     TAP_PLAN(10);
 
-    /* Guard clauses: a null wm, null event, null surfaces, or the
+    /* Guard clauses: a null wm, null event, null stages, or the
      * XSync extension being unavailable are all silent no-ops, proven
      * only by the absence of a crash under ASan/UBSan and by
      * ccmd_client_resize_flush_pending never firing */
@@ -238,24 +238,24 @@ int main(void)
     event.response_type = 64u + XCB_SYNC_ALARM_NOTIFY;
     event.alarm = 0x77u;
 
-    surfaces = list_init(NULL);
-    wm = s_make_wm(surfaces, false);
+    stages = list_init(NULL);
+    wm = s_make_wm(stages, false);
     s_flush_calls = 0;
     handler_sync_event(&wm, (xcb_generic_event_t *) &event);
     TAP_EQ_INT(s_flush_calls, 0,
             "XSync unavailable means the event is ignored entirely");
-    list_destroy(surfaces);
+    list_destroy(stages);
 
     wm = s_make_wm(NULL, true);
     s_flush_calls = 0;
     handler_sync_event(&wm, (xcb_generic_event_t *) &event);
     TAP_EQ_INT(s_flush_calls, 0,
-            "a null surfaces list is treated as a no-op");
+            "a null stages list is treated as a no-op");
 
-    /* XSync available, real surfaces, but the response_type does not
+    /* XSync available, real stages, but the response_type does not
      * match this connection's AlarmNotify code: ignored */
-    surfaces = list_init(NULL);
-    wm = s_make_wm(surfaces, true);
+    stages = list_init(NULL);
+    wm = s_make_wm(stages, true);
     memset(&event, 0, sizeof(event));
     event.response_type = 99u;
     event.alarm = 0x77u;
@@ -263,18 +263,18 @@ int main(void)
     handler_sync_event(&wm, (xcb_generic_event_t *) &event);
     TAP_EQ_INT(s_flush_calls, 0,
             "a non-matching response_type is ignored");
-    list_destroy(surfaces);
+    list_destroy(stages);
 
     /* A matching AlarmNotify, but no managed client tracks this exact
      * alarm XID: looked up, not found, ignored */
     table = ohtbl_init(4u, 0u, s_test_h1, s_test_h2, s_test_match,
             NULL);
     s_build_client(&client, 1u, 0x55u);
-    s_build_single_client_surface(&surface, &desktop, table, &client);
+    s_build_single_client_stage(&stage, &desktop, table, &client);
 
-    surfaces = list_init(NULL);
-    (void) list_ins_next(surfaces, NULL, &surface);
-    wm = s_make_wm(surfaces, true);
+    stages = list_init(NULL);
+    (void) list_ins_next(stages, NULL, &stage);
+    wm = s_make_wm(stages, true);
 
     memset(&event, 0, sizeof(event));
     event.response_type = 64u + XCB_SYNC_ALARM_NOTIFY;
@@ -310,12 +310,12 @@ int main(void)
             " client whose own alarm field is also zero");
 
     ohtbl_destroy(table);
-    cdlist_destroy(surface.desktops);
-    list_destroy(surfaces);
+    cdlist_destroy(stage.desktops);
+    list_destroy(stages);
 
-    /* Two surfaces, the match landing on the second one's desktop:
-     * proves the outer surfaces walk, not just one desktop's table */
-    s_test_two_surfaces_second_match();
+    /* Two stages, the match landing on the second one's desktop:
+     * proves the outer stages walk, not just one desktop's table */
+    s_test_two_stages_second_match();
 
     return TAP_DONE();
 }

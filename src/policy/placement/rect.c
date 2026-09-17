@@ -41,7 +41,7 @@
 #include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <wm.h>
 

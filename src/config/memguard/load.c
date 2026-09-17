@@ -149,7 +149,7 @@ int ci_memguard_load_json(const char *filename, config_td *config)
     theme_item = json_get_item(json, "theme");
     if (theme_item != NULL && cJSON_IsString(theme_item)) {
         safe_strncpy(config->base.theme, theme_item->valuestring,
-                CONFIG_MAX_LENGTH_NAME);
+                CONFIG_MAX_LENGTH_FILENAME);
     }
 
     programs = cJSON_GetObjectItem(json, "programs");
@@ -215,7 +215,7 @@ int ci_memguard_load_json(const char *filename, config_td *config)
         }
     }
 
-    ci_config_load_systray(json, &config->base);
+    ci_config_systray_load(json, &config->base);
 
     /* 'text.position' and 'order' deliberately not something
      * memguard.json is allowed to configure, unlike an ordinary
@@ -224,7 +224,7 @@ int ci_memguard_load_json(const char *filename, config_td *config)
      * newly docked ones are placed in), and this mode never docks any
      * (embedding is always off; see is_embedding_enabled's comment in
      * 'config.h'), so neither has any visible effect here at all.
-     * 'ci_config_load_systray' just above still loads both (shared
+     * 'ci_config_systray_load' just above still loads both (shared
      * verbatim with config.json's identical "systray" object), so
      * this puts each back to its fixed default afterward rather
      * than duplicating that whole function just to omit two fields. */

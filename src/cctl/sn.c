@@ -39,7 +39,7 @@
 
 /* Project includes */
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <cctl/sn.h>
@@ -93,43 +93,43 @@ static xcb_atom_t s_atom_wm_pid = XCB_ATOM_NONE;
  * font automatically if the theme has no "watch"/"left_ptr" cursor.
  * The theme lookup itself is tied to one screen, but the resulting
  * cursor resource is valid to apply to every root window on the same
- * connection, so only the first managed surface's screen is used to
+ * connection, so only the first managed stage's screen is used to
  * build it.
  *
  * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
+ * @param stages     Managed stages, one root window per screen
  * @param busy       @c true to show the busy cursor, @c false to
  *                   restore the default one
  *
  * @note Complexity: @e O(s), where @e s is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_set_busy_cursor(xcb_connection_t *connection,
-        list_td *surfaces, bool busy)
+        list_td *stages, bool busy)
 {
-    surface_td *first_surface = NULL;
+    stage_td *first_stage = NULL;
     util_cursor_ctx_td *ctx;
     xcb_cursor_t cursor;
     uint32_t value;
 
-    if (connection == NULL || surfaces == NULL) {
+    if (connection == NULL || stages == NULL) {
         return;
     }
 
-    for (list_item_td *node = list_head(surfaces); node != NULL;
+    for (list_item_td *node = list_head(stages); node != NULL;
             node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        stage_td *stage = (stage_td *) list_data(node);
 
-        if (surface != NULL && surface->screen != NULL) {
-            first_surface = surface;
+        if (stage != NULL && stage->screen != NULL) {
+            first_stage = stage;
             break;
         }
     }
-    if (first_surface == NULL) {
+    if (first_stage == NULL) {
         return;
     }
 
-    ctx = util_cursor_ctx_new(connection, first_surface->screen);
+    ctx = util_cursor_ctx_new(connection, first_stage->screen);
     cursor = (busy)
         ? util_cursor_load(ctx, "watch", WM_CURSOR_WATCH_GLYPH)
         : util_cursor_load(ctx, "left_ptr", WM_CURSOR_LEFT_PTR_GLYPH);
@@ -139,16 +139,16 @@ static void s_set_busy_cursor(xcb_connection_t *connection,
         return;
     }
 
-    for (list_item_td *node = list_head(surfaces); node != NULL;
+    for (list_item_td *node = list_head(stages); node != NULL;
             node = list_next(node)) {
-        surface_td *surface = (surface_td *) list_data(node);
+        stage_td *stage = (stage_td *) list_data(node);
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
         value = cursor;
-        xcb_change_window_attributes(connection, surface->screen->root,
+        xcb_change_window_attributes(connection, stage->screen->root,
                 XCB_CW_CURSOR, &value);
     }
 
@@ -170,21 +170,21 @@ static void s_set_busy_cursor(xcb_connection_t *connection,
  * @a cctl_sn_handle_client_message does on the receiving end.
  *
  * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
+ * @param stages     Managed stages, one root window per screen
  * @param text       Null-terminated ASCII message text, e.g.,
  *                   @c ("new: ID=\"...\"")
  *
  * @note Complexity: @e O(s * m), where @e s is the number of managed
- *       surfaces and @e m is the number of chunks @p text splits into
+ *       stages and @e m is the number of chunks @p text splits into
  */
-static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
+static void s_broadcast(xcb_connection_t *connection, list_td *stages,
         const char *text)
 {
     size_t text_len;
     size_t sent;
     bool first_chunk;
 
-    if (connection == NULL || surfaces == NULL || text == NULL ||
+    if (connection == NULL || stages == NULL || text == NULL ||
             s_atom_begin == XCB_ATOM_NONE ||
             s_atom_info == XCB_ATOM_NONE) {
         return;
@@ -196,11 +196,11 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
      * message as complete. */
     text_len = safe_strlen(text) + 1u;
 
-    for (list_item_td *node = list_head(surfaces); node != NULL;
+    for (list_item_td *node = list_head(stages); node != NULL;
             node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
+        stage_td *const stage = (stage_td *) list_data(node);
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
@@ -217,11 +217,11 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
             memset(&ev, 0, sizeof(ev));
             ev.response_type = XCB_CLIENT_MESSAGE;
             ev.format = 8;
-            ev.window = surface->screen->root;
+            ev.window = stage->screen->root;
             ev.type = (first_chunk) ? s_atom_begin : s_atom_info;
             memcpy(ev.data.data8, text + sent, chunk_len);
 
-            xcb_send_event(connection, 0, surface->screen->root,
+            xcb_send_event(connection, 0, stage->screen->root,
                     XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char *) &ev);
 
             sent += chunk_len;
@@ -280,7 +280,7 @@ static s_reassembly_td *s_reassembly_for(xcb_window_t window)
  *        cursor once none remain
  *
  * @param connection XCB connection
- * @param surfaces   Every managed surface, to clear the busy cursor on
+ * @param stages     Every managed stage, to clear the busy cursor on
  * @param i          Index into @c s_pending to remove
  * @param reason     Logged alongside the sequence's own ID, past
  *                   tense (e.g., @c "completed by application")
@@ -288,14 +288,14 @@ static s_reassembly_td *s_reassembly_for(xcb_window_t window)
  * @note Complexity: @e O(1)
  */
 static void s_complete_at(xcb_connection_t *connection,
-        list_td *surfaces, uint8_t i, const char *restrict reason)
+        list_td *stages, uint8_t i, const char *restrict reason)
 {
     LOGGER_DEBUG("Startup-notification sequence '%s' %s",
             s_pending[i].id, reason);
     s_pending[i] = s_pending[s_pending_count - 1u];
     --s_pending_count;
     if (s_pending_count == 0u && s_cursor_busy) {
-        s_set_busy_cursor(connection, surfaces, false);
+        s_set_busy_cursor(connection, stages, false);
     }
 }
 
@@ -305,7 +305,7 @@ static void s_complete_at(xcb_connection_t *connection,
  *        the normal cursor once none remain
  *
  * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
+ * @param stages     Managed stages, one root window per screen
  * @param id         Startup ID to remove
  * @param reason     Short reason logged at debug level (e.g.,
  *                   "completed by application", "canceled")
@@ -314,12 +314,12 @@ static void s_complete_at(xcb_connection_t *connection,
  *       pending sequences
  */
 static void s_complete_by_id(xcb_connection_t *connection,
-        list_td *surfaces, const char *restrict id,
+        list_td *stages, const char *restrict id,
         const char *restrict reason)
 {
     for (uint8_t i = 0u; i < s_pending_count; ++i) {
         if (safe_strcmp(s_pending[i].id, id) == 0) {
-            s_complete_at(connection, surfaces, i, reason);
+            s_complete_at(connection, stages, i, reason);
             return;
         }
     }
@@ -331,14 +331,14 @@ static void s_complete_by_id(xcb_connection_t *connection,
  *        @c ("remove:" message), if one is still pending
  *
  * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
+ * @param stages     Managed stages, one root window per screen
  * @param message    Complete, reassembled message text
  *
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences
  */
 static void s_handle_complete_message(xcb_connection_t *connection,
-        list_td *surfaces, const char *message)
+        list_td *stages, const char *message)
 {
     const char *id_start;
     const char *id_end;
@@ -367,13 +367,13 @@ static void s_handle_complete_message(xcb_connection_t *connection,
     memcpy(id, id_start, id_len);
     id[id_len] = '\0';
 
-    s_complete_by_id(connection, surfaces, id,
+    s_complete_by_id(connection, stages, id,
             "completed by application");
 }
 
 
 /* Begin a startup-notification sequence for a launched process */
-bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
+bool cctl_sn_begin(xcb_connection_t *connection, list_td *stages,
         const char *restrict name, uint32_t origin_desktop,
         char *restrict out_id, size_t out_id_size)
 {
@@ -381,7 +381,7 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
     char message[SN_MSG_MAX_LEN];
     struct timespec now;
 
-    if (connection == NULL || surfaces == NULL || out_id == NULL ||
+    if (connection == NULL || stages == NULL || out_id == NULL ||
             out_id_size == 0u) {
         return false;
     }
@@ -412,7 +412,7 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
     (void) snprintf(message, sizeof(message),
             "new: ID=\"%s\" NAME=\"%s\" SCREEN=0", id,
             (name != NULL) ? name : "");
-    s_broadcast(connection, surfaces, message);
+    s_broadcast(connection, stages, message);
 
     if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
         now.tv_sec = 0;
@@ -434,7 +434,7 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
             id, (name != NULL) ? name : "");
 
     if (!s_cursor_busy) {
-        s_set_busy_cursor(connection, surfaces, true);
+        s_set_busy_cursor(connection, stages, true);
     }
 
     return true;
@@ -514,13 +514,13 @@ bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
 /* End the pending sequence, if any, whose PID matches a newly mapped
  * window's own '_NET_WM_PID' */
 bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window)
+        list_td *stages, xcb_window_t window)
 {
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
     pid_t window_pid;
 
-    if (connection == NULL || surfaces == NULL ||
+    if (connection == NULL || stages == NULL ||
             window == XCB_WINDOW_NONE || s_pending_count == 0u) {
         return false;
     }
@@ -548,7 +548,7 @@ bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
 
     for (uint8_t i = 0u; i < s_pending_count; ++i) {
         if (s_pending[i].pid != 0 && s_pending[i].pid == window_pid) {
-            s_complete_at(connection, surfaces, i,
+            s_complete_at(connection, stages, i,
                     "completed by matching _NET_WM_PID");
             return true;
         }
@@ -560,14 +560,14 @@ bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
 
 /* Handle an incoming startup-notification 'ClientMessage' */
 void cctl_sn_handle_client_message(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_client_message_event_t *event)
+        list_td *stages, const xcb_client_message_event_t *event)
 {
     s_reassembly_td *slot;
     size_t chunk_len;
     size_t copy_len;
     bool complete;
 
-    if (connection == NULL || surfaces == NULL || event == NULL ||
+    if (connection == NULL || stages == NULL || event == NULL ||
             event->format != 8) {
         return;
     }
@@ -595,7 +595,7 @@ void cctl_sn_handle_client_message(xcb_connection_t *connection,
     slot->buf[slot->len] = '\0';
 
     if (complete) {
-        s_handle_complete_message(connection, surfaces, slot->buf);
+        s_handle_complete_message(connection, stages, slot->buf);
         slot->in_use = false;
         slot->len = 0u;
     }
@@ -640,7 +640,7 @@ int cctl_sn_ms_remaining(void)
 /* Expire any pending sequence whose timeout has elapsed, and recycle
  * any reassembly slot that has sat idle past
  * 'SN_REASSEMBLY_TIMEOUT_MS' */
-void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces)
+void cctl_sn_tick(xcb_connection_t *connection, list_td *stages)
 {
     struct timespec now;
     uint8_t i;
@@ -672,7 +672,7 @@ void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces)
     }
 
     if (s_pending_count == 0u || connection == NULL ||
-            surfaces == NULL) {
+            stages == NULL) {
         return;
     }
 
@@ -695,20 +695,20 @@ void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces)
     }
 
     if (s_pending_count == 0u && s_cursor_busy) {
-        s_set_busy_cursor(connection, surfaces, false);
+        s_set_busy_cursor(connection, stages, false);
     }
 }
 
 
 /* Cancel a pending sequence immediately */
-void cctl_sn_cancel(xcb_connection_t *connection, list_td *surfaces,
+void cctl_sn_cancel(xcb_connection_t *connection, list_td *stages,
         const char *id)
 {
-    if (connection == NULL || surfaces == NULL || id == NULL) {
+    if (connection == NULL || stages == NULL || id == NULL) {
         return;
     }
 
-    s_complete_by_id(connection, surfaces, id, "canceled");
+    s_complete_by_id(connection, stages, id, "canceled");
 }
 
 

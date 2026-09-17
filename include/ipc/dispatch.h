@@ -38,7 +38,7 @@
  *
  * @param wm      Window manager instance
  * @param client  The resolved client to act on
- * @param surface The client's surface
+ * @param stage   The client's stage
  * @param desktop The client's desktop
  *
  * @note Only a handful of actions, e.g., @c focus, actually need more
@@ -46,7 +46,7 @@
  *       these parameters
  */
 typedef void (*ipc_client_action_fn)(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop);
+        stage_td *stage, desktop_td *desktop);
 
 
 /**
@@ -63,7 +63,7 @@ typedef void (*ipc_client_action_fn)(const wm_td *wm, client_td *client,
  *      wording when @p client_id is missing or names no current client
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e c the
+ *       stages, @e d the number of desktops per stage, and @e c the
  *       hash-table lookup cost per desktop; inherited from
  *       @a ip_resolve_client in @c ipc/resolve.h
  */

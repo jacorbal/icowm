@@ -6,9 +6,9 @@
  *
  * cctl/adopt.c holds exactly one non-static, externally reachable
  * function, cctl_adopt_scan, and two file-local static helpers,
- * s_adopt_one_window and s_adopt_scan_surface, that are only ever
+ * s_adopt_one_window and s_adopt_scan_stage, that are only ever
  * reached through it.  Both static helpers are genuinely X-bound:
- * s_adopt_scan_surface issues a real xcb_query_tree round trip and a
+ * s_adopt_scan_stage issues a real xcb_query_tree round trip and a
  * batch of xcb_get_window_attributes requests against a live X
  * connection before it ever calls s_adopt_one_window, and
  * s_adopt_one_window itself goes on to call client_init (which itself
@@ -17,26 +17,26 @@
  * or observed without a real xcb_connection_t answering real
  * requests, so neither is exercised here; this file instead covers
  * exactly what is genuinely cctl_adopt_scan's own: the null-wm guard
- * clause, and the per-surface loop's own skip logic for a null surface
- * pointer or a surface with a null screen, neither of which ever
- * reaches s_adopt_scan_surface at all.
+ * clause, and the per-stage loop's own skip logic for a null stage
+ * pointer or a stage with a null screen, neither of which ever
+ * reaches s_adopt_scan_stage at all.
  *
  * cctl/adopt.c's own translation unit is linked for real.  wm/
  * instance.c is also linked for real, since wm_connection and
- * wm_surfaces are themselves tiny, pure, null-tolerant accessors
+ * wm_stages are themselves tiny, pure, null-tolerant accessors
  * whose own behavior (in particular, wm_connection(NULL) safely
  * returning NULL, which is exactly what lets cctl_adopt_scan's own
  * guard clause be reached at all despite dereferencing wm through
  * wm_connection before its own null check) is worth proving directly
  * rather than assuming.  adt/list.c is linked for real to build an
- * actual surfaces list.  Every other external symbol cctl/adopt.c's
+ * actual stages list.  Every other external symbol cctl/adopt.c's
  * translation unit references is a harmless link-only stand-in below,
  * since none of them is ever reached by any scenario this file
- * actually drives: s_adopt_scan_surface, the only call site for
+ * actually drives: s_adopt_scan_stage, the only call site for
  * xcb_query_tree, xcb_get_window_attributes, and client_init, is never
- * entered by a surface this file ever supplies (every one either has
+ * entered by a stage this file ever supplies (every one either has
  * a null screen, so cctl_adopt_scan's own loop skips it outright, or
- * the surfaces list is empty), so those stand-ins exist purely so the
+ * the stages list is empty), so those stand-ins exist purely so the
  * translation unit links, never because a scenario here invokes them.
  */
 /*
@@ -66,7 +66,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <rules.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -94,14 +94,14 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
 
 /* Every stand-in below is reached only if cctl_adopt_scan's own loop
- * ever entered s_adopt_scan_surface, which no scenario in this file
+ * ever entered s_adopt_scan_stage, which no scenario in this file
  * ever causes; each is a harmless, never-invoked link-only stand-in
  * purely so cctl/adopt.c's one translation unit links at all */
 
 /** Link-only stand-in for lookup_current_desktop (lookup.c) */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return NULL;
 }
 
@@ -139,22 +139,22 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 
 
 /** Link-only stand-in for rules_apply (rules.c) */
-bool rules_apply(const wm_td *wm, client_td *client, surface_td **surface,
+bool rules_apply(const wm_td *wm, client_td *client, stage_td **stage,
         desktop_td **desktop, enum rules_trigger_e trigger)
 {
     (void) wm;
     (void) client;
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) trigger;
     return false;
 }
 
 
-/** Link-only stand-in for surface_workarea_refresh_all (surface.c) */
-void surface_workarea_refresh_all(surface_td *surface)
+/** Link-only stand-in for stage_workarea_refresh_all (stage.c) */
+void stage_workarea_refresh_all(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 }
 
 
@@ -269,7 +269,7 @@ static wm_td s_make_wm(void)
 
 
 /* cctl_adopt_scan on a null wm returns immediately, through
- * wm_connection(NULL) and wm_surfaces(NULL) both safely reporting
+ * wm_connection(NULL) and wm_stages(NULL) both safely reporting
  * NULL first, then the guard clause itself catching it before either
  * the logging call or the loop ever runs */
 static void s_test_null_wm_guard(void)
@@ -284,55 +284,55 @@ static void s_test_null_wm_guard(void)
 }
 
 
-/* cctl_adopt_scan on an initialized wm with an empty surfaces list
+/* cctl_adopt_scan on an initialized wm with an empty stages list
  * runs its own loop zero times, logging its start and end messages
  * but touching nothing else */
-static void s_test_empty_surfaces_list(void)
+static void s_test_empty_stages_list(void)
 {
     wm_td local_wm = s_make_wm();
-    list_td *surfaces = list_init(NULL);
+    list_td *stages = list_init(NULL);
 
-    local_wm.surfaces = surfaces;
+    local_wm.stages = stages;
     s_logger_call_count = 0;
 
     cctl_adopt_scan(&local_wm);
 
     TAP_EQ_INT(s_logger_call_count, 2,
-            "cctl_adopt_scan on an empty surfaces list logs exactly"
+            "cctl_adopt_scan on an empty stages list logs exactly"
             " its own start and end messages");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* cctl_adopt_scan's own loop skips a null surface pointer and a
- * surface whose screen is null, in both cases never entering
- * s_adopt_scan_surface (which would otherwise dereference that null
+/* cctl_adopt_scan's own loop skips a null stage pointer and a
+ * stage whose screen is null, in both cases never entering
+ * s_adopt_scan_stage (which would otherwise dereference that null
  * screen when building an xcb_query_tree request) */
-static void s_test_loop_skips_null_and_screenless_surfaces(void)
+static void s_test_loop_skips_null_and_screenless_stages(void)
 {
     wm_td local_wm = s_make_wm();
-    surface_td surface_without_screen;
-    list_td *surfaces = list_init(NULL);
+    stage_td stage_without_screen;
+    list_td *stages = list_init(NULL);
 
-    memset(&surface_without_screen, 0, sizeof(surface_without_screen));
-    surface_without_screen.screen = NULL;
+    memset(&stage_without_screen, 0, sizeof(stage_without_screen));
+    stage_without_screen.screen = NULL;
 
-    list_ins_next(surfaces, NULL, NULL);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_without_screen);
+    list_ins_next(stages, NULL, NULL);
+    list_ins_next(stages, list_tail(stages), &stage_without_screen);
 
-    local_wm.surfaces = surfaces;
+    local_wm.stages = stages;
     s_logger_call_count = 0;
 
     cctl_adopt_scan(&local_wm);
 
     TAP_EQ_INT(s_logger_call_count, 2,
-            "cctl_adopt_scan skips a null surface entry and a"
-            " screenless surface without entering"
-            " s_adopt_scan_surface, so only the start and end"
+            "cctl_adopt_scan skips a null stage entry and a"
+            " screenless stage without entering"
+            " s_adopt_scan_stage, so only the start and end"
             " messages are logged");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -341,8 +341,8 @@ int main(void)
     TAP_PLAN(3);
 
     s_test_null_wm_guard();
-    s_test_empty_surfaces_list();
-    s_test_loop_skips_null_and_screenless_surfaces();
+    s_test_empty_stages_list();
+    s_test_loop_skips_null_and_screenless_stages();
 
     return TAP_DONE();
 }

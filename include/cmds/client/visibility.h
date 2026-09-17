@@ -4,7 +4,7 @@
  * @brief Functions on a client's iconify, hide, unhide, and shared
  *        unmap plumbing
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*

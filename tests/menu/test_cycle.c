@@ -20,7 +20,7 @@
  * next/prev keysym pairs; 'focus_apply' (policy/focus.c),
  * 'enact_client_restore' / 'enact_client_unhide' /
  * 'enact_client_unshade' (enact.c),
- * 'scmd_surface_viewport_center_on_client' (cmds/surface.c),
+ * 'scmd_stage_viewport_center_on_client' (cmds/stage.c),
  * and 'ri_render_client_icon'
  * (render/icon.c) are recording no-ops; 'mi_cycle_preview_target' /
  * 'mi_cycle_preview_apply' / 'mi_cycle_preview_style_target'
@@ -60,7 +60,7 @@
 #include <policy/focus.h>
 #include <render/icon.h>
 #include <render/outline.h>
-#include <surface.h>
+#include <stage.h>
 #include <types/pair.h>
 
 /* Local includes */
@@ -382,12 +382,12 @@ bool keyboard_find(enum wm_keybind_type_e type, xcb_keysym_t *out_keysym,
  * @brief Recording no-op stand-in for @a focus_apply
  * @note Complexity: @e O(1)
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) raise;
     (void) cfg;
@@ -431,13 +431,13 @@ void enact_client_unshade(client_td *client)
 
 /**
  * @brief Recording no-op stand-in for
- *        @a scmd_surface_viewport_center_on_client
+ *        @a scmd_stage_viewport_center_on_client
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_center_on_client(surface_td *surface,
+void scmd_stage_viewport_center_on_client(stage_td *stage,
         client_td *client)
 {
-    (void) surface;
+    (void) stage;
     s_call_viewport_center_on_client++;
     s_last_viewport_centered = client;
 }
@@ -574,9 +574,9 @@ static void s_reset(void)
 
     /* Settle the shared g_cycle_menu global back to closed before
      * each scenario.  A real cycle_destroy() call is deliberately not
-     * used here: it would write through g_cycle_menu.surface, which,
+     * used here: it would write through g_cycle_menu.stage, which,
      * by the time the next scenario starts, is a dangling pointer to
-     * a stack-local surface_td that already returned in the previous
+     * a stack-local stage_td that already returned in the previous
      * scenario's own function.  Memsetting the struct directly reaches
      * the exact same "closed" state (count 0, window XCB_WINDOW_NONE,
      * is_icon_menu false) without dereferencing anything stale. */
@@ -605,17 +605,17 @@ static config_td s_make_config(void)
 }
 
 
-static surface_td s_make_surface(uint32_t w, uint32_t h)
+static stage_td s_make_stage(uint32_t w, uint32_t h)
 {
-    surface_td surface;
+    stage_td stage;
     static xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
-    surface.properties.dim.w = w;
-    surface.properties.dim.h = h;
-    return surface;
+    stage.screen = &screen;
+    stage.properties.dim.w = w;
+    stage.properties.dim.h = h;
+    return stage;
 }
 
 
@@ -651,29 +651,29 @@ static client_td *s_make_client(int slot, xcb_window_t id,
  * created, and the focusable-clients walk is never even consulted */
 static void s_test_init_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
     s_focus_order_count = 0;
 
-    cycle_init(NULL, &surface, &desktop, false, 1, 0, &cfg);
+    cycle_init(NULL, &stage, &desktop, false, 1, 0, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null connection creates no cycle window");
 
     cycle_init(s_fake_connection, NULL, &desktop, false, 1, 0, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
-            "a null surface creates no cycle window");
+            "a null stage creates no cycle window");
 
-    cycle_init(s_fake_connection, &surface, NULL, false, 1, 0, &cfg);
+    cycle_init(s_fake_connection, &stage, NULL, false, 1, 0, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null desktop creates no cycle window");
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 1, 0,
             NULL);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null config creates no cycle window");
@@ -684,17 +684,17 @@ static void s_test_init_null_guards(void)
  * with no window created */
 static void s_test_init_no_clients_stays_closed(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
     s_focus_order_count = 0;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 1, 0,
             &cfg);
 
     TAP_EQ_INT(s_call_xcb_create_window, 0,
@@ -708,12 +708,12 @@ static void s_test_init_no_clients_stays_closed(void)
  * applies the initial preview */
 static void s_test_init_collects_and_opens(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(0x10u);
     cfg = s_make_config();
 
@@ -725,7 +725,7 @@ static void s_test_init_collects_and_opens(void)
         s_make_client(2, 0x12u, "Editor", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 3;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 1, 0,
             &cfg);
 
     TAP_EQ_INT(g_cycle_menu.count, 3,
@@ -748,12 +748,12 @@ static void s_test_init_collects_and_opens(void)
  * correctly excluded from the collected set */
 static void s_test_init_excludes_unwanted_clients(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -771,7 +771,7 @@ static void s_test_init_excludes_unwanted_clients(void)
         s_make_client(4, 0x24u, "Wanted", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 5;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 1, 0,
             &cfg);
 
     TAP_EQ_INT(g_cycle_menu.count, 1,
@@ -786,12 +786,12 @@ static void s_test_init_excludes_unwanted_clients(void)
  * clients, and formats their labels wrapped in parentheses */
 static void s_test_init_icon_menu_collects_iconified(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -801,7 +801,7 @@ static void s_test_init_icon_menu_collects_iconified(void)
             CLIENT_FLAG_FOCUSABLE, CLIENT_STATE_ICONIFIED);
     s_focus_order_count = 2;
 
-    cycle_init(s_fake_connection, &surface, &desktop, true, 1, 0, &cfg);
+    cycle_init(s_fake_connection, &stage, &desktop, true, 1, 0, &cfg);
 
     TAP_EQ_INT(g_cycle_menu.count, 1,
             "only the iconified client is collected for the icon"
@@ -817,12 +817,12 @@ static void s_test_init_icon_menu_collects_iconified(void)
  * brackets instead */
 static void s_test_init_hidden_client_label(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -830,7 +830,7 @@ static void s_test_init_hidden_client_label(void)
             (uint16_t) (CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_HIDDEN), 0);
     s_focus_order_count = 1;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 1, 0,
             &cfg);
 
     TAP_EQ_STR(g_cycle_menu.labels[0], "<Background>",
@@ -843,12 +843,12 @@ static void s_test_init_hidden_client_label(void)
  * cleanly wraps around the collected set either direction */
 static void s_test_init_preselects_relative_to_active(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     /* Active id matches the second collected client (index 1) */
     desktop = s_make_desktop(0x51u);
     cfg = s_make_config();
@@ -861,13 +861,13 @@ static void s_test_init_preselects_relative_to_active(void)
         s_make_client(2, 0x52u, "C", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 3;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 1, 0,
             &cfg);
     TAP_EQ_INT(g_cycle_menu.selected, 2,
             "preselect=+1 from the active client (index 1) lands on"
             " index 2");
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, -1, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, -1, 0,
             &cfg);
     TAP_EQ_INT(g_cycle_menu.selected, 0,
             "preselect=-1 from the active client (index 1) wraps"
@@ -880,12 +880,12 @@ static void s_test_init_preselects_relative_to_active(void)
  * newly-selected real icons */
 static void s_test_navigate_next_and_prev_wrap(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -897,7 +897,7 @@ static void s_test_navigate_next_and_prev_wrap(void)
         s_make_client(2, 0x62u, "C", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 3;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
     TAP_EQ_INT(g_cycle_menu.selected, 0, "starts selected at index 0");
 
@@ -926,12 +926,12 @@ static void s_test_navigate_next_and_prev_wrap(void)
  * and is a no-op when the menu has no entries at all */
 static void s_test_navigate_to_clamps_and_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -945,7 +945,7 @@ static void s_test_navigate_to_clamps_and_guards(void)
         s_make_client(1, 0x71u, "B", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 2;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
     cycle_navigate_to(99u);
     TAP_EQ_INT(g_cycle_menu.selected, 1,
@@ -963,12 +963,12 @@ static void s_test_navigate_to_clamps_and_guards(void)
  * open, and the real values once a menu is */
 static void s_test_accessors_reflect_state(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -987,7 +987,7 @@ static void s_test_accessors_reflect_state(void)
         s_make_client(0, 0x80u, "A", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 1;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
 
     TAP_OK(cycle_get_selected_client() == s_focus_order_clients[0],
@@ -1029,12 +1029,12 @@ static void s_test_destroy_null_guards(void)
  * restores whichever window held focus before the menu opened */
 static void s_test_destroy_restores_focus_and_hides_outline(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -1042,7 +1042,7 @@ static void s_test_destroy_restores_focus_and_hides_outline(void)
         s_make_client(0, 0x90u, "A", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 1;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
     TAP_OK(cycle_is_open(), "the menu opens as expected");
 
@@ -1064,12 +1064,12 @@ static void s_test_destroy_restores_focus_and_hides_outline(void)
  * then applies focus to the target through focus_apply */
 static void s_test_confirm_applies_focus_to_selected(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -1079,7 +1079,7 @@ static void s_test_confirm_applies_focus_to_selected(void)
         s_make_client(1, 0xa1u, "B", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 2;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
     cycle_navigate_next();
 
@@ -1108,12 +1108,12 @@ static void s_test_confirm_applies_focus_to_selected(void)
  * enact_client_restore rather than unhide/unshade */
 static void s_test_confirm_icon_menu_restores(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -1121,7 +1121,7 @@ static void s_test_confirm_icon_menu_restores(void)
             CLIENT_FLAG_FOCUSABLE, CLIENT_STATE_ICONIFIED);
     s_focus_order_count = 1;
 
-    cycle_init(s_fake_connection, &surface, &desktop, true, 0, 0, &cfg);
+    cycle_init(s_fake_connection, &stage, &desktop, true, 0, 0, &cfg);
     cycle_confirm(s_fake_connection, NULL, &cfg);
 
     TAP_EQ_INT(s_call_enact_client_restore, 1,
@@ -1137,12 +1137,12 @@ static void s_test_confirm_icon_menu_restores(void)
  * enact_client_unhide before focusing it */
 static void s_test_confirm_hidden_client_unhides(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -1150,7 +1150,7 @@ static void s_test_confirm_hidden_client_unhides(void)
             (uint16_t) (CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_HIDDEN), 0);
     s_focus_order_count = 1;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
     cycle_confirm(s_fake_connection, NULL, &cfg);
 
@@ -1166,12 +1166,12 @@ static void s_test_confirm_hidden_client_unhides(void)
  * as well, since shading and hiding are independent flags */
 static void s_test_confirm_shaded_client_unshades(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -1179,7 +1179,7 @@ static void s_test_confirm_shaded_client_unshades(void)
             (uint16_t) (CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_SHADED), 0);
     s_focus_order_count = 1;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
     cycle_confirm(s_fake_connection, NULL, &cfg);
 
@@ -1193,13 +1193,13 @@ static void s_test_confirm_shaded_client_unshades(void)
  * no-op otherwise */
 static void s_test_notice_client_destroyed(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
     client_td unrelated;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
     memset(&unrelated, 0, sizeof(unrelated));
@@ -1214,7 +1214,7 @@ static void s_test_notice_client_destroyed(void)
         s_make_client(1, 0xe1u, "B", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 2;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
 
     cycle_notice_client_destroyed(&unrelated);
@@ -1235,12 +1235,12 @@ static void s_test_notice_client_destroyed(void)
  * cycle/draw.c's own drawing is covered in its own test file */
 static void s_test_force_full_repaint_clears_flag(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u);
+    stage = s_make_stage(1024u, 768u);
     desktop = s_make_desktop(XCB_WINDOW_NONE);
     cfg = s_make_config();
 
@@ -1248,7 +1248,7 @@ static void s_test_force_full_repaint_clears_flag(void)
         s_make_client(0, 0xf0u, "A", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 1;
 
-    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+    cycle_init(s_fake_connection, &stage, &desktop, false, 0, 0,
             &cfg);
     g_cycle_menu.has_drawn_once = true;
 

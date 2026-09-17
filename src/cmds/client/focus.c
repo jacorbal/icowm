@@ -80,9 +80,9 @@
 /**
  * @brief What a fallback search needs beyond the candidate itself
  *
- * Handed through @a focus_order_best's opaque pointer rather than kept
- * at file scope, so that a search carries its state and two of them
- * could never read each other's.
+ * Handed through @a focus_order_best's opaque pointer rather than
+ * kept at file scope, so that a search carries its state and two
+ * of them could never read each other's.
  */
 struct s_fallback_ctx_s {
     /** Client that must never be chosen, or @c NULL for none */
@@ -281,7 +281,7 @@ static void s_ccmd_client_restore_one(client_td *client)
  * focus chain; see cmds/client/internal.h for the full comment */
 void ccmd_client_focus_fallback(client_td *client)
 {
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
 
     if (client == NULL) {
@@ -300,14 +300,14 @@ void ccmd_client_focus_fallback(client_td *client)
      *
      * This is what the destroy path in 'handler/map.c' already does,
      * and for the same reason. */
-    surface = wm_get_surface_by_id(client->screen_id);
+    stage = wm_get_stage_by_id(client->screen_id);
     desktop = wm_get_client_desktop(client);
-    if (surface == NULL || desktop == NULL ||
+    if (stage == NULL || desktop == NULL ||
             desktop->client_active_id != client->id) {
         return;
     }
 
-    client_focus_fallback(desktop, surface, client);
+    client_focus_fallback(desktop, stage, client);
 }
 
 
@@ -315,7 +315,7 @@ void ccmd_client_focus_fallback(client_td *client)
  * focus chain to the most recently used other visible, focusable client
  * on the same desktop, or to 'PointerRoot' if none qualifies; see the
  * full criteria in the header */
-void client_focus_fallback(desktop_td *desktop, surface_td *surface,
+void client_focus_fallback(desktop_td *desktop, stage_td *stage,
         client_td *exclude)
 {
     client_td *next_focus = NULL;
@@ -366,7 +366,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
          * already raises unconditionally for, and the same reasoning
          * applies here.  Raised unconditionally for that same reason,
          * regardless of the user's own raise-on-focus setting. */
-        focus_apply(wm_get_surfaces(), surface, desktop, next_focus,
+        focus_apply(wm_get_stages(), stage, desktop, next_focus,
                 true, wm_get_config());
         return;
     } else if (exclude != NULL) {
@@ -394,7 +394,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     }
 
     wm_outdate_desktop(desktop);
-    wm_outdate_surface(surface);
+    wm_outdate_stage(stage);
 }
 
 
@@ -537,9 +537,9 @@ void ccmd_client_focus(client_td *client)
      * 'focus_apply' (in 'policy/focus.c'): this function is also
      * reached from purely automatic, internal focus restoration that
      * has nothing to do with someone actually interacting with 'client'
-     * right now (foremost 'surface_client_show_all''s "restore
+     * right now (foremost 'stage_client_show_all''s "restore
      * whichever client was last active on this desktop" step,
-     * 'surface/actions/client.c', which runs on every single desktop
+     * 'stage/actions/client.c', which runs on every single desktop
      * switch).  Calling it unconditionally here dragged a transient
      * family across onto whatever desktop merely happened to be
      * switched to, the moment its pinned parent's 'client_active_id'
@@ -600,7 +600,7 @@ void ccmd_client_focus(client_td *client)
      * to its titlebar) stands in for it instead.  Without this,
      * a shaded client could never legitimately hold real input focus at
      * all: 's_client_focus_fallback_valid' (this same file) and
-     * 'surface_client_show_all' ('surface/actions/client.c') both
+     * 'stage_client_show_all' ('stage/actions/client.c') both
      * relied on simply excluding a shaded client from ever being
      * offered here, over actually making this call safe for one, which
      * left nothing to give a desktop's keyboard focus anywhere valid
@@ -767,28 +767,28 @@ void ccmd_client_unfocus(client_td *client)
 /* Make a client the active one of its own desktop */
 void ccmd_client_make_active(client_td *client)
 {
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
 
     if (client == NULL || !client_is_focusable(client)) {
         return;
     }
 
-    surface = wm_get_surface_by_id(client->screen_id);
+    stage = wm_get_stage_by_id(client->screen_id);
     desktop = wm_get_client_desktop(client);
-    if (surface == NULL || desktop == NULL) {
+    if (stage == NULL || desktop == NULL) {
         ccmd_client_focus(client);
         return;
     }
 
-    /* Delegates to the same central path 'focus_apply' (in
-     * 'policy/focus.c') already gives every other focus-granting call
+    /* Delegates to the same central path 'focus_apply'
+     * ('policy/focus.c') already gives every other focus-granting call
      * site, rather than reimplementing its unfocus-previous, activate,
      * and raise steps by hand here.  Raised unconditionally ('raise'
      * true regardless of the user's raise-on-focus setting), matching
      * what this function's own raise call did on its own before, since
      * a window arriving back from an icon or otherwise being made the
      * active one is meant to actually be seen */
-    focus_apply(wm_get_surfaces(), surface, desktop, client, true,
+    focus_apply(wm_get_stages(), stage, desktop, client, true,
             wm_get_config());
 }

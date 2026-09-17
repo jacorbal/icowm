@@ -15,29 +15,29 @@ headers, laid out so that a header mirrors its source, e.g.,
 `src/policy/placement/icon.c` is declared in
 `include/policy/placement/icon.h`.  One from twenty sources sit at the
 top of `src/`, each the entry point of the directory beside it, to wit,
-`client.c` and `client/`, `surface.c` and `surface/`, and suchlike.
+`client.c` and `client/`, `stage.c` and `stage/`, and suchlike.
 
-| Directory  | What lives there                                              |
-|------------|---------------------------------------------------------------|
+| Directory  | What lives there |
+|------------|---|
 | `adt/`     | Data structures: circular doubly linked list, open hash table |
-| `cctl/`    | Client control: adopting windows the manager did not map      |
-| `client/`  | What a client is, its properties, layout and predicates       |
-| `cmds/`    | The operations on a client, one file per family               |
-| `config/`  | Reading and validating the JSON files, and linting them       |
-| `desktop/` | A desktop and the clients it holds                            |
-| `enact/`   | The public verbs, which wrap `cmds/` and announce over IPC    |
-| `handler/` | One file per X event type                                     |
-| `input/`   | Keyboard and pointer: bindings, drags, interception           |
-| `ipc/`     | The control socket, its commands and its events               |
-| `loop/`    | The main loop: polling, timers, signals, dispatch             |
-| `menu/`    | Menus and dialogs, including the shared message dialog        |
-| `policy/`  | Where things go and what gets focus: placement, stacking      |
-| `render/`  | Drawing: text, glyphs, icons, outlines, decorations           |
-| `rules/`   | Matching a window against `rules.json` and applying it        |
-| `surface/` | An X screen, its monitors and its desktops                    |
-| `systray/` | The tray, its protocol and what it shows                      |
-| `utils/`   | Safe strings, XCB helpers, spawning, system memory            |
-| `wm/`      | The manager itself: startup, EWMH, actions, shutdown          |
+| `cctl/`    | Client control: adopting windows the manager did not map |
+| `client/`  | What a client is, its properties, layout and predicates |
+| `cmds/`    | The operations on a client, one file per family |
+| `config/`  | Reading and validating the JSON files, and linting them |
+| `desktop/` | A desktop and the clients it holds |
+| `enact/`   | The public verbs, which wrap `cmds/` and announce over IPC |
+| `handler/` | One file per X event type |
+| `input/`   | Keyboard and pointer: bindings, drags, interception |
+| `ipc/`     | The control socket, its commands and its events |
+| `loop/`    | The main loop: polling, timers, signals, dispatch |
+| `menu/`    | Menus and dialogs, including the shared message dialog |
+| `policy/`  | Where things go and what gets focus: placement, stacking |
+| `render/`  | Drawing: text, glyphs, icons, outlines, decorations |
+| `rules/`   | Matching a window against `rules.json` and applying it |
+| `stage/`   | An X screen, its monitors and its desktops |
+| `systray/` | The tray, its protocol and what it shows |
+| `utils/`   | Safe strings, XCB helpers, spawning, system memory |
+| `wm/`      | The manager itself: startup, EWMH, actions, shutdown |
 
 Words that mean particular things
 ---------------------------------
@@ -45,16 +45,16 @@ Words that mean particular things
 Much of what goes awry in this code does so because two of these were
 mistaken for one.
 
-**Surface** is an X screen.  A machine ordinarily has exactly one, and
+**Stage** is an X screen.  A machine ordinarily has exactly one, and
 `memguard` mode fixes the count at one.
 
-**Monitor** is a physical display inside a surface.  Two monitors on one
-card make one surface with two monitors, which is the common
-arrangement, so a single surface says nothing about how many monitors
-there are.  RandR reports them; `surface_monitor_for_point` resolves
+**Monitor** is a physical display inside a stage.  Two monitors on one
+card make one stage with two monitors, which is the common
+arrangement, so a single stage says nothing about how many monitors
+there are.  RandR reports them; `stage_monitor_for_point` resolves
 which one a point falls on.
 
-**Desktop** is a virtual workspace within a surface.  A client belongs
+**Desktop** is a virtual workspace within a stage.  A client belongs
 to exactly one, unless it is pinned to all of them, and even then it
 keeps the one it belongs to.
 
@@ -224,17 +224,17 @@ question.
 
 Allowed values for log level:
 
-| Value | Level    |
-|-------|----------|
-|     0 | Trace    |
-|     1 | Debug    |
-|     2 | Info     |
-|     3 | Notice   |
-|     4 | Warning  |
-|     5 | Error    |
-|     6 | Critical |
-|     7 | Alert    |
-|     8 | Fatal    |
+| Value | Level |
+|-------|---|
+| 0     | Trace |
+| 1     | Debug |
+| 2     | Info |
+| 3     | Notice |
+| 4     | Warning |
+| 5     | Error |
+| 6     | Critical |
+| 7     | Alert |
+| 8     | Fatal |
 
 Tests
 -----

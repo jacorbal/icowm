@@ -23,8 +23,8 @@
 
 
 /** @c toggle_scratchpad: arguments @c desktop_id, optional and
- *  defaulting to the resolved surface's current desktop, and
- *  @c surface_id, optional */
+ *  defaulting to the resolved stage's current desktop, and
+ *  @c stage_id, optional */
 cJSON *ipc_action_toggle_scratchpad(const wm_td *wm, const cJSON *args);
 
 

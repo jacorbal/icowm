@@ -12,13 +12,13 @@
  * be inspected directly afterwards, exactly as
  * 'tests/menu/context/rootmenu.c''s footer was inspected in
  * 'test_rootmenu.c'.  Every 'enact_*'/'ccmd_*'/'kbd_modal_*'/
- * 'drag_start'/'dialog_inspect_show'/'wm_get_surface_by_id' stand-in
+ * 'drag_start'/'dialog_inspect_show'/'wm_get_stage_by_id' stand-in
  * below is link-only: each is referenced only by address inside a
  * file-static callback closure ('s_cb_move', 's_cb_resize',
  * 's_cb_send_action', etc.) that is never invoked here, since no
  * test in this file activates a built entry, only inspects it.
- * 'surface_desktop_walk_all', 'surface_monitor_for_point' and
- * 'surface_viewport_has_room', by contrast, are test-controlled:
+ * 'stage_desktop_walk_all', 'stage_monitor_for_point' and
+ * 'stage_viewport_has_room', by contrast, are test-controlled:
  * 'wincmenu_show' calls all three directly while deciding the "Send
  * to desktop"/"Send to monitor" submenus and the Sticky entry, so
  * this file supplies working, minimal implementations rather than
@@ -61,7 +61,7 @@
 #include <menu/context/ctxmenu/tree.h>
 #include <menu/context/wincmenu.h>
 #include <menu/dialog/inspect.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
@@ -83,12 +83,12 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
  *  was handed so its built entries can be inspected directly */
 static ctxmenu_state_td *s_captured_state;
 
-void ctxmenu_show(xcb_connection_t *connection, surface_td *surface,
+void ctxmenu_show(xcb_connection_t *connection, stage_td *stage,
         ctxmenu_state_td *state, struct position_s pos,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) pos;
     (void) config;
     s_captured_state = state;
@@ -123,11 +123,11 @@ bool ctxmenu_last_activation_was_keyboard(void)
 /** Link-only stand-in for @a ctxmenu_tree_handle_click_window
  * @note Complexity: @e O(1) */
 bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
+        stage_td *stage, ctxmenu_state_td *root, xcb_window_t win,
         int y, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) root;
     (void) win;
     (void) y;
@@ -139,11 +139,11 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
 /** Link-only stand-in for @a ctxmenu_tree_handle_keypress_deepest
  * @note Complexity: @e O(1) */
 bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root,
+        stage_td *stage, ctxmenu_state_td *root,
         xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) root;
     (void) keysym;
     (void) config;
@@ -279,10 +279,10 @@ void ccmd_client_unshade(client_td *client)
 /** Link-only stand-in for @a kbd_modal_move_start
  * @note Complexity: @e O(1) */
 void kbd_modal_move_start(xcb_connection_t *connection,
-        surface_td *surface, client_td *client)
+        stage_td *stage, client_td *client)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) client;
 }
 
@@ -290,10 +290,10 @@ void kbd_modal_move_start(xcb_connection_t *connection,
 /** Link-only stand-in for @a kbd_modal_resize_start
  * @note Complexity: @e O(1) */
 void kbd_modal_resize_start(xcb_connection_t *connection,
-        surface_td *surface, client_td *client)
+        stage_td *stage, client_td *client)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) client;
 }
 
@@ -319,36 +319,36 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 /** Link-only stand-in for @a dialog_inspect_show
  * @note Complexity: @e O(1) */
 void dialog_inspect_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const client_td *client)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     (void) client;
 }
 
 
-/** Link-only stand-in for @a wm_get_surface_by_id
+/** Link-only stand-in for @a wm_get_stage_by_id
  * @note Complexity: @e O(1) */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
     return NULL;
 }
 
 
-/** Test-controlled stand-in for @a surface_desktop_walk_all, walking a
+/** Test-controlled stand-in for @a stage_desktop_walk_all, walking a
  *  small fixed array registered by @a s_set_desktops instead of a
  *  real 'cdlist_td' */
 #define MAX_TEST_DESKTOPS (4)
 static desktop_td *s_desktops[MAX_TEST_DESKTOPS];
 static int s_desktop_count;
 
-void surface_desktop_walk_all(const surface_td *surface,
-        surface_desktop_visitor_fn visit, void *data)
+void stage_desktop_walk_all(const stage_td *stage,
+        stage_desktop_visitor_fn visit, void *data)
 {
-    (void) surface;
+    (void) stage;
 
     if (visit == NULL) {
         return;
@@ -359,14 +359,14 @@ void surface_desktop_walk_all(const surface_td *surface,
 }
 
 
-/** Test-controlled stand-in for @a surface_desktop_label, producing a
+/** Test-controlled stand-in for @a stage_desktop_label, producing a
  *  simple, predictable label instead of the real localized one
  * @note Complexity: @e O(1) */
-void surface_desktop_label(const surface_td *surface,
+void stage_desktop_label(const stage_td *stage,
         uint32_t desktop_id, const char *desktop_name, bool is_pinned,
         bool shows_name, char *out_label, size_t length)
 {
-    (void) surface;
+    (void) stage;
     (void) is_pinned;
     (void) shows_name;
 
@@ -381,19 +381,19 @@ void surface_desktop_label(const surface_td *surface,
 static uint32_t s_viewport_columns = 1u;
 static uint32_t s_viewport_rows = 1u;
 
-/** Test-controlled stand-in for @a surface_viewport_dims
+/** Test-controlled stand-in for @a stage_viewport_dims
  * @note Complexity: @e O(1) */
-void surface_viewport_dims(const surface_td *surface,
+void stage_viewport_dims(const stage_td *stage,
         uint32_t *columns_out, uint32_t *rows_out)
 {
-    (void) surface;
+    (void) stage;
 
     *columns_out = s_viewport_columns;
     *rows_out = s_viewport_rows;
 }
 
 
-/** Test-controlled stand-in for @a scmd_surface_viewport_client_page,
+/** Test-controlled stand-in for @a scmd_stage_viewport_client_page,
  *  reporting whichever page a scenario last registered as the target
  *  client's own, or none at all
  * @note Complexity: @e O(1) */
@@ -401,11 +401,11 @@ static bool s_client_page_known;
 static uint32_t s_client_page_col;
 static uint32_t s_client_page_row;
 
-bool scmd_surface_viewport_client_page(const surface_td *surface,
+bool scmd_stage_viewport_client_page(const stage_td *stage,
         const desktop_td *desktop, const client_td *client,
         uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
 
@@ -424,10 +424,10 @@ static int s_call_send_to_page;
 static uint32_t s_last_sent_col;
 static uint32_t s_last_sent_row;
 
-void enact_client_send_to_page(surface_td *surface, client_td *client,
+void enact_client_send_to_page(stage_td *stage, client_td *client,
         uint32_t col, uint32_t row)
 {
-    (void) surface;
+    (void) stage;
     (void) client;
 
     s_call_send_to_page++;
@@ -436,30 +436,30 @@ void enact_client_send_to_page(surface_td *surface, client_td *client,
 }
 
 
-/** Test-controlled stand-in for @a surface_viewport_has_room,
+/** Test-controlled stand-in for @a stage_viewport_has_room,
  *  answering whatever this file last registered, so the Sticky entry
  *  can be inspected both present and omitted without building a whole
  *  configuration around a pannable viewport
  * @note Complexity: @e O(1) */
 static bool s_viewport_has_room;
 
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return s_viewport_has_room;
 }
 
 
-/** Test-controlled stand-in for @a surface_monitor_for_point,
+/** Test-controlled stand-in for @a stage_monitor_for_point,
  *  answering whichever monitor this file last registered as
  *  "current" via @a s_current_monitor
  * @note Complexity: @e O(1) */
 static monitor_td s_current_monitor;
 
-monitor_td surface_monitor_for_point(const surface_td *surface,
+monitor_td stage_monitor_for_point(const stage_td *stage,
         struct position_s pos)
 {
-    (void) surface;
+    (void) stage;
     (void) pos;
     return s_current_monitor;
 }
@@ -520,40 +520,40 @@ static void s_teardown(void)
  */
 static void s_test_show_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
     struct position_s pos = { 0, 0 };
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
     client = s_make_client();
 
-    wincmenu_show(NULL, &surface, &desktop, client, pos, &config);
+    wincmenu_show(NULL, &stage, &desktop, client, pos, &config);
     TAP_NULL(s_captured_state,
             "a null connection shows nothing");
 
     wincmenu_show((xcb_connection_t *) 1, NULL, &desktop, client, pos,
             &config);
-    TAP_NULL(s_captured_state, "a null surface shows nothing");
+    TAP_NULL(s_captured_state, "a null stage shows nothing");
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, NULL, client, pos,
+    wincmenu_show((xcb_connection_t *) 1, &stage, NULL, client, pos,
             &config);
     TAP_NULL(s_captured_state, "a null desktop shows nothing");
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, NULL, pos,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, NULL, pos,
             &config);
     TAP_NULL(s_captured_state, "a null client shows nothing");
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, NULL);
     TAP_NULL(s_captured_state, "a null config shows nothing");
 
     client->properties.flags |= (uint16_t) CLIENT_FLAG_LOCKED;
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
     TAP_NULL(s_captured_state, "a locked client shows nothing");
 
@@ -564,26 +564,26 @@ static void s_test_show_guards(void)
 /**
  * @brief Verify the "Send to desktop" and "Send to monitor" submenus
  *        are omitted entirely on a single-desktop, single-monitor
- *        surface, leaving only the always-present Layer submenu, a
+ *        stage, leaving only the always-present Layer submenu, a
  *        separator, and the fixed command entries
  */
 static void s_test_show_single_desktop_single_monitor(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
     struct position_s pos = { 5, 6 };
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     TAP_NOT_NULL(s_captured_state,
@@ -609,12 +609,12 @@ static void s_test_show_single_desktop_single_monitor(void)
 
 /**
  * @brief Verify both submenus appear, in order, before Layer, when
- *        the surface has more than one desktop and more than one
+ *        the stage has more than one desktop and more than one
  *        monitor
  */
 static void s_test_show_multi_desktop_multi_monitor(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop_a;
     desktop_td desktop_b;
     client_td *client;
@@ -622,7 +622,7 @@ static void s_test_show_multi_desktop_multi_monitor(void)
     struct position_s pos = { 0, 0 };
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop_a, 0, sizeof(desktop_a));
     memset(&desktop_b, 0, sizeof(desktop_b));
     memset(&config, 0, sizeof(config));
@@ -634,16 +634,16 @@ static void s_test_show_multi_desktop_multi_monitor(void)
     s_desktops[1] = &desktop_b;
     s_desktop_count = 2;
 
-    surface.desktop_count = 2u;
-    surface.monitor_count = 2u;
-    surface.monitors[0] = (monitor_td) { 0, 0, 1920u, 1080u };
-    surface.monitors[1] = (monitor_td) { 1920, 0, 1920u, 1080u };
-    surface.primary_monitor_index = 0u;
-    s_current_monitor = surface.monitors[0];
+    stage.desktop_count = 2u;
+    stage.monitor_count = 2u;
+    stage.monitors[0] = (monitor_td) { 0, 0, 1920u, 1080u };
+    stage.monitors[1] = (monitor_td) { 1920, 0, 1920u, 1080u };
+    stage.primary_monitor_index = 0u;
+    s_current_monitor = stage.monitors[0];
 
     client = s_make_client();
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop_a, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop_a, client,
             pos, &config);
 
     TAP_NOT_NULL(s_captured_state,
@@ -692,7 +692,7 @@ static void s_test_show_multi_desktop_multi_monitor(void)
  */
 static void s_test_show_pinned_relabels_pin_toggle(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop_a;
     desktop_td desktop_b;
     client_td *client;
@@ -701,7 +701,7 @@ static void s_test_show_pinned_relabels_pin_toggle(void)
     int last;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop_a, 0, sizeof(desktop_a));
     memset(&desktop_b, 0, sizeof(desktop_b));
     memset(&config, 0, sizeof(config));
@@ -710,13 +710,13 @@ static void s_test_show_pinned_relabels_pin_toggle(void)
     s_desktops[0] = &desktop_a;
     s_desktops[1] = &desktop_b;
     s_desktop_count = 2;
-    surface.desktop_count = 2u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 2u;
+    stage.monitor_count = 1u;
 
     client = s_make_client();
     client->properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop_a, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop_a, client,
             pos, &config);
 
     last = s_captured_state->entries[0].item_count - 1;
@@ -741,7 +741,7 @@ static void s_test_show_pinned_relabels_pin_toggle(void)
  */
 static void s_test_show_fixed_entries_plain_client(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -749,14 +749,14 @@ static void s_test_show_fixed_entries_plain_client(void)
     ctxmenu_entry_td *e;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     /* Layer, separator, Restore, Move, Resize, Iconify, Hide,
@@ -816,7 +816,7 @@ static void s_test_show_fixed_entries_plain_client(void)
  */
 static void s_test_show_send_to_page_submenu(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -826,11 +826,11 @@ static void s_test_show_send_to_page_submenu(void)
     int page_idx = -1;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     s_viewport_columns = 2u;
     s_viewport_rows = 2u;
     s_client_page_known = true;
@@ -838,7 +838,7 @@ static void s_test_show_send_to_page_submenu(void)
     s_client_page_row = 0u;
     client = s_make_client();
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -886,7 +886,7 @@ static void s_test_show_send_to_page_submenu(void)
  */
 static void s_test_show_sticky_client_page_rows_all_disabled(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -896,17 +896,17 @@ static void s_test_show_sticky_client_page_rows_all_disabled(void)
     int page_idx = -1;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     s_viewport_columns = 2u;
     s_viewport_rows = 2u;
     client = s_make_client();
     client->properties.flags |= (uint16_t) CLIENT_FLAG_STICKY;
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -936,12 +936,12 @@ static void s_test_show_sticky_client_page_rows_all_disabled(void)
 
 /**
  * @brief Verify Sticky is omitted entirely, not merely disabled, on a
- *        surface whose configured viewport is a single screen, the
+ *        stage whose configured viewport is a single screen, the
  *        same condition the titlebar's sticky button hides under
  */
 static void s_test_show_single_page_viewport_omits_sticky(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -949,15 +949,15 @@ static void s_test_show_single_page_viewport_omits_sticky(void)
     ctxmenu_entry_td *e;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     s_viewport_has_room = false;
     client = s_make_client();
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -981,7 +981,7 @@ static void s_test_show_single_page_viewport_omits_sticky(void)
  */
 static void s_test_show_maximized_client(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -989,15 +989,15 @@ static void s_test_show_maximized_client(void)
     ctxmenu_entry_td *e;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
     client->properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED;
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -1019,7 +1019,7 @@ static void s_test_show_maximized_client(void)
  */
 static void s_test_show_fullscreen_client(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -1027,15 +1027,15 @@ static void s_test_show_fullscreen_client(void)
     ctxmenu_entry_td *e;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
     client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -1062,7 +1062,7 @@ static void s_test_show_fullscreen_client(void)
  */
 static void s_test_show_modal_client_blocks_fullscreen(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -1070,15 +1070,15 @@ static void s_test_show_modal_client_blocks_fullscreen(void)
     ctxmenu_entry_td *e;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
     client->properties.flags |= (uint16_t) CLIENT_FLAG_MODAL;
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -1096,7 +1096,7 @@ static void s_test_show_modal_client_blocks_fullscreen(void)
  */
 static void s_test_show_non_resizable_client(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -1104,15 +1104,15 @@ static void s_test_show_non_resizable_client(void)
     ctxmenu_entry_td *e;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
     client->properties.flags &= (uint16_t) ~CLIENT_FLAG_RESIZABLE;
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -1133,7 +1133,7 @@ static void s_test_show_non_resizable_client(void)
  */
 static void s_test_show_undecorated_client(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -1141,15 +1141,15 @@ static void s_test_show_undecorated_client(void)
     ctxmenu_entry_td *e;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
     client->properties.flags &= (uint16_t) ~CLIENT_FLAG_DECORATED;
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
 
     e = s_captured_state->entries;
@@ -1170,7 +1170,7 @@ static void s_test_show_undecorated_client(void)
  */
 static void s_test_wrappers(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *client;
     config_td config;
@@ -1178,14 +1178,14 @@ static void s_test_wrappers(void)
     bool click_result;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
-    surface.desktop_count = 1u;
-    surface.monitor_count = 1u;
+    stage.desktop_count = 1u;
+    stage.monitor_count = 1u;
     client = s_make_client();
 
-    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+    wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
     TAP_NOT_NULL(s_captured_state,
             "showing once builds and shows a menu");
@@ -1194,7 +1194,7 @@ static void s_test_wrappers(void)
     TAP_OK(true, "repaint forwards without crashing");
 
     click_result = wincmenu_handle_click((xcb_connection_t *) 1,
-            &surface, (xcb_window_t) 1, 0, &config);
+            &stage, (xcb_window_t) 1, 0, &config);
     TAP_OK(!click_result,
             "handle_click returns the stubbed tree dispatcher's"
             " result");
@@ -1206,7 +1206,7 @@ static void s_test_wrappers(void)
             "owns_window returns false when the stubbed tree finder"
             " finds nothing");
 
-    TAP_OK(!wincmenu_handle_keypress((xcb_connection_t *) 1, &surface,
+    TAP_OK(!wincmenu_handle_keypress((xcb_connection_t *) 1, &stage,
                 0x61u, &config),
             "handle_keypress returns the stubbed deepest-dispatcher's"
             " result");

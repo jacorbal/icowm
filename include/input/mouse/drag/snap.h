@@ -58,9 +58,9 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
  * boundaries when within a configurable threshold, honoring which edge
  * or corner the resize is anchored on.
  *
- * @param x      Pointer to the proposed X coordinate (updated in place
+ * @param x Pointer to the proposed X coordinate (updated in place
  *               if the anchored edge is the left one)
- * @param y      Pointer to the proposed Y coordinate (updated in place
+ * @param y Pointer to the proposed Y coordinate (updated in place
  *               if the anchored edge is the top one)
  * @param width  Pointer to the proposed width (updated in place)
  * @param height Pointer to the proposed height (updated in place)

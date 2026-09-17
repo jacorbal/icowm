@@ -82,8 +82,8 @@ void loop_run(wm_td *wm)
     }
     wm_set_keysyms(wm, ctx.keysyms);
 
-    keyboard_load(ctx.surfaces, ctx.keysyms, ctx.config);
-    mouse_load(ctx.surfaces, ctx.config);
+    keyboard_load(ctx.stages, ctx.keysyms, ctx.config);
+    mouse_load(ctx.stages, ctx.config);
 
     cctl_adopt_scan(wm);
     loop_refresh_full(&ctx);

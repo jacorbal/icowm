@@ -22,7 +22,7 @@
  *      typedef'ing one shared one
  *
  * @defgroup monitor Physical monitor geometry
- * @ingroup surface
+ * @ingroup stage
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -41,11 +41,11 @@
 
 
 /**
- * @brief One physical monitor's rectangle within its surface
+ * @brief One physical monitor's rectangle within its stage
  *
- * Always in the same coordinate space as the surface it belongs to:
+ * Always in the same coordinate space as the stage it belongs to:
  * @p x / @p y are the monitor's top-left corner relative to that
- * surface's top-left corner, not relative to the monitor itself.
+ * stage's top-left corner, not relative to the monitor itself.
  */
 typedef struct {
     int32_t x;

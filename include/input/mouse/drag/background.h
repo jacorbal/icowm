@@ -7,7 +7,7 @@
  * A press on the root window that never was over any managed client
  * starts here, entirely independent of @c input/mouse/drag.h's own
  * state machine (which requires a @c client_td to operate on): there is
- * no client to move, only the surface's current desktop's viewport
+ * no client to move, only the stage's current desktop's viewport
  * origin.  Motion moves that origin by exactly the pointer's
  * accumulated delta since the press, the opposite way, so the desktop's
  * content visually follows the pointer 1:1, the same way dragging a
@@ -43,29 +43,29 @@
 #include <types/pair.h>
 
 /* Project includes */
-#include <surface.h>
+#include <stage.h>
 
 
 /**
  * @brief Begin a background-pan drag
  *
- * Records the viewport origin @p surface's current desktop starts at
+ * Records the viewport origin @p stage's current desktop starts at
  * and installs a pointer grab so that motion and release events are
  * delivered reliably, exactly like @a drag_start does for a client
  * drag.
  *
  * @param connection XCB connection
- * @param surface    Surface whose current desktop's viewport pans
+ * @param stage      Stage whose current desktop's viewport pans
  * @param root       Root window on which to grab the pointer
  * @param event_time Timestamp from the triggering button-press event
  * @param root_pos   Root-relative position of the pointer at press time
  *
- * @note A no-op (no grab installed, nothing recorded) when @p surface
+ * @note A no-op (no grab installed, nothing recorded) when @p stage
  *       has no resolvable current desktop
  * @note Complexity: @e O(1)
  */
 void drag_background_start(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t root,
+        stage_td *stage, xcb_window_t root,
         xcb_timestamp_t event_time, struct position_s root_pos);
 
 /**
@@ -81,7 +81,7 @@ void drag_background_start(xcb_connection_t *connection,
  *
  * @note A no-op when no background-pan drag is active
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the panned desktop (see @a scmd_surface_viewport_set)
+ *       the panned desktop (see @a scmd_stage_viewport_set)
  */
 void drag_background_update(xcb_connection_t *connection,
         struct position_s root_pos);
@@ -95,17 +95,17 @@ void drag_background_update(xcb_connection_t *connection,
  * is unfocused.  Releases the pointer grab in either case.
  *
  * @param connection XCB connection
- * @param surfaces   Surface list, to resolve the active client to
+ * @param stages     Stage list, to resolve the active client to
  *                   unfocus on a plain click (may be null, which just
  *                   skips that lookup)
- * @param root_pos   Root-relative position of the pointer at release
+ * @param root_pos Root-relative position of the pointer at release
  *                   time
  *
  * @note A no-op when no background-pan drag is active
  * @note Complexity: @e O(1)
  */
 void drag_background_end(xcb_connection_t *connection,
-        list_td *surfaces, struct position_s root_pos);
+        list_td *stages, struct position_s root_pos);
 
 /**
  * @brief Query whether a background-pan drag is currently active

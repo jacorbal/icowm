@@ -3,10 +3,10 @@
  *
  * @brief Turning a request's numeric IDs into real pointers
  *
- * Every command's arguments name a client, desktop, or surface by the
+ * Every command's arguments name a client, desktop, or stage by the
  * same numeric ID @c list_clients / @c list_desktops / @c get_focused
  * already report it by: a client's X window ID, a desktop's index on
- * its surface, a surface's screen index.  These turn one of those IDs
+ * its stage, a stage's screen index.  These turn one of those IDs
  * back into the real pointer it names, or build the appropriate error
  * response when it does not currently name anything, so every action
  * handler shares one place that does this instead of repeating the same
@@ -38,40 +38,40 @@
 
 
 /**
- * @brief Resolve which surface a request refers to
+ * @brief Resolve which stage a request refers to
  *
- * Reads an optional numeric @c surface_id field from @p args; when
- * absent, falls back to the first surface in @p wm's list, the only
+ * Reads an optional numeric @c stage_id field from @p args; when
+ * absent, falls back to the first stage in @p wm's list, the only
  * reasonable default on a single-monitor setup and still a usable one
  * on a multi-monitor one.
  *
  * @param wm   Window manager instance
  * @param args The request object
  *
- * @return The resolved surface, or @c NULL when @c surface_id was given
- *         but does not match any currently managed surface, or when
- *         there is no surface to fall back to at all
+ * @return The resolved stage, or @c NULL when @c stage_id was given
+ *         but does not match any currently managed stage, or when
+ *         there is no stage to fall back to at all
  *
  * @note Complexity: @e O(1)
  */
-surface_td *ipc_resolve_surface(const wm_td *wm, const cJSON *args);
+stage_td *ipc_resolve_stage(const wm_td *wm, const cJSON *args);
 
 /**
  * @brief Resolve which desktop a request refers to, on top of
- *        @a ipc_resolve_surface
+ *        @a ipc_resolve_stage
  *
  * @param wm                  Window manager instance
  * @param args                The request object
  * @param desktop_id_required When @c true, a missing or invalid
  *                            @c desktop_id is itself a failure;
  *                            when @c false, a missing one falls back
- *                            to the resolved surface's current
+ *                            to the resolved stage's current
  *                            desktop instead (an out-of-range one
  *                            that was actually given is always a
  *                            failure either way)
- * @param out_surface         Receives the resolved surface on
+ * @param out_stage Receives the resolved stage on
  *                            success; untouched on failure
- * @param out_error           Receives a newly allocated error
+ * @param out_error Receives a newly allocated error
  *                            response on failure (possibly null itself,
  *                            on an allocation failure building that
  *                            response); untouched on success
@@ -82,20 +82,20 @@ surface_td *ipc_resolve_surface(const wm_td *wm, const cJSON *args);
  * @note Complexity: @e O(1)
  */
 desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
-        bool desktop_id_required, surface_td **out_surface,
+        bool desktop_id_required, stage_td **out_stage,
         cJSON **out_error);
 
 /**
  * @brief Resolve which client a request refers to
  *
- * @param wm          Window manager instance
- * @param args        The request object; must carry a numeric
+ * @param wm   Window manager instance
+ * @param args The request object; must carry a numeric
  *                    @c client_id
- * @param out_surface Receives the client's surface on success;
+ * @param out_stage Receives the client's stage on success;
  *                    untouched on failure
  * @param out_desktop Receives the client's desktop on success;
  *                    untouched on failure
- * @param out_error   Receives a newly allocated error response on
+ * @param out_error Receives a newly allocated error response on
  *                    failure (possibly null itself, on an allocation
  *                    failure building that response); untouched on
  *                    success
@@ -104,11 +104,11 @@ desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
  *         to know why)
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e c the
+ *       stages, @e d the number of desktops per stage, and @e c the
  *       hash-table lookup cost per desktop
  */
 client_td *ipc_resolve_client(const wm_td *wm, const cJSON *args,
-        surface_td **out_surface, desktop_td **out_desktop,
+        stage_td **out_stage, desktop_td **out_desktop,
         cJSON **out_error);
 
 

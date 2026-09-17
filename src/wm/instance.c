@@ -45,10 +45,10 @@ xcb_ewmh_connection_t *wm_ewmh(const wm_td *wm)
 }
 
 
-/* List of managed surfaces */
-list_td *wm_surfaces(const wm_td *wm)
+/* List of managed stages */
+list_td *wm_stages(const wm_td *wm)
 {
-    return (wm != NULL) ? wm->surfaces : NULL;
+    return (wm != NULL) ? wm->stages : NULL;
 }
 
 

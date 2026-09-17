@@ -120,8 +120,8 @@ static void s_client_heap_fields_release(client_td *client)
 /**
  * @brief Initialize the common non-zero client defaults
  *
- * @param client        Client structure to initialize
- * @param config        Shared base/theme/a11y configuration
+ * @param client Client structure to initialize
+ * @param config Shared base/theme/a11y configuration
  */
 static void s_client_common_init(client_td *client,
         const config_td *config)
@@ -233,10 +233,10 @@ struct s_client_cookies_init_s {
  * @param connection XCB connection
  * @param ewmh       EWMH connection, for 'WM_PROTOCOLS' and
  *                   '_NET_WM_SYNC_REQUEST_COUNTER'
- * @param window     Window being adopted
- * @param ck         Requests already issued by @a client_init; this
+ * @param window Window being adopted
+ * @param ck     Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client     Client being initialized; its protocol-support
+ * @param client Client being initialized; its protocol-support
  *                   flags, 'sync_counter', and 'sync_alarm' fields
  *                   are set here
  *
@@ -381,7 +381,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client     Client being initialized; every field these three
+ * @param client Client being initialized; every field these three
  *                   properties feed is set here
  *
  * @note Complexity: @e O(1)
@@ -544,10 +544,10 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
  *
  * @param connection XCB connection, to intern
  *                   @c _NET_WM_WINDOW_TYPE_NOTIFICATION
- * @param ewmh       EWMH connection
- * @param ck         Requests already issued by @a client_init; this
+ * @param ewmh EWMH connection
+ * @param ck   Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client     Client being initialized; its type, decoration,
+ * @param client Client being initialized; its type, decoration,
  *                   frame extents, and several property flags are
  *                   set here
  *
@@ -663,7 +663,7 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client     Client being initialized; its decoration flag,
+ * @param client Client being initialized; its decoration flag,
  *                   frame extents, and own @c config (checked for
  *                   @c window.is_decorated before honoring a request
  *                   to turn decorations on) may be used or changed
@@ -733,7 +733,7 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  * @param window     Window being adopted
  * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client     Client being initialized; its layer and
+ * @param client Client being initialized; its layer and
  *                   skip-taskbar/skip-pager flags may be set here
  *
  * @note Complexity: @e O(n), where @e n is the number of atoms

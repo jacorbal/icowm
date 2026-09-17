@@ -50,7 +50,7 @@
 #include <menu/context/ctxmenu/layout.h>
 #include <menu/context/ctxmenu/redraw.h>
 #include <menu/context/ctxmenu/select.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /** Row a given 'y' maps to, and how many times the lookup ran */
@@ -95,12 +95,12 @@ static ctxmenu_state_td *s_show_last_state;
 
 /** Recording stand-in for @a ctxmenu_show
  * @note Complexity: @e O(1) */
-void ctxmenu_show(xcb_connection_t *connection, surface_td *surface,
+void ctxmenu_show(xcb_connection_t *connection, stage_td *stage,
         ctxmenu_state_td *state, struct position_s pos,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) pos;
     (void) config;
     s_show_calls++;
@@ -276,15 +276,15 @@ static void s_test_keypress_right_opens_submenu(void)
     ctxmenu_state_td child_state;
     ctxmenu_state_td state;
     config_td config;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     s_make_menu(entries, sub_items, &child_state, &state);
     state.selected = 1;
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
-    TAP_OK(ctxmenu_handle_keypress((xcb_connection_t *) 1, &surface,
+    TAP_OK(ctxmenu_handle_keypress((xcb_connection_t *) 1, &stage,
                 &state, KS_RIGHT, &config),
             "right arrow on a submenu entry is consumed");
     TAP_EQ_INT(s_show_calls, 1, "right arrow shows the child menu");

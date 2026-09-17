@@ -39,7 +39,7 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/state.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Dialog includes */
 #include <menu/dialog/inspect.h>
@@ -57,7 +57,7 @@
 #include <enact/client.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Menu includes */
@@ -87,8 +87,8 @@ static ctxmenu_state_td s_layer_state;
 /** Pointer to the target client (valid while the menu is open) */
 static client_td *s_target_client = NULL;
 
-/** Pointer to the surface (valid while the menu is open) */
-static surface_td *s_surface = NULL;
+/** Pointer to the stage (valid while the menu is open) */
+static stage_td *s_stage = NULL;
 
 /** Pointer to the source desktop (valid while the menu is open) */
 static desktop_td *s_desktop = NULL;
@@ -122,8 +122,8 @@ static void s_cb_move(xcb_connection_t *connection,
     (void) userdata;
 
     if (s_target_client == NULL || connection == NULL ||
-            s_surface == NULL ||
-            s_surface->screen == NULL) {
+            s_stage == NULL ||
+            s_stage->screen == NULL) {
         return;
     }
 
@@ -134,13 +134,13 @@ static void s_cb_move(xcb_connection_t *connection,
     }
 
     if (ctxmenu_last_activation_was_keyboard()) {
-        surface_td *surface =
-            wm_get_surface_by_id(s_target_client->screen_id);
-        kbd_modal_move_start(connection, surface, s_target_client);
+        stage_td *stage =
+            wm_get_stage_by_id(s_target_client->screen_id);
+        kbd_modal_move_start(connection, stage, s_target_client);
         return;
     }
 
-    root_win = s_surface->screen->root;
+    root_win = s_stage->screen->root;
     if (root_win == XCB_WINDOW_NONE) {
         return;
     }
@@ -154,8 +154,8 @@ static void s_cb_move(xcb_connection_t *connection,
             0, 0, 0, 0,
             (int16_t) center_pos.x, (int16_t) center_pos.y);
 
-    screen_dim.w = s_surface->properties.dim.w;
-    screen_dim.h = s_surface->properties.dim.h;
+    screen_dim.w = s_stage->properties.dim.w;
+    screen_dim.h = s_stage->properties.dim.h;
     drag_start(connection, root_win, s_target_client, s_desktop,
             CLIENT_OPERATION_MOVING,
             XCB_CURRENT_TIME,
@@ -182,15 +182,15 @@ static void s_cb_move(xcb_connection_t *connection,
  * has to be warped off-screen (or right against a screen edge) to start
  * the drag.
  *
- * @param client  Client to resize
- * @param surface Surface the client is on (for screen dimensions)
- * @param out_x   Output: root-relative X of the chosen corner
- * @param out_y   Output: root-relative Y of the chosen corner
+ * @param client Client to resize
+ * @param stage  Stage the client is on (for screen dimensions)
+ * @param out_x  Output: root-relative X of the chosen corner
+ * @param out_y  Output: root-relative Y of the chosen corner
  *
  * @note Complexity: @e O(1)
  */
 static void s_resize_corner_grab(const client_td *client,
-        const surface_td *surface, int32_t *restrict out_x,
+        const stage_td *stage, int32_t *restrict out_x,
         int32_t *restrict out_y)
 {
     int32_t win_center_x;
@@ -213,8 +213,8 @@ static void s_resize_corner_grab(const client_td *client,
         (int32_t) (client->layout.geometry.cur.dim.w / 2u);
     win_center_y = top +
         (int32_t) (client->layout.geometry.cur.dim.h / 2u);
-    screen_center_x = (int32_t) (surface->properties.dim.w / 2u);
-    screen_center_y = (int32_t) (surface->properties.dim.h / 2u);
+    screen_center_x = (int32_t) (stage->properties.dim.w / 2u);
+    screen_center_y = (int32_t) (stage->properties.dim.h / 2u);
 
     is_left = win_center_x < screen_center_x;
     is_top = win_center_y < screen_center_y;
@@ -244,7 +244,7 @@ static void s_resize_corner_grab(const client_td *client,
  */
 static void s_cb_resize(xcb_connection_t *connection, void *userdata)
 {
-    surface_td *surface;
+    stage_td *stage;
     xcb_window_t root_win;
     struct position_s corner_pos;
     struct dimensions_s screen_dim;
@@ -265,31 +265,31 @@ static void s_cb_resize(xcb_connection_t *connection, void *userdata)
         ccmd_client_unshade(s_target_client);
     }
 
-    surface = wm_get_surface_by_id(s_target_client->screen_id);
+    stage = wm_get_stage_by_id(s_target_client->screen_id);
 
     if (ctxmenu_last_activation_was_keyboard()) {
-        kbd_modal_resize_start(connection, surface, s_target_client);
+        kbd_modal_resize_start(connection, stage, s_target_client);
         return;
     }
 
-    if (s_surface == NULL || s_surface->screen == NULL) {
+    if (s_stage == NULL || s_stage->screen == NULL) {
         return;
     }
 
-    root_win = s_surface->screen->root;
+    root_win = s_stage->screen->root;
     if (root_win == XCB_WINDOW_NONE) {
         return;
     }
 
-    s_resize_corner_grab(s_target_client, s_surface,
+    s_resize_corner_grab(s_target_client, s_stage,
             &corner_pos.x, &corner_pos.y);
 
     xcb_warp_pointer(connection, XCB_NONE, root_win,
             0, 0, 0, 0,
             (int16_t) corner_pos.x, (int16_t) corner_pos.y);
 
-    screen_dim.w = s_surface->properties.dim.w;
-    screen_dim.h = s_surface->properties.dim.h;
+    screen_dim.w = s_stage->properties.dim.w;
+    screen_dim.h = s_stage->properties.dim.h;
     drag_start(connection, root_win, s_target_client, s_desktop,
             CLIENT_OPERATION_RESIZING,
             XCB_CURRENT_TIME,
@@ -418,7 +418,7 @@ static void s_cb_inspect(xcb_connection_t *connection, void *userdata)
     (void) userdata;
 
     if (s_target_client != NULL) {
-        dialog_inspect_show(connection, s_surface, s_config,
+        dialog_inspect_show(connection, s_stage, s_config,
                 s_target_client);
     }
 }
@@ -508,7 +508,7 @@ static void s_build_layer_entries(const client_td *client)
 
 /* Open the window context menu for a client */
 void wincmenu_show(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         struct position_s pos, const config_td *config)
 {
     int n;
@@ -526,7 +526,7 @@ void wincmenu_show(xcb_connection_t *connection,
     bool can_resize;
     bool can_shade;
 
-    if (connection == NULL || surface == NULL || desktop == NULL ||
+    if (connection == NULL || stage == NULL || desktop == NULL ||
             client == NULL || config == NULL ||
             client_is_locked(client)) {
         return;
@@ -536,7 +536,7 @@ void wincmenu_show(xcb_connection_t *connection,
     wincmenu_close();
 
     s_target_client = client;
-    s_surface = surface;
+    s_stage = stage;
     s_desktop = desktop;
     s_config = config;
 
@@ -561,23 +561,23 @@ void wincmenu_show(xcb_connection_t *connection,
         && !client_is_fullscreen(client);
 
     /* Build 'Send to desktop' submenu, only meaningful (and only shown
-     * at all, see below) on a surface with more than one desktop; this
+     * at all, see below) on a stage with more than one desktop; this
      * is also where the "all desktops" pin toggle lives, so hiding
-     * the whole submenu on a single-desktop surface (as in
+     * the whole submenu on a single-desktop stage (as in
      * restricted-memory mode; see 'memguard.h') correctly hides that
      * too, since pinning to every desktop means nothing when there is
      * only the one. */
     /* Build "Send to page" submenu, only meaningful (and only shown at
      * all, see below) on a viewport that can actually pan */
-    page_count = ctxmenu_submenu_page_build(surface, desktop, client,
+    page_count = ctxmenu_submenu_page_build(stage, desktop, client,
             &page_entries, &page_state);
 
-    desk_count = ctxmenu_submenu_desktop_build(surface, desktop, client,
+    desk_count = ctxmenu_submenu_desktop_build(stage, desktop, client,
             &desk_entries, &desk_state);
 
     /* Build "Send to monitor" submenu, only meaningful (and only shown
-     * at all, see below) on a surface with more than one monitor */
-    monitor_count = ctxmenu_submenu_monitor_build(surface, desktop,
+     * at all, see below) on a stage with more than one monitor */
+    monitor_count = ctxmenu_submenu_monitor_build(stage, desktop,
             client, &monitor_entries, &monitor_state);
 
     /* Build "Layer" submenu */
@@ -594,7 +594,7 @@ void wincmenu_show(xcb_connection_t *connection,
     n = 0;
 
     /* Send to desktop (submenu); omitted entirely, not just disabled,
-     * on a surface with only one desktop */
+     * on a stage with only one desktop */
     if (desk_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
         safe_strncpy(s_entries[n].label,
@@ -625,7 +625,7 @@ void wincmenu_show(xcb_connection_t *connection,
     }
 
     /* Send to monitor (submenu); omitted entirely, not just disabled,
-     * on a surface with only one monitor */
+     * on a stage with only one monitor */
     if (monitor_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
         safe_strncpy(s_entries[n].label,
@@ -747,7 +747,7 @@ void wincmenu_show(xcb_connection_t *connection,
     s_root.entries = s_entries;
     s_root.entry_count = n;
 
-    ctxmenu_show(connection, surface, &s_root, pos, config);
+    ctxmenu_show(connection, stage, &s_root, pos, config);
 }
 
 
@@ -756,7 +756,7 @@ void wincmenu_close(void)
 {
     ctxmenu_close(&s_root);
     s_target_client = NULL;
-    s_surface = NULL;
+    s_stage = NULL;
     s_desktop = NULL;
     s_config = NULL;
 }
@@ -771,10 +771,10 @@ void wincmenu_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the window context menu */
 bool wincmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int y,
+        stage_td *stage, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_click_window(connection, surface,
+    return ctxmenu_tree_handle_click_window(connection, stage,
             &s_root, win, y, config);
 }
 
@@ -806,10 +806,10 @@ void wincmenu_notice_client_destroyed(const client_td *client)
 
 /* Handle a key-press event while the window context menu is open */
 bool wincmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_keypress_deepest(connection, surface,
+    return ctxmenu_tree_handle_keypress_deepest(connection, stage,
             &s_root, keysym, config);
 }
 

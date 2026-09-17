@@ -33,13 +33,13 @@
 /* Policy includes */
 #include <policy/stacking.h>
 
-/* Surface includes */
-#include <surface/desktop.h>
+/* Stage includes */
+#include <stage/desktop.h>
 
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <wm/internal.h>
@@ -197,15 +197,15 @@ static void s_client_action_visit(desktop_td *desktop, void *data)
 }
 
 
-/* Visit every managed client, on every surface and desktop */
+/* Visit every managed client, on every stage and desktop */
 uint32_t wm_for_each_client(const wm_td *wm,
         void (*action)(client_td *client,
             void *userdata), void *userdata)
 {
     struct s_client_action_ctx_s ctx;
-    list_td *const surfaces = wm_surfaces(wm);
+    list_td *const stages = wm_stages(wm);
 
-    if (surfaces == NULL) {
+    if (stages == NULL) {
         return 0u;
     }
 
@@ -213,13 +213,13 @@ uint32_t wm_for_each_client(const wm_td *wm,
     ctx.userdata = userdata;
     ctx.count = 0u;
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        const surface_td *const surface =
-            (surface_td *) list_data(snode);
+        const stage_td *const stage =
+            (stage_td *) list_data(snode);
 
-        if (surface != NULL) {
-            surface_desktop_walk_all(surface, s_client_action_visit, &ctx);
+        if (stage != NULL) {
+            stage_desktop_walk_all(stage, s_client_action_visit, &ctx);
         }
     }
 
@@ -227,28 +227,28 @@ uint32_t wm_for_each_client(const wm_td *wm,
 }
 
 
-/* Release every client, on every desktop of every managed surface, back
+/* Release every client, on every desktop of every managed stage, back
  * to bare X before this whole instance's teardown destroys the window
  * manager's resources */
 void wm_client_unmanage_all(const wm_td *wm)
 {
-    list_td *const surfaces = wm_surfaces(wm);
+    list_td *const stages = wm_stages(wm);
 
-    if (surfaces == NULL) {
+    if (stages == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
-        if (surface == NULL || surface->desktops == NULL) {
+        if (stage == NULL || stage->desktops == NULL) {
             continue;
         }
 
-        dnode = cdlist_head(surface->desktops);
+        dnode = cdlist_head(stage->desktops);
         if (dnode == NULL) {
             continue;
         }

@@ -46,7 +46,7 @@
  *         to stop, @c true when the loop should keep running
  *
  * @note Complexity: @e O(n * b), where @e n is the number of managed
- *       surfaces and @e b the number of configured bindings, paid only
+ *       stages and @e b the number of configured bindings, paid only
  *       on a @c SIGCONT that re-grabs input
  */
 bool loop_signals_process(const loop_ctx_td *ctx);

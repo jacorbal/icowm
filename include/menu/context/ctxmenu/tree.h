@@ -80,12 +80,12 @@ void ctxmenu_tree_handle_motion_window(ctxmenu_state_td *root,
  *        whichever submenu under @p root currently owns @p win
  *
  * @param connection XCB connection
- * @param surface    Surface the click occurred on
+ * @param stage      Stage the click occurred on
  * @param root       Top-level state of the concrete menu's
  *                   submenu tree
- * @param win        Window the click event arrived for
- * @param y          Pointer Y position, in @p win's coordinates
- * @param config     Active configuration
+ * @param win    Window the click event arrived for
+ * @param y      Pointer Y position, in @p win's coordinates
+ * @param config Active configuration
  *
  * @return @c true if @p win belonged to a submenu under @p root and
  *         the click was forwarded
@@ -95,7 +95,7 @@ void ctxmenu_tree_handle_motion_window(ctxmenu_state_td *root,
  * @see @a ctxmenu_tree_redraw_window
  */
 bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
+        stage_td *stage, ctxmenu_state_td *root, xcb_window_t win,
         int y, const config_td *config);
 
 /**
@@ -108,18 +108,18 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
  * making that submenu look unresponsive to the keyboard.
  *
  * @param connection XCB connection
- * @param surface    Surface the key press occurred on
+ * @param stage      Stage the key press occurred on
  * @param root       Top-level state of the concrete menu's
  *                   submenu tree
- * @param keysym     Keysym of the pressed key
- * @param config     Active configuration
+ * @param keysym Keysym of the pressed key
+ * @param config Active configuration
  *
  * @return @c true if the key was consumed
  *
  * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */
 bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root,
+        stage_td *stage, ctxmenu_state_td *root,
         xcb_keysym_t keysym, const config_td *config);
 
 

@@ -162,7 +162,7 @@
     "Automatically selecting '%.255s' in %d second(s)"
 
 /* RandR output-profile confirm dialog ('src/menu/dialog/ rrsafe.c'),
- * shown after 'surface_action_randr_apply_profiles' is called from
+ * shown after 'stage_action_randr_apply_profiles' is called from
  * a configuration reload (see 'wm_action_config_reload'), never at
  * startup or on a hotplug 'OUTPUT_CHANGE' */
 #define STR_DIALOG_RANDR_CONFIRM_PROMPT \
@@ -275,11 +275,11 @@
  * 'desktop_action_recompute_urgent'): shown, via the shared message
  * dialog ('menu/dialog/message.h') at 'MENU_MSG_LEVEL_INFO', when
  * a client becomes urgent on a desktop other than the one currently
- * visible on its own surface (see 'urgency.notify-activity' in
+ * visible on its own stage (see 'urgency.notify-activity' in
  * config.json).
  *
  * TRANSLATION: keep every '%u' (a desktop's index, or, only in
- * the surface-suffix variant, a surface's index) */
+ * the stage-suffix variant, a stage's index) */
 #define STR_DESKTOP_ACTIVITY_UNNAMED_FMT \
     "Detected activity on desktop [%u]"
 
@@ -287,17 +287,17 @@
  * had activity actually has a name of its own set; kept as its
  * separate, tiny translatable string instead of a second, almost
  * entirely duplicate whole-sentence one, the same reasoning already
- * applied to the surface-suffix variant right below it.
+ * applied to the stage-suffix variant right below it.
  *
  * TRANSLATION: keep the '%s' (a desktop's name) */
 #define STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT " %s"
 
 /* Appended after the base message above and, if the desktop that had
  * activity has a name of its own, the name suffix right above this
- * one too; only when more than one surface is managed (a
- * single-surface setup, by far the common case, has nothing
+ * one too; only when more than one stage is managed (a
+ * single-stage setup, by far the common case, has nothing
  * to disambiguate) */
-#define STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT " (on surface %u)"
+#define STR_DESKTOP_ACTIVITY_STAGE_SUFFIX_FMT " (on stage %u)"
 
 /* Whole message for a client that turned urgent on the very desktop
  * already on screen, but on a viewport page that is not: there is no

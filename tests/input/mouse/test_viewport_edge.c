@@ -4,8 +4,8 @@
  * @brief Test battery for the edge-triggered viewport pan while the
  *        pointer merely rests at a screen edge, no drag in progress
  *
- * 'lookup_surface_for_root' and the four
- * 'scmd_surface_viewport_pan_*' commands are heavy calls into the rest
+ * 'lookup_stage_for_root' and the four
+ * 'scmd_stage_viewport_pan_*' commands are heavy calls into the rest
  * of the running window manager that this file's real target, the
  * edge-detection and countdown bookkeeping in
  * 'mouse_viewport_edge_check' and 'mouse_viewport_edge_ms_remaining',
@@ -52,24 +52,24 @@
 /* Project includes */
 #include <config.h>
 #include <defs/desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
 #include <input/mouse/viewport/edge.h>
 
 
-/** Non-null opaque handle standing in for a real list_td of surfaces,
+/** Non-null opaque handle standing in for a real list_td of stages,
  *  which this file never actually builds, since the type is opaque
- *  outside its own translation unit; 'lookup_surface_for_root' below
+ *  outside its own translation unit; 'lookup_stage_for_root' below
  *  ignores it, only ever checking it is non-NULL */
-static int s_fake_surfaces_storage;
-static list_td *const s_fake_surfaces =
-        (list_td *) &s_fake_surfaces_storage;
+static int s_fake_stages_storage;
+static list_td *const s_fake_stages =
+        (list_td *) &s_fake_stages_storage;
 
-/** Surface @a lookup_surface_for_root hands back, @c NULL to make the
+/** Stage @a lookup_stage_for_root hands back, @c NULL to make the
  *  lookup itself fail */
-static surface_td *s_stub_surface;
+static stage_td *s_stub_stage;
 
 /** Whether @a drag_is_active reports a drag in progress */
 static bool s_drag_active;
@@ -91,15 +91,15 @@ static int16_t s_reply_root_y;
 
 
 /**
- * @brief Link-only stand-in for @a lookup_surface_for_root
+ * @brief Link-only stand-in for @a lookup_stage_for_root
  *
  * @note Complexity: @e O(1)
  */
-surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
+stage_td *lookup_stage_for_root(list_td *stages, xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
-    return s_stub_surface;
+    return s_stub_stage;
 }
 
 
@@ -115,49 +115,49 @@ bool drag_is_active(void)
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_north
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_north
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_north(surface_td *surface)
+void scmd_stage_viewport_pan_north(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_north++;
 }
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_south
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_south
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_south(surface_td *surface)
+void scmd_stage_viewport_pan_south(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_south++;
 }
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_east
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_east
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_east(surface_td *surface)
+void scmd_stage_viewport_pan_east(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_east++;
 }
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_west
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_west
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_west(surface_td *surface)
+void scmd_stage_viewport_pan_west(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_west++;
 }
 
@@ -222,18 +222,18 @@ xcb_query_pointer_reply_t
 
 /**
  * @brief Reset every recording stand-in and rebuild a fresh, active,
- *        pannable surface before each scenario
+ *        pannable stage before each scenario
  *
  * @note Complexity: @e O(1)
  */
 static void s_reset(void)
 {
     static config_td config;
-    static surface_td surface;
+    static stage_td stage;
     static xcb_screen_t screen;
 
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
 
     config.base.viewport.pan_on_edge_hover = true;
@@ -242,13 +242,13 @@ static void s_reset(void)
 
     screen.root = 1u;
 
-    surface.config = &config;
-    surface.screen = &screen;
-    surface.id = 0u;
-    surface.properties.dim.w = 1920u;
-    surface.properties.dim.h = 1080u;
+    stage.config = &config;
+    stage.screen = &screen;
+    stage.id = 0u;
+    stage.properties.dim.w = 1920u;
+    stage.properties.dim.h = 1080u;
 
-    s_stub_surface = &surface;
+    s_stub_stage = &stage;
     s_drag_active = false;
 
     s_call_pan_north = 0;
@@ -263,16 +263,16 @@ static void s_reset(void)
 }
 
 
-/* No surface resolves at all: clears any pending pan */
-static void s_test_check_no_surface_is_noop(void)
+/* No stage resolves at all: clears any pending pan */
+static void s_test_check_no_stage_is_noop(void)
 {
     s_reset();
-    s_stub_surface = NULL;
+    s_stub_stage = NULL;
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
 
     TAP_EQ_INT(mouse_viewport_edge_ms_remaining(), -1,
-            "surface lookup failing clears any pending pan");
+            "stage lookup failing clears any pending pan");
 }
 
 
@@ -280,9 +280,9 @@ static void s_test_check_no_surface_is_noop(void)
 static void s_test_check_disabled_in_config_is_noop(void)
 {
     s_reset();
-    s_stub_surface->config->base.viewport.pan_on_edge_hover = false;
+    s_stub_stage->config->base.viewport.pan_on_edge_hover = false;
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
 
     TAP_EQ_INT(mouse_viewport_edge_ms_remaining(), -1,
             "pan_on_edge_hover false: edge touch never arms a pan");
@@ -294,10 +294,10 @@ static void s_test_check_disabled_in_config_is_noop(void)
 static void s_test_check_single_column_is_noop(void)
 {
     s_reset();
-    s_stub_surface->config->base.screens[0].viewport.columns = 1u;
-    s_stub_surface->config->base.screens[0].viewport.rows = 1u;
+    s_stub_stage->config->base.screens[0].viewport.columns = 1u;
+    s_stub_stage->config->base.screens[0].viewport.rows = 1u;
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
 
     TAP_EQ_INT(mouse_viewport_edge_ms_remaining(), -1,
             "a one-by-one viewport never arms a pan");
@@ -309,7 +309,7 @@ static void s_test_check_middle_of_screen_is_noop(void)
 {
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 960, 540);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 960, 540);
 
     TAP_EQ_INT(mouse_viewport_edge_ms_remaining(), -1,
             "pointer away from every edge never arms a pan");
@@ -321,7 +321,7 @@ static void s_test_check_left_edge_arms_west(void)
 {
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
 
     TAP_OK(mouse_viewport_edge_ms_remaining() >= 0,
             "x=0 arms a pending pan");
@@ -334,7 +334,7 @@ static void s_test_check_one_past_left_edge_is_noop(void)
 {
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 1, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 1, 500);
 
     TAP_EQ_INT(mouse_viewport_edge_ms_remaining(), -1,
             "x=1 is one pixel short of the left edge: no pan armed");
@@ -347,7 +347,7 @@ static void s_test_check_right_edge_arms_east(void)
 {
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 1919, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 1919, 500);
 
     TAP_OK(mouse_viewport_edge_ms_remaining() >= 0,
             "x=screen_w-1 arms a pending pan");
@@ -359,10 +359,10 @@ static void s_test_check_leaving_edge_clears_pending(void)
 {
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
     TAP_OK(mouse_viewport_edge_ms_remaining() >= 0, "armed at the left edge");
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 960, 540);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 960, 540);
     TAP_EQ_INT(mouse_viewport_edge_ms_remaining(), -1,
             "moving back to the middle of the screen clears it");
 }
@@ -377,10 +377,10 @@ static void s_test_check_same_edge_keeps_countdown(void)
 
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
     first_remaining = mouse_viewport_edge_ms_remaining();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 501);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 501);
     second_remaining = mouse_viewport_edge_ms_remaining();
 
     TAP_OK(second_remaining <= first_remaining,
@@ -407,7 +407,7 @@ static void s_test_ms_remaining_positive_right_after_arming(void)
 
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
     remaining = mouse_viewport_edge_ms_remaining();
 
     TAP_OK(remaining >= 0 && remaining <= WM_VIEWPORT_PAN_DELAY_MS,
@@ -420,7 +420,7 @@ static void s_test_ms_remaining_positive_right_after_arming(void)
 static void s_test_tick_null_connection_is_noop(void)
 {
     s_reset();
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
 
     mouse_viewport_edge_tick(NULL);
 
@@ -448,7 +448,7 @@ static void s_test_tick_countdown_not_due_is_noop(void)
 {
     s_reset();
 
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
 
     mouse_viewport_edge_tick((xcb_connection_t *) (void *) 1);
 
@@ -483,7 +483,7 @@ static void s_sleep_past(unsigned int ms)
 static void s_test_tick_due_drag_active_stops_early(void)
 {
     s_reset();
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
     s_sleep_past(WM_VIEWPORT_PAN_DELAY_MS);
     s_drag_active = true;
 
@@ -501,7 +501,7 @@ static void s_test_tick_due_drag_active_stops_early(void)
 static void s_test_tick_due_pointer_moved_away_stops_early(void)
 {
     s_reset();
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
     s_sleep_past(WM_VIEWPORT_PAN_DELAY_MS);
 
     s_reply_present = true;
@@ -522,7 +522,7 @@ static void s_test_tick_due_pointer_moved_away_stops_early(void)
 static void s_test_tick_due_no_reply_stops_early(void)
 {
     s_reset();
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
     s_sleep_past(WM_VIEWPORT_PAN_DELAY_MS);
 
     s_reply_present = false;
@@ -541,7 +541,7 @@ static void s_test_tick_due_still_at_edge_pans_and_rearms(void)
     int remaining;
 
     s_reset();
-    mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
+    mouse_viewport_edge_check(s_fake_stages, 1u, 0, 500);
     s_sleep_past(WM_VIEWPORT_PAN_DELAY_MS);
 
     s_reply_present = true;
@@ -572,7 +572,7 @@ int main(void)
      * to its own "none" case) */
     s_test_ms_remaining_returns_negative_when_idle();
 
-    s_test_check_no_surface_is_noop();
+    s_test_check_no_stage_is_noop();
     s_test_check_disabled_in_config_is_noop();
     s_test_check_single_column_is_noop();
     s_test_check_middle_of_screen_is_noop();

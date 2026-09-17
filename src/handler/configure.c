@@ -42,7 +42,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <systray/icon.h>
 #include <lookup.h>
@@ -431,15 +431,15 @@ static void s_handler_configure_gravity(
  * transition-specific cooldown below, since this same reasoning holds
  * regardless of which one (if either) might also apply.
  *
- * @param event         Requested geometry to compare
- * @param mask          Value mask bits still under consideration
- * @param cur_dim       Width/height the window manager currently has
+ * @param event   Requested geometry to compare
+ * @param mask    Value mask bits still under consideration
+ * @param cur_dim Width/height the window manager currently has
  *                      this client set to
  * @param is_reparented Whether this client has a separate frame
  *                      window of its own
- * @param on_inner      Whether @p event targets the content window
+ * @param on_inner Whether @p event targets the content window
  *                      directly rather than the frame
- * @param extents       This client's current frame extents
+ * @param extents This client's current frame extents
  *
  * @return @p mask, with WIDTH and/or HEIGHT cleared wherever its
  *         requested value already matches what is currently set
@@ -507,24 +507,24 @@ static uint16_t s_handler_configure_wh_matches_current(
  * content-blind as before: stripped whenever @p mask overlaps them at
  * all, for as long as the cooldown itself is still active.
  *
- * @param event           The @c ConfigureRequest event itself, for the
+ * @param event The @c ConfigureRequest event itself, for the
  *                        same WIDTH/HEIGHT comparison
  * @param mask            Value mask bits still under consideration
  * @param transition_mask Bits this particular transition's
  *                        cooldown should strip, if still active
- * @param old_dim         Width/height the client itself had right
+ * @param old_dim Width/height the client itself had right
  *                        before this transition
- * @param is_reparented   Whether this client has a separate frame
+ * @param is_reparented Whether this client has a separate frame
  *                        window of its own
- * @param on_inner        Whether @p event targets the content window
+ * @param on_inner Whether @p event targets the content window
  *                        directly rather than the frame
  * @param extents         This client's current frame extents
  * @param transition_time Monotonic time the transition itself last
  *                        happened at
- * @param cooldown_ms     How long after @p transition_time a request
+ * @param cooldown_ms How long after @p transition_time a request
  *                        still counts as a stale echo
- * @param window          Client window, for the debug log line alone
- * @param kind            Short, human-readable name of the transition
+ * @param window Client window, for the debug log line alone
+ * @param kind   Short, human-readable name of the transition
  *                        ("shade" or "fullscreen"), for the same log
  *                        line
  *
@@ -598,10 +598,10 @@ static uint16_t s_handler_configure_cooldown_mask(
 
 /* Handle a 'CONFIGURE_REQUEST' event */
 void handler_configure_request(xcb_connection_t *connection,
-        list_td *surfaces, xcb_configure_request_event_t *event)
+        list_td *stages, xcb_configure_request_event_t *event)
 {
     client_td *client;
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     uint16_t mask;
     struct s_configure_ctx_s ctx = {0};
@@ -625,8 +625,8 @@ void handler_configure_request(xcb_connection_t *connection,
          XCB_CONFIG_WINDOW_SIBLING      |
          XCB_CONFIG_WINDOW_STACK_MODE);
 
-    client = lookup_find_client(surfaces, event->window,
-            &surface, &desktop);
+    client = lookup_find_client(stages, event->window,
+            &stage, &desktop);
 
     /* A docked systray icon is not a managed client, so it would
      * otherwise fall through to the generic "forward the request
@@ -838,7 +838,7 @@ void handler_configure_request(xcb_connection_t *connection,
             wm_outdate_client(client);
         }
 
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
     }
 }
@@ -846,10 +846,10 @@ void handler_configure_request(xcb_connection_t *connection,
 
 /* Handle a 'CONFIGURE_NOTIFY' event */
 void handler_configure_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_configure_notify_event_t *event)
+        list_td *stages, xcb_configure_notify_event_t *event)
 {
     client_td *client;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop = NULL;
 
     (void) connection;
@@ -865,8 +865,8 @@ void handler_configure_notify(xcb_connection_t *connection,
             event->window, event->width, event->height,
             event->x, event->y);
 
-    client = lookup_find_client(surfaces, event->window,
-            &surface, &desktop);
+    client = lookup_find_client(stages, event->window,
+            &stage, &desktop);
     if (client != NULL) {
         bool is_frame = (client->frame != 0)
             ? (event->window == client->frame)
@@ -1009,7 +1009,7 @@ void handler_configure_notify(xcb_connection_t *connection,
             }
             if (geom_changed) {
                 wm_outdate_client(client);
-                wm_outdate_surface(surface);
+                wm_outdate_stage(stage);
                 wm_outdate_desktop(desktop);
             } /* ! if (geom_changed) */
         } else if (is_inner &&

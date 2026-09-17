@@ -364,7 +364,7 @@ static void s_new_client_accept(void)
  * @brief Read whatever is currently available from one connected client
  *        and dispatch every complete line it contains
  *
- * @param wm  Window manager instance, passed through to each dispatched
+ * @param wm Window manager instance, passed through to each dispatched
  *            command
  * @param idx Index into @c s_clients
  *

@@ -47,18 +47,18 @@
  * triggered the popup; releasing it will auto-close the popup.
  *
  * @param connection XCB connection
- * @param surface    Surface where the popup should appear
+ * @param stage      Stage where the popup should appear
  * @param desktop    Desktop associated with the client
  * @param client     Client to describe
  * @param modifier   Modifier mask of the opening key binding, or
  *                   @c 0 when it has none
- * @param keycode    Keycode of the opening key binding
- * @param cfg        Active configuration (for theme colors and font)
+ * @param keycode Keycode of the opening key binding
+ * @param cfg     Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
 void popup_show(xcb_connection_t *connection,
-        surface_td *surface, const desktop_td *desktop,
+        stage_td *stage, const desktop_td *desktop,
         client_td *client,
         uint16_t modifier, xcb_keycode_t keycode, const config_td *cfg);
 

@@ -5,7 +5,7 @@
  *
  * Declares the event handler functions for the X events that the window
  * manager processes after the input and menu events have been filtered
- * out.  Each handler receives the XCB connection, the managed surfaces
+ * out.  Each handler receives the XCB connection, the managed stages
  * list, the active configuration, and the specific event pointer.
  *
  * Holds no declarations of its own: it is a thin umbrella over its

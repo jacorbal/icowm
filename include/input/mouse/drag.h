@@ -84,21 +84,21 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
  * flags it would otherwise have inferred; every existing caller of
  * @a drag_start itself is completely unaffected.
  *
- * @param connection    XCB connection
- * @param root          Root window on which to grab the pointer
- * @param client        Client being resized
- * @param desktop       Desktop that owns @p client (may be null)
- * @param event_time    Timestamp from the triggering request
- * @param root_pos      Root-relative position of the pointer at
+ * @param connection XCB connection
+ * @param root       Root window on which to grab the pointer
+ * @param client     Client being resized
+ * @param desktop    Desktop that owns @p client (may be null)
+ * @param event_time Timestamp from the triggering request
+ * @param root_pos   Root-relative position of the pointer at
  *                      request time
- * @param screen_dim    Screen dimensions in pixels (@c (0, 0) to
+ * @param screen_dim Screen dimensions in pixels (@c (0, 0) to
  *                      disable snap)
- * @param anchor_right  @c true if the right edge stays fixed (a left,
+ * @param anchor_right @c true if the right edge stays fixed (a left,
  *                      top-left, or bottom-left drag)
  * @param anchor_bottom @c true if the bottom edge stays fixed (a top,
  *                      top-left, or top-right drag)
- * @param resize_w      @c true if this direction changes the width
- * @param resize_h      @c true if this direction changes the height
+ * @param resize_w @c true if this direction changes the width
+ * @param resize_h @c true if this direction changes the height
  *
  * @note Complexity: @e O(1)
  */
@@ -126,14 +126,14 @@ void drag_start_directed(xcb_connection_t *connection,
  * only ever near the locked edge), the drag is canceled outright via
  * @a drag_cancel rather than left running inert.
  *
- * @param connection    XCB connection
- * @param root          Root window on which to grab the pointer
- * @param client        Client being resized
- * @param desktop       Desktop that owns @p client (may be null)
- * @param event_time    Timestamp from the triggering request
- * @param root_pos      Root-relative position of the pointer at
+ * @param connection XCB connection
+ * @param root       Root window on which to grab the pointer
+ * @param client     Client being resized
+ * @param desktop    Desktop that owns @p client (may be null)
+ * @param event_time Timestamp from the triggering request
+ * @param root_pos   Root-relative position of the pointer at
  *                      request time
- * @param screen_dim    Screen dimensions in pixels ((0, 0) to disable
+ * @param screen_dim Screen dimensions in pixels ((0, 0) to disable
  *                      snap)
  * @param axis_w_locked @c true to force the width axis unresizable
  *                      regardless of where @p root_pos fell
@@ -178,7 +178,7 @@ void drag_update(xcb_connection_t *connection,
  * resets the drag state.  Releases the pointer grab in all cases.
  *
  * @param connection XCB connection
- * @param surface    Surface that owns the dragged client (may be null)
+ * @param stage      Stage that owns the dragged client (may be null)
  * @param desktop    Desktop that owns the dragged client (may be null)
  * @param root_pos   Root-relative position of the pointer at release
  *                   time
@@ -186,7 +186,7 @@ void drag_update(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void drag_end(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         struct position_s root_pos);
 
 /**

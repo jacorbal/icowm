@@ -12,7 +12,7 @@
  * through, is a recording stand-in rather than the real one from
  * 'cmds/client/move.c': linking that whole file in would also pull
  * in its own unrelated dependencies ('ccmd_client_monitor',
- * 'surface_monitor_direction', 'ccmd_client_resolve_workarea',
+ * 'stage_monitor_direction', 'ccmd_client_resolve_workarea',
  * 'logger_msg', none of which anything under test here ever calls),
  * so this file instead just records the mask it was asked to apply.
  * The client's own 'layout.geometry.cur' still ends up updated by
@@ -61,7 +61,7 @@
 #include <cmds/client/resize.h>
 #include <desktop.h>
 #include <harness/tap.h>
-#include <surface.h>
+#include <stage.h>
 #include <types/pair.h>
 
 

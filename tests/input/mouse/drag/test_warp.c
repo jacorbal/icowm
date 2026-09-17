@@ -3,14 +3,14 @@
  *
  * @brief Test battery for the screen-edge desktop warp during a drag
  *
- * warp.c reaches deep into the running window manager: the surface
- * and desktop it warps across (@a wm_get_surface_by_id,
- * @a wm_get_client_desktop, @a surface_desktop_get), the transient
+ * warp.c reaches deep into the running window manager: the stage
+ * and desktop it warps across (@a wm_get_stage_by_id,
+ * @a wm_get_client_desktop, @a stage_desktop_get), the transient
  * family it drags along (@c cmds/client/transient.c), the actual X
  * requests that move the pointer and windows
  * (@c xcb_warp_pointer, @c xcb_configure_window, @a enact_client_move),
  * and the desktop-switch chrome (@a notify_desktop_show,
- * @a surface_client_hide_all, @a surface_client_show_all).  None of that is
+ * @a stage_client_hide_all, @a stage_client_show_all).  None of that is
  * needed to exercise this file's real target: the edge-detection and
  * countdown bookkeeping in @a drag_warp_edge_check and
  * @a drag_warp_ms_remaining, and the early-exit guards at the top of
@@ -49,7 +49,7 @@
 #include <input/mouse/drag/overlay.h>
 #include <menu/notify/desktop.h>
 #include <policy/focus.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -63,9 +63,9 @@
  *  file never links, so it is defined here instead */
 drag_state_td s_drag;
 
-/** Surface @a wm_get_surface_by_id hands back, @c NULL to make the
+/** Stage @a wm_get_stage_by_id hands back, @c NULL to make the
  *  lookup itself fail */
-static surface_td *s_stub_surface;
+static stage_td *s_stub_stage;
 
 /** Count of every heavy call this file only records rather than acts
  *  on, reset by @a s_reset before each scenario */
@@ -74,15 +74,15 @@ static int s_call_enact_client_move;
 /** Last position @a enact_client_move was asked to move to, for
  *  scenarios that check a locked move axis is really left untouched */
 static struct position_s s_enact_client_move_last_pos;
-static int s_call_surface_clients_hide;
-static int s_call_surface_clients_show;
+static int s_call_stage_clients_hide;
+static int s_call_stage_clients_show;
 static int s_call_notify_desktop_show;
 static int s_call_drag_outline_move;
 static int s_call_drag_overlay_show;
 static int s_call_desktop_action_client_add;
 static int s_call_desktop_action_client_rem;
 
-/** Value @a scmd_surface_viewport_pan_available hands back, reset to
+/** Value @a scmd_stage_viewport_pan_available hands back, reset to
  *  @c false (the sensible "no room to pan" default) by @a s_reset
  *  before each scenario */
 static bool s_stub_pan_available;
@@ -91,7 +91,7 @@ static bool s_stub_pan_available;
  *  to @c 0 by @a s_reset before each scenario */
 static int s_call_drag_pan_edge_check;
 
-/** Desktop @a surface_desktop_east and @a surface_desktop_north hand
+/** Desktop @a stage_desktop_east and @a stage_desktop_north hand
  *  back, @c NULL to make the lookup itself fail; the scenarios
  *  exercising a full @a drag_warp_tick switch point this at a real
  *  desktop instead */
@@ -115,14 +115,14 @@ static int32_t s_configure_window_last_y;
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_surface_by_id
+ * @brief Link-only stand-in for @a wm_get_stage_by_id
  *
  * @note Complexity: @e O(1)
  */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_stub_surface;
+    (void) stage_id;
+    return s_stub_stage;
 }
 
 
@@ -145,13 +145,13 @@ static desktop_td *s_current_desktop;
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_get
+ * @brief Link-only stand-in for @a stage_desktop_get
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
     /* The desktop being left, which the warp reads the page it was
@@ -161,14 +161,14 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_south
+ * @brief Link-only stand-in for @a stage_desktop_south
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_south(surface_td *surface,
+desktop_td *stage_desktop_south(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     return NULL;
@@ -176,7 +176,7 @@ desktop_td *surface_desktop_south(surface_td *surface,
 
 
 /**
- * @brief Controllable stand-in for @a surface_desktop_east
+ * @brief Controllable stand-in for @a stage_desktop_east
  *
  * @c NULL by default (the same as every other direction below), but
  * the scenarios exercising a full @a drag_warp_tick switch point
@@ -184,10 +184,10 @@ desktop_td *surface_desktop_south(surface_td *surface,
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_east(surface_td *surface,
+desktop_td *stage_desktop_east(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     return s_stub_desktop_target;
@@ -195,19 +195,19 @@ desktop_td *surface_desktop_east(surface_td *surface,
 
 
 /**
- * @brief Controllable stand-in for @a surface_desktop_north
+ * @brief Controllable stand-in for @a stage_desktop_north
  *
  * @c NULL by default (the same as every other direction below), but
  * the scenario exercising a full north @a drag_warp_tick switch points
  * @a s_stub_desktop_target at a real desktop instead, exactly like
- * @a surface_desktop_east above.
+ * @a stage_desktop_east above.
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_north(surface_td *surface,
+desktop_td *stage_desktop_north(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     return s_stub_desktop_target;
@@ -215,14 +215,14 @@ desktop_td *surface_desktop_north(surface_td *surface,
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_west
+ * @brief Link-only stand-in for @a stage_desktop_west
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_west(surface_td *surface,
+desktop_td *stage_desktop_west(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     return NULL;
@@ -230,28 +230,28 @@ desktop_td *surface_desktop_west(surface_td *surface,
 
 
 /**
- * @brief Recording stand-in for @a surface_client_hide_all
+ * @brief Recording stand-in for @a stage_client_hide_all
  *
  * @note Complexity: @e O(1)
  */
-void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
+void stage_client_hide_all(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
-    s_call_surface_clients_hide++;
+    s_call_stage_clients_hide++;
 }
 
 
 /**
- * @brief Recording stand-in for @a surface_client_show_all
+ * @brief Recording stand-in for @a stage_client_show_all
  *
  * @note Complexity: @e O(1)
  */
-void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
+void stage_client_show_all(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
-    s_call_surface_clients_show++;
+    s_call_stage_clients_show++;
 }
 
 
@@ -343,15 +343,15 @@ void focus_order_to_top(client_td *client)
  *
  * @note Complexity: @e O(1)
  */
-/** Test-controlled stand-in for @a surface_viewport_dims
+/** Test-controlled stand-in for @a stage_viewport_dims
  * @note Complexity: @e O(1) */
 static uint32_t s_viewport_columns = 1u;
 static uint32_t s_viewport_rows = 1u;
 
-void surface_viewport_dims(const surface_td *surface,
+void stage_viewport_dims(const stage_td *stage,
         uint32_t *columns_out, uint32_t *rows_out)
 {
-    (void) surface;
+    (void) stage;
 
     *columns_out = s_viewport_columns;
     *rows_out = s_viewport_rows;
@@ -361,15 +361,15 @@ void surface_viewport_dims(const surface_td *surface,
 /** Link-only stand-in for @a lookup_current_desktop, answering the
  *  same desktop every other stand-in here hands back
  * @note Complexity: @e O(1) */
-desktop_td *lookup_current_desktop(const surface_td *surface)
+desktop_td *lookup_current_desktop(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_current_desktop;
 }
 
 
-/** Recording stand-in for @a scmd_surface_viewport_set: this file has
+/** Recording stand-in for @a scmd_stage_viewport_set: this file has
  *  no viewport, so the warp's own "enter by the opposite edge" step
  *  is observed rather than performed
  * @note Complexity: @e O(1) */
@@ -377,10 +377,10 @@ static int s_call_viewport_set;
 static int32_t s_last_viewport_x;
 static int32_t s_last_viewport_y;
 
-void scmd_surface_viewport_set(surface_td *surface, int32_t x,
+void scmd_stage_viewport_set(stage_td *stage, int32_t x,
         int32_t y)
 {
-    (void) surface;
+    (void) stage;
 
     s_call_viewport_set++;
     s_last_viewport_x = x;
@@ -389,16 +389,16 @@ void scmd_surface_viewport_set(surface_td *surface, int32_t x,
 
 
 /** Test-controlled stand-in for
- *  @a scmd_surface_viewport_desktop_page
+ *  @a scmd_stage_viewport_desktop_page
  * @note Complexity: @e O(1) */
 static bool s_page_known;
 static uint32_t s_page_col;
 static uint32_t s_page_row;
 
-bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+bool scmd_stage_viewport_desktop_page(const stage_td *stage,
         const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
 
     if (!s_page_known) {
@@ -410,12 +410,12 @@ bool scmd_surface_viewport_desktop_page(const surface_td *surface,
 }
 
 
-void notify_desktop_show(xcb_connection_t *connection, surface_td *surface,
+void notify_desktop_show(xcb_connection_t *connection, stage_td *stage,
         uint32_t desktop_idx, const char *desktop_name,
         enum notify_desktop_cause_e cause, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) desktop_idx;
     (void) desktop_name;
     (void) cause;
@@ -548,14 +548,14 @@ uint16_t drag_icon_height(const client_td *client)
 
 
 /**
- * @brief Controllable stand-in for @a scmd_surface_viewport_pan_available
+ * @brief Controllable stand-in for @a scmd_stage_viewport_pan_available
  *
  * @note Complexity: @e O(1)
  */
-bool scmd_surface_viewport_pan_available(surface_td *surface,
+bool scmd_stage_viewport_pan_available(stage_td *stage,
         enum compass_direction_e direction)
 {
-    (void) surface;
+    (void) stage;
     (void) direction;
     return s_stub_pan_available;
 }
@@ -577,13 +577,13 @@ void drag_pan_edge_check(int16_t root_x, int16_t root_y)
 static void s_reset(void)
 {
     static client_td dragged;
-    static surface_td surface;
+    static stage_td stage;
     static config_td config;
     static xcb_screen_t screen;
 
     memset(&s_drag, 0, sizeof(s_drag));
     memset(&dragged, 0, sizeof(dragged));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
     memset(&screen, 0, sizeof(screen));
 
@@ -593,23 +593,23 @@ static void s_reset(void)
 
     config.desktops.warp_on_edge_drag = true;
 
-    surface.config = &config;
-    surface.desktop_count = 4u;
-    surface.desktop_cur = 0u;
-    surface.screen = &screen;
+    stage.config = &config;
+    stage.desktop_count = 4u;
+    stage.desktop_cur = 0u;
+    stage.screen = &screen;
 
     s_drag.client = &dragged;
     s_drag.screen_w = 1920u;
     s_drag.screen_h = 1080u;
 
-    s_stub_surface = &surface;
+    s_stub_stage = &stage;
     s_stub_desktop_target = NULL;
 
     s_call_enact_client_move = 0;
     s_enact_client_move_last_pos.x = 0;
     s_enact_client_move_last_pos.y = 0;
-    s_call_surface_clients_hide = 0;
-    s_call_surface_clients_show = 0;
+    s_call_stage_clients_hide = 0;
+    s_call_stage_clients_show = 0;
     s_call_notify_desktop_show = 0;
     s_call_drag_outline_move = 0;
     s_call_drag_overlay_show = 0;
@@ -675,16 +675,16 @@ static void s_test_edge_check_no_client_clears_pending(void)
 }
 
 
-/* wm_get_surface_by_id fails to resolve a surface: no-op */
-static void s_test_edge_check_no_surface_is_noop(void)
+/* wm_get_stage_by_id fails to resolve a stage: no-op */
+static void s_test_edge_check_no_stage_is_noop(void)
 {
     s_reset();
-    s_stub_surface = NULL;
+    s_stub_stage = NULL;
 
     drag_warp_edge_check(0, 500);
 
     TAP_OK(!s_drag.is_warp_pending,
-            "surface lookup failing clears any pending warp");
+            "stage lookup failing clears any pending warp");
 }
 
 
@@ -692,7 +692,7 @@ static void s_test_edge_check_no_surface_is_noop(void)
 static void s_test_edge_check_disabled_in_config_is_noop(void)
 {
     s_reset();
-    s_stub_surface->config->desktops.warp_on_edge_drag = false;
+    s_stub_stage->config->desktops.warp_on_edge_drag = false;
 
     drag_warp_edge_check(0, 500);
 
@@ -701,17 +701,17 @@ static void s_test_edge_check_disabled_in_config_is_noop(void)
 }
 
 
-/* Only one desktop on the surface: no-op even at an edge, there being
+/* Only one desktop on the stage: no-op even at an edge, there being
  * nowhere else to warp to */
 static void s_test_edge_check_single_desktop_is_noop(void)
 {
     s_reset();
-    s_stub_surface->desktop_count = 1u;
+    s_stub_stage->desktop_count = 1u;
 
     drag_warp_edge_check(0, 500);
 
     TAP_OK(!s_drag.is_warp_pending,
-            "a single-desktop surface never arms a warp");
+            "a single-desktop stage never arms a warp");
 }
 
 
@@ -746,7 +746,7 @@ static void s_test_edge_check_left_edge_arms_west(void)
 static void s_test_edge_check_pan_available_defers_to_pan(void)
 {
     s_reset();
-    s_stub_surface->config->base.viewport.pan_on_edge_drag = true;
+    s_stub_stage->config->base.viewport.pan_on_edge_drag = true;
     s_stub_pan_available = true;
 
     drag_warp_edge_check(0, 500);
@@ -933,7 +933,7 @@ static void s_test_tick_null_connection_is_noop(void)
 
     TAP_OK(s_drag.is_warp_pending,
             "a NULL connection leaves the pending flag untouched");
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "and never reaches the actual warp machinery");
 }
 
@@ -946,7 +946,7 @@ static void s_test_tick_nothing_pending_is_noop(void)
 
     drag_warp_tick((xcb_connection_t *) (void *) 1);
 
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "nothing pending: the tick never touches the desktop"
             " switch machinery");
 }
@@ -965,7 +965,7 @@ static void s_test_tick_countdown_not_due_is_noop(void)
 
     TAP_OK(s_drag.is_warp_pending,
             "countdown not yet due: still pending after the tick");
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "and the desktop switch itself never ran");
 }
 
@@ -984,7 +984,7 @@ static void s_test_tick_due_no_client_stops_early(void)
 
     TAP_OK(!s_drag.is_warp_pending,
             "due tick with no client: pending flag is cleared anyway");
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "but the desktop switch itself never ran");
 }
 
@@ -1001,7 +1001,7 @@ static void s_test_tick_due_wrong_operation_stops_early(void)
 
     drag_warp_tick((xcb_connection_t *) (void *) 1);
 
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "a resize in progress never triggers the desktop switch");
 }
 
@@ -1021,7 +1021,7 @@ static void s_test_tick_due_stale_drag_window_stops_early(void)
 
     drag_warp_tick((xcb_connection_t *) (void *) 1);
 
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "drag_window matching neither XCB_WINDOW_NONE nor the"
             " client's own icon window never triggers the switch");
 }
@@ -1029,7 +1029,7 @@ static void s_test_tick_due_stale_drag_window_stops_early(void)
 
 /* drag_warp_tick: due, moving, drag_window matches the client's own
  * icon window (an icon drag): allowed past that guard, only stopped
- * later by the surface having a single desktop */
+ * later by the stage having a single desktop */
 static void s_test_tick_icon_drag_window_matches_is_allowed(void)
 {
     s_reset();
@@ -1039,17 +1039,17 @@ static void s_test_tick_icon_drag_window_matches_is_allowed(void)
     s_drag.operation = CLIENT_OPERATION_MOVING;
     s_drag.client->icon_window = 42u;
     s_drag.drag_window = 42u;
-    s_stub_surface->desktop_count = 1u;
+    s_stub_stage->desktop_count = 1u;
 
     drag_warp_tick((xcb_connection_t *) (void *) 1);
 
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "a matching icon window clears the drag_window guard, but"
-            " the single-desktop surface still stops it right after");
+            " the single-desktop stage still stops it right after");
 }
 
 
-/* drag_warp_tick: due, moving, but the resolved surface has only one
+/* drag_warp_tick: due, moving, but the resolved stage has only one
  * desktop: stops before touching the desktop switch machinery */
 static void s_test_tick_due_single_desktop_stops_early(void)
 {
@@ -1058,12 +1058,12 @@ static void s_test_tick_due_single_desktop_stops_early(void)
     (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due);
     s_drag.warp_due.tv_sec -= 1;
     s_drag.operation = CLIENT_OPERATION_MOVING;
-    s_stub_surface->desktop_count = 1u;
+    s_stub_stage->desktop_count = 1u;
 
     drag_warp_tick((xcb_connection_t *) (void *) 1);
 
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
-            "a single-desktop surface stops the tick before the"
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
+            "a single-desktop stage stops the tick before the"
             " desktop switch itself");
 }
 
@@ -1077,31 +1077,31 @@ static void s_test_tick_due_config_disabled_stops_early(void)
     (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due);
     s_drag.warp_due.tv_sec -= 1;
     s_drag.operation = CLIENT_OPERATION_MOVING;
-    s_stub_surface->config->desktops.warp_on_edge_drag = false;
+    s_stub_stage->config->desktops.warp_on_edge_drag = false;
 
     drag_warp_tick((xcb_connection_t *) (void *) 1);
 
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
             "warp_on_edge_drag turned off since arming: the switch"
             " itself never runs");
 }
 
 
-/* drag_warp_tick: due, moving, surface itself no longer resolvable:
+/* drag_warp_tick: due, moving, stage itself no longer resolvable:
  * stops before the switch */
-static void s_test_tick_due_no_surface_stops_early(void)
+static void s_test_tick_due_no_stage_stops_early(void)
 {
     s_reset();
     s_drag.is_warp_pending = true;
     (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due);
     s_drag.warp_due.tv_sec -= 1;
     s_drag.operation = CLIENT_OPERATION_MOVING;
-    s_stub_surface = NULL;
+    s_stub_stage = NULL;
 
     drag_warp_tick((xcb_connection_t *) (void *) 1);
 
-    TAP_EQ_INT(s_call_surface_clients_hide, 0,
-            "the surface lookup failing stops the tick before the"
+    TAP_EQ_INT(s_call_stage_clients_hide, 0,
+            "the stage lookup failing stops the tick before the"
             " switch itself");
 }
 
@@ -1252,7 +1252,7 @@ int main(void)
     TAP_PLAN(56);
 
     s_test_edge_check_no_client_clears_pending();
-    s_test_edge_check_no_surface_is_noop();
+    s_test_edge_check_no_stage_is_noop();
     s_test_edge_check_disabled_in_config_is_noop();
     s_test_edge_check_single_desktop_is_noop();
     s_test_edge_check_middle_of_screen_is_noop();
@@ -1278,7 +1278,7 @@ int main(void)
     s_test_tick_icon_drag_window_matches_is_allowed();
     s_test_tick_due_single_desktop_stops_early();
     s_test_tick_due_config_disabled_stops_early();
-    s_test_tick_due_no_surface_stops_early();
+    s_test_tick_due_no_stage_stops_early();
     s_test_tick_full_switch_unlocked_axis_moves();
     s_test_tick_full_switch_enters_opposite_page();
     s_test_tick_full_switch_single_page_untouched();

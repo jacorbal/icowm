@@ -84,7 +84,7 @@ typedef struct client_s client_td;
  *
  * Additionally, the @p properties field contains various settings that
  * define the behavior and appearance of the client, while @p config
- * (shared with every other client on the same surface) provides the
+ * (shared with every other client on the same stage) provides the
  * base, theme, and accessibility settings driving its visual aspects.
  */
 struct client_s {
@@ -153,9 +153,9 @@ struct client_s {
 
     /**
      * @brief Shared base/theme/a11y configuration for this client's
-     *        surface
+     *        stage
      *
-     * The same @c config_td every other client on this surface also
+     * The same @c config_td every other client on this stage also
      * points to; never reassigned after @a client_init (see
      * @a client_init's callers), though the configuration it points to
      * can still change in place at any time from a live reload or
@@ -610,8 +610,8 @@ void client_border_color_apply(client_td *client, bool is_focused);
  * a border ahead of actually drawing on, e.g., sizing a client to fill
  * an area without its border ever spilling past that area's edge.
  *
- * @param client       Client to query
- * @param is_active    Ignored when @c border_override.is_set;
+ * @param client    Client to query
+ * @param is_active Ignored when @c border_override.is_set;
  *                     otherwise @c true selects
  *                     @c theme.window.active.border.width and
  *                     @c false selects the inactive one
@@ -813,22 +813,22 @@ uint16_t client_titlebar_button_shape_unit(uint16_t btn_size);
  * is remembered between calls: widening the titlebar brings the
  * buttons back in the reverse order they went.
  *
- * @param theme       Theme providing the button lists and padding;
+ * @param theme Theme providing the button lists and padding;
  *                    a @c NULL theme produces an empty layout
- * @param titlebar_w  Width of the titlebar in pixels, the frame width
+ * @param titlebar_w Width of the titlebar in pixels, the frame width
  *                    less its left and right borders
- * @param title_h     Titlebar height in pixels, used to vertically
+ * @param title_h Titlebar height in pixels, used to vertically
  *                    center the buttons
- * @param hide_pin    When @c true, the pin button (if configured) is
+ * @param hide_pin When @c true, the pin button (if configured) is
  *                    skipped entirely rather than placed and drawn:
  *                    the row closes the gap and shifts the following
  *                    buttons over, exactly as if the theme had never
  *                    listed it, rather than leaving it in place inert
  * @param hide_sticky Same as @p hide_pin, for the sticky button
  *                    instead
- * @param out_left    Receives up to @c CONFIG_MAX_TITLEBAR_BUTTONS
+ * @param out_left Receives up to @c CONFIG_MAX_TITLEBAR_BUTTONS
  *                    entries for the left side, in the theme's order
- * @param out_left_n  Receives the number of entries written to
+ * @param out_left_n Receives the number of entries written to
  *                    @p out_left
  * @param out_right   Same as @p out_left, for the right side
  * @param out_right_n Same as @p out_left_n, for the right side
@@ -836,7 +836,7 @@ uint16_t client_titlebar_button_shape_unit(uint16_t btn_size);
  *                    for the title text, frame-relative
  * @param out_title_w Receives the width of that space; 0 if the buttons
  *                    leave no room at all
- * @param out_btn_y   Receives the Y position every button shares
+ * @param out_btn_y Receives the Y position every button shares
  *
  * @note Complexity: @e O(1)
  */
@@ -931,7 +931,7 @@ void client_send_synthetic_configure_notify(
  * @param ewmh       Pointer to EWMH connection
  * @param window     ID of the existing X window to adopt
  * @param config     Shared base/theme/a11y configuration for the
- *                   surface this client is being adopted onto
+ *                   stage this client is being adopted onto
  *
  * @return A pointer to the client structure wrapping the window, or
  *         @c NULL if the window should not be managed (e.g.,
@@ -973,8 +973,8 @@ bool client_props_refresh_name(client_td *client);
  * behaves incorrectly if a client only checks for the property's
  * presence rather than comparing its value.
  *
- * @param client    Client the property belongs to
- * @param cached    @c client_td's cached buffer for this name
+ * @param client Client the property belongs to
+ * @param cached @c client_td's cached buffer for this name
  *                  (@c info.visible_name or
  *                  @c icon_info.visible_icon_name), at least
  *                  @c CONFIG_MAX_LENGTH_NAME bytes
@@ -983,7 +983,7 @@ bool client_props_refresh_name(client_td *client);
  * @param set_fn    @c xcb_ewmh_set_wm_visible_name_checked or
  *                  @c xcb_ewmh_set_wm_visible_icon_name_checked,
  *                  whichever matches @p atom
- * @param atom      @c client->ewmh->_NET_WM_VISIBLE_NAME or
+ * @param atom @c client->ewmh->_NET_WM_VISIBLE_NAME or
  *                  @c client->ewmh->_NET_WM_VISIBLE_ICON_NAME,
  *                  whichever matches @p set_fn
  *

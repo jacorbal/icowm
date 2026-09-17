@@ -4,14 +4,14 @@
  * @brief Test battery for handler/colormap.c: the @c COLORMAP_NOTIFY
  *        event handler
  *
- * @a handler_colormap_notify itself is a thin surfaces walk around the
+ * @a handler_colormap_notify itself is a thin stages walk around the
  * static helpers @a s_client_colormap_window_index and
  * @a s_colormap_update_visit, neither reachable directly from a test
  * file since both are file-static; every behavior they implement is
  * instead exercised end to end by driving the public entry point over
- * a real list_td of surfaces, each with a real cdlist_td of desktops
- * (src/adt/list.c, src/adt/cdlist.c, src/surface/desktops.c's
- * surface_desktop_walk_all are all linked for real, being small,
+ * a real list_td of stages, each with a real cdlist_td of desktops
+ * (src/adt/list.c, src/adt/cdlist.c, src/stage/desktops.c's
+ * stage_desktop_walk_all are all linked for real, being small,
  * side-effect-free leaf data-structure code, the same rationale
  * already used for cdlist.c in tests/input/mouse/event/test_press.c),
  * and each desktop's clients kept in a real ohtbl_td (src/adt/ohtbl.c,
@@ -55,7 +55,7 @@
 #include <defs/client.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <handler/colormap.h>
@@ -83,9 +83,9 @@ xcb_void_cookie_t xcb_install_colormap(xcb_connection_t *connection,
 }
 
 
-/** Link-only stand-in for desktop_destroy: surface_desktop_rem
+/** Link-only stand-in for desktop_destroy: stage_desktop_rem
  *  references it as a cdlist item destructor, but this file never
- *  calls surface_desktop_rem, so it is never actually invoked */
+ *  calls stage_desktop_rem, so it is never actually invoked */
 void desktop_destroy(desktop_td *desktop)
 {
     (void) desktop;
@@ -159,41 +159,41 @@ static void s_build_client(client_td *client, xcb_window_t id,
 
 
 /**
- * @brief Build one surface with a single desktop whose client hash
+ * @brief Build one stage with a single desktop whose client hash
  *        table holds exactly @p client
  */
-static void s_build_single_client_surface(surface_td *surface,
+static void s_build_single_client_stage(stage_td *stage,
         desktop_td *desktop, ohtbl_td *table, client_td *client)
 {
-    memset(surface, 0, sizeof(*surface));
+    memset(stage, 0, sizeof(*stage));
     memset(desktop, 0, sizeof(*desktop));
 
     (void) ohtbl_insert(table, client);
     desktop->clients = table;
     desktop->id = 0u;
 
-    surface->desktops = cdlist_init(NULL);
-    (void) cdlist_ins_next(surface->desktops, NULL, desktop);
-    surface->desktop_count = 1u;
-    surface->id = 0u;
+    stage->desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(stage->desktops, NULL, desktop);
+    stage->desktop_count = 1u;
+    stage->id = 0u;
 }
 
 
 /**
- * @brief Exercise two surfaces, the match landing on the second one
+ * @brief Exercise two stages, the match landing on the second one
  *
- * Proves handler_colormap_notify's own outer surfaces walk keeps
- * going past a surface whose desktops walk found nothing, not just
+ * Proves handler_colormap_notify's own outer stages walk keeps
+ * going past a stage whose desktops walk found nothing, not just
  * the per-desktop visitor exercised by every other case in this file
  *
  * @return How many of the three assertions it makes failed
  */
-static int s_test_two_surfaces_second_match(void)
+static int s_test_two_stages_second_match(void)
 {
     int failed_before = tap_failed;
-    list_td *surfaces2;
-    surface_td surface_a;
-    surface_td surface_b;
+    list_td *stages2;
+    stage_td stage_a;
+    stage_td stage_b;
     desktop_td desktop_a;
     desktop_td desktop_b;
     ohtbl_td *table_a;
@@ -205,18 +205,18 @@ static int s_test_two_surfaces_second_match(void)
     table_a = ohtbl_init(4u, 0u, s_test_h1, s_test_h2, s_test_match,
             NULL);
     s_build_client(&client_a, 10u, 0x700u, true);
-    s_build_single_client_surface(&surface_a, &desktop_a, table_a,
+    s_build_single_client_stage(&stage_a, &desktop_a, table_a,
             &client_a);
 
     table_b = ohtbl_init(4u, 0u, s_test_h1, s_test_h2, s_test_match,
             NULL);
     s_build_client(&client_b, 11u, 0x800u, true);
-    s_build_single_client_surface(&surface_b, &desktop_b, table_b,
+    s_build_single_client_stage(&stage_b, &desktop_b, table_b,
             &client_b);
 
-    surfaces2 = list_init(NULL);
-    (void) list_ins_next(surfaces2, NULL, &surface_a);
-    (void) list_ins_next(surfaces2, NULL, &surface_b);
+    stages2 = list_init(NULL);
+    (void) list_ins_next(stages2, NULL, &stage_a);
+    (void) list_ins_next(stages2, NULL, &stage_b);
 
     memset(&event, 0, sizeof(event));
     event.window = 0x800u;
@@ -224,20 +224,20 @@ static int s_test_two_surfaces_second_match(void)
     event.state = XCB_COLORMAP_STATE_INSTALLED;
 
     s_install_calls = 0;
-    handler_colormap_notify(NULL, surfaces2, &event);
+    handler_colormap_notify(NULL, stages2, &event);
     TAP_EQ_INT(client_a.colormap_windows.colormap_ids[0], 0x1111,
-            "the first surface's non-matching client is untouched");
+            "the first stage's non-matching client is untouched");
     TAP_EQ_INT(client_b.colormap_windows.colormap_ids[0], 0xaaaa,
-            "the second surface's matching client is updated");
+            "the second stage's matching client is updated");
     TAP_EQ_INT(s_install_calls, 1,
             "exactly one install happens once the real match is" \
-            " found on the second surface");
+            " found on the second stage");
 
     ohtbl_destroy(table_a);
     ohtbl_destroy(table_b);
-    cdlist_destroy(surface_a.desktops);
-    cdlist_destroy(surface_b.desktops);
-    list_destroy(surfaces2);
+    cdlist_destroy(stage_a.desktops);
+    cdlist_destroy(stage_b.desktops);
+    list_destroy(stages2);
 
     return tap_failed - failed_before;
 }
@@ -245,8 +245,8 @@ static int s_test_two_surfaces_second_match(void)
 
 int main(void)
 {
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     ohtbl_td *table;
     client_td client;
@@ -254,28 +254,28 @@ int main(void)
 
     TAP_PLAN(15);
 
-    /* Guard clauses: a NULL event or a NULL surfaces list is a no-op,
+    /* Guard clauses: a NULL event or a NULL stages list is a no-op,
      * proven here only by the absence of any crash under ASan/UBSan,
      * since neither has an observable side effect to assert on */
     handler_colormap_notify(NULL, NULL, NULL);
     handler_colormap_notify(NULL, NULL, &event);
-    TAP_OK(true, "a null surfaces list does not crash");
+    TAP_OK(true, "a null stages list does not crash");
 
-    surfaces = list_init(NULL);
-    TAP_NOT_NULL(surfaces, "list_init builds an empty surfaces list");
+    stages = list_init(NULL);
+    TAP_NOT_NULL(stages, "list_init builds an empty stages list");
 
-    handler_colormap_notify(NULL, surfaces, NULL);
-    TAP_OK(true, "a null event does not crash with a real surfaces list");
+    handler_colormap_notify(NULL, stages, NULL);
+    TAP_OK(true, "a null event does not crash with a real stages list");
 
-    /* An empty surfaces list (no surfaces at all): the walk loop body
+    /* An empty stages list (no stages at all): the walk loop body
      * never runs, another silent no-op */
     memset(&event, 0, sizeof(event));
     event.window = 0x100u;
     event.colormap = 0x200u;
     event.state = XCB_COLORMAP_STATE_INSTALLED;
-    handler_colormap_notify(NULL, surfaces, &event);
-    TAP_OK(true, "an empty surfaces list does not crash");
-    list_destroy(surfaces);
+    handler_colormap_notify(NULL, stages, &event);
+    TAP_OK(true, "an empty stages list does not crash");
+    list_destroy(stages);
 
     /* A client tracking colormap window 0x100, not focused: the
      * cached colormap_ids[0] slot is updated to the notified
@@ -283,10 +283,10 @@ int main(void)
      * a focused client's colormap changes are actually installed */
     table = ohtbl_init(4u, 0u, s_test_h1, s_test_h2, s_test_match, NULL);
     s_build_client(&client, 1u, 0x100u, false);
-    s_build_single_client_surface(&surface, &desktop, table, &client);
+    s_build_single_client_stage(&stage, &desktop, table, &client);
 
-    surfaces = list_init(NULL);
-    (void) list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    (void) list_ins_next(stages, NULL, &stage);
 
     memset(&event, 0, sizeof(event));
     event.window = 0x100u;
@@ -294,7 +294,7 @@ int main(void)
     event.state = XCB_COLORMAP_STATE_INSTALLED;
 
     s_install_calls = 0;
-    handler_colormap_notify(NULL, surfaces, &event);
+    handler_colormap_notify(NULL, stages, &event);
     TAP_EQ_INT(client.colormap_windows.colormap_ids[0], 0x999,
             "matching window's cached colormap id is updated");
     TAP_EQ_INT(s_install_calls, 0,
@@ -304,7 +304,7 @@ int main(void)
      * xcb_install_colormap is called with the new colormap id */
     client.properties.flags = (uint16_t) CLIENT_FLAG_FOCUSED;
     s_install_calls = 0;
-    handler_colormap_notify(NULL, surfaces, &event);
+    handler_colormap_notify(NULL, stages, &event);
     TAP_EQ_INT(s_install_calls, 1,
             "a focused client's updated colormap is installed once");
     TAP_EQ_INT(s_install_last_id, 0x999,
@@ -319,7 +319,7 @@ int main(void)
     event.state = XCB_COLORMAP_STATE_UNINSTALLED;
 
     s_install_calls = 0;
-    handler_colormap_notify(NULL, surfaces, &event);
+    handler_colormap_notify(NULL, stages, &event);
     TAP_EQ_INT(client.colormap_windows.colormap_ids[0],
             (int) XCB_NONE,
             "uninstalling clears the cached colormap id to XCB_NONE");
@@ -327,18 +327,18 @@ int main(void)
             "an uninstall notification never calls install_colormap");
 
     ohtbl_destroy(table);
-    cdlist_destroy(surface.desktops);
-    list_destroy(surfaces);
+    cdlist_destroy(stage.desktops);
+    list_destroy(stages);
 
     /* A notification for a window nobody's colormap_windows list
      * mentions: the walk still runs, nothing matches, no crash, and
      * no client is mutated */
     table = ohtbl_init(4u, 0u, s_test_h1, s_test_h2, s_test_match, NULL);
     s_build_client(&client, 2u, 0x555u, true);
-    s_build_single_client_surface(&surface, &desktop, table, &client);
+    s_build_single_client_stage(&stage, &desktop, table, &client);
 
-    surfaces = list_init(NULL);
-    (void) list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    (void) list_ins_next(stages, NULL, &stage);
 
     memset(&event, 0, sizeof(event));
     event.window = 0xdeadu;
@@ -346,21 +346,21 @@ int main(void)
     event.state = XCB_COLORMAP_STATE_INSTALLED;
 
     s_install_calls = 0;
-    handler_colormap_notify(NULL, surfaces, &event);
+    handler_colormap_notify(NULL, stages, &event);
     TAP_EQ_INT(client.colormap_windows.colormap_ids[0], 0x1111,
             "a non-matching window leaves the client's cache untouched");
     TAP_EQ_INT(s_install_calls, 0,
             "a non-matching window never calls install_colormap");
 
-    /* Two surfaces, the match on the second one: the outer surfaces
-     * walk must keep going past a surface whose desktops walk found
+    /* Two stages, the match on the second one: the outer stages
+     * walk must keep going past a stage whose desktops walk found
      * nothing, proving handler_colormap_notify's own loop, not just
      * the per-desktop visitor */
-    (void) s_test_two_surfaces_second_match();
+    (void) s_test_two_stages_second_match();
 
     ohtbl_destroy(table);
-    cdlist_destroy(surface.desktops);
-    list_destroy(surfaces);
+    cdlist_destroy(stage.desktops);
+    list_destroy(stages);
 
     return TAP_DONE();
 }

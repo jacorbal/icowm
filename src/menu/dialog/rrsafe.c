@@ -21,8 +21,8 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
-#include <surface/action.h>
+#include <stage.h>
+#include <stage/action.h>
 
 /* Local includes */
 #include <menu/dialog/confirm.h>
@@ -55,15 +55,15 @@ static void s_on_rrsafe_confirm(xcb_connection_t *connection)
 static void s_on_rrsafe_cancel(xcb_connection_t *connection)
 {
     (void) connection;
-    surface_action_randr_revert_profiles();
+    stage_action_randr_revert_profiles();
 }
 
 
 /* Open the RandR output-profile confirm dialog */
-void dialog_rrsafe_show(xcb_connection_t *connection, surface_td *surface,
+void dialog_rrsafe_show(xcb_connection_t *connection, stage_td *stage,
         const config_td *config)
 {
-    menu_confirm_dialog_show(connection, surface, config,
+    menu_confirm_dialog_show(connection, stage, config,
             _(STR_DIALOG_RANDR_CONFIRM_PROMPT),
             _(STR_DIALOG_RANDR_CONFIRM_CANCEL),
             _(STR_DIALOG_RANDR_CONFIRM_OK),

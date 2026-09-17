@@ -1,7 +1,7 @@
 /**
  * @file lookup.h
  *
- * @brief Window, client, surface, and desktop lookup API
+ * @brief Window, client, stage, and desktop lookup API
  *
  * Pure-lookup functions that search the managed window hierarchy
  * without modifying any state.  No module at a lower layer may depend
@@ -36,45 +36,45 @@
 
 /* Public interface */
 /**
- * @brief Find the surface whose root window matches @p root
+ * @brief Find the stage whose root window matches @p root
  *
- * @param surfaces Singly-linked list of @c surface_td pointers
- * @param root     Root window ID to search for
+ * @param stages Singly-linked list of @c stage_td pointers
+ * @param root   Root window ID to search for
  *
- * @return Pointer to the matching surface, or @c NULL if not found
+ * @return Pointer to the matching stage, or @c NULL if not found
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
-surface_td *lookup_surface_for_root(list_td *surfaces,
+stage_td *lookup_stage_for_root(list_td *stages,
         xcb_window_t root);
 
 /**
- * @brief Return the currently active desktop for a surface
+ * @brief Return the currently active desktop for a stage
  *
- * @param surface Pointer to the surface
+ * @param stage Pointer to the stage
  *
  * @return Pointer to the current desktop, or @c NULL on error
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *lookup_current_desktop(surface_td *surface);
+desktop_td *lookup_current_desktop(stage_td *stage);
 
 /**
- * @brief Search all surfaces and desktops for a client by window ID
+ * @brief Search all stages and desktops for a client by window ID
  *
- * @param surfaces    Singly-linked list of @c surface_td pointers
+ * @param stages      Singly-linked list of @c stage_td pointers
  * @param window      X window ID to search for
- * @param out_surface If non-null, receives the owning surface pointer
+ * @param out_stage   If non-null, receives the owning stage pointer
  * @param out_desktop If non-null, receives the owning desktop pointer
  *
  * @return Pointer to the client, or @c NULL if not found
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e c the
+ *       stages, @e d the number of desktops per stage, and @e c the
  *       hash-table lookup cost per desktop
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop);
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop);
 
 
 #endif  /* ! LOOKUP_H */

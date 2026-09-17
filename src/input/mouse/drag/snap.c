@@ -245,7 +245,7 @@ static void s_drag_snap_resize_visit(client_td *client, void *data)
  * Checks a single window edge position, @p point, on this axis
  * (left/right for @p horizontal, top/bottom otherwise) against every
  * monitor's near @e and far work-area edge on @p desktop, individually:
- * a two-monitor surface has an edge not just at the two ends of the
+ * a two-monitor stage has an edge not just at the two ends of the
  * combined span, but also at the boundary between the two, and a panel
  * or taskbar present on only one monitor's edge reduces that one
  * monitor's work area without touching a neighboring, panel-free
@@ -269,17 +269,17 @@ static void s_drag_snap_resize_visit(client_td *client, void *data)
  * a resize drag calls this only once, for whichever single edge the
  * anchor lets move at all.
  *
- * @param desktop    Desktop whose @c monitor_workareas to check;
+ * @param desktop Desktop whose @c monitor_workareas to check;
  *                   a @c NULL value or one with no monitors detected
  *                   leaves @p current untouched
- * @param current    Best delta found so far, also this call's return
+ * @param current Best delta found so far, also this call's return
  *                   value if nothing here beats it
  * @param point      The window's edge position to check, on this axis
  * @param cross_near The window's near edge on the @e other axis
  *                   (top for @p horizontal, left otherwise)
- * @param cross_far  The window's far edge on the @e other axis
+ * @param cross_far The window's far edge on the @e other axis
  *                   (bottom for @p horizontal, right otherwise)
- * @param snap       Maximum allowed gap for @p cross_near and
+ * @param snap Maximum allowed gap for @p cross_near and
  *                   @p cross_far to still count as overlapping
  *                   a monitor's work area on that other axis
  * @param horizontal @c true to check every monitor's work area
@@ -288,7 +288,7 @@ static void s_drag_snap_resize_visit(client_td *client, void *data)
  * @return The closest delta across @p current and every monitor's near
  *         and far work-area edge on this axis
  *
- * @note Complexity: @e O(m), where @e m is @p desktop's surface's
+ * @note Complexity: @e O(m), where @e m is @p desktop's stage's
  *       monitor count
  */
 static int32_t s_drag_monitor_edge_delta(const desktop_td *desktop,
@@ -493,7 +493,7 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
          * drag's two calls per axis in 'drag_snap_move': see
          * 's_drag_monitor_edge_delta''s doc comment for the fuller
          * reasoning behind checking every monitor's near and far edge
-         * together, not just the combined surface's two ends. */
+         * together, not just the combined stage's two ends. */
         int32_t d_screen_h = snap_screen + 1;
         int32_t d_screen_v = d_screen_h;
 

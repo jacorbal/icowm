@@ -66,10 +66,10 @@
  *                   colors swap together, so the titlebar reads as
  *                   clearly attention-grabbing rather than merely
  *                   looking like focus flickered
- * @param inner_w    Width available for the titlebar (the frame's
+ * @param inner_w Width available for the titlebar (the frame's
  *                   width minus its left/right decoration extents)
- * @param title_h    Titlebar height in pixels
- * @param theme      Theme providing colors, font, and titlebar layout
+ * @param title_h Titlebar height in pixels
+ * @param theme   Theme providing colors, font, and titlebar layout
  *
  * @note A no-op if @p client has no titlebar window
  * @note Complexity: @e O(n), where @e n is the number of configured

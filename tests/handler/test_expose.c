@@ -70,7 +70,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Render includes */
@@ -457,14 +457,14 @@ bool iconmenu_target_is(const client_td *client)
 
 
 /** Controlled stand-in for lookup_find_client */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **surface, desktop_td **desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **stage, desktop_td **desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
-    if (surface != NULL) {
-        *surface = NULL;
+    if (stage != NULL) {
+        *stage = NULL;
     }
     if (desktop != NULL) {
         *desktop = NULL;
@@ -499,9 +499,9 @@ client_td *drag_client(void)
 }
 
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
 
     return NULL;
 }
@@ -746,8 +746,8 @@ int main(void)
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
     config_td config;
     xcb_expose_event_t event;
-    list_td surfaces_storage;
-    list_td *surfaces = &surfaces_storage;
+    list_td stages_storage;
+    list_td *stages = &stages_storage;
     client_td client;
 
     TAP_PLAN(21);
@@ -759,26 +759,26 @@ int main(void)
      * events still pending for the same region), a null connection,
      * or a null config are all silent no-ops */
     s_reset();
-    handler_expose(connection, surfaces, NULL, &config);
+    handler_expose(connection, stages, NULL, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "a null event never triggers any repaint");
 
     s_reset();
     memset(&event, 0, sizeof(event));
     event.count = 1u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "a non-zero count defers to the next Expose in the" \
             " series");
 
     s_reset();
     event.count = 0u;
-    handler_expose(NULL, surfaces, &event, &config);
+    handler_expose(NULL, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "a null connection is a no-op");
 
     s_reset();
-    handler_expose(connection, surfaces, &event, NULL);
+    handler_expose(connection, stages, &event, NULL);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "a null config is a no-op");
 
@@ -788,14 +788,14 @@ int main(void)
     s_reset();
     s_is_overlay_window = true;
     s_systray_owns = true;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_DRAG_OVERLAY,
             "the drag overlay window is checked before the systray");
 
     /* Systray window repaint */
     s_reset();
     s_systray_owns = true;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_SYSTRAY,
             "a systray-owned window is repainted via the systray");
 
@@ -804,7 +804,7 @@ int main(void)
     s_popup_open = true;
     s_popup_win = 0x50u;
     event.window = 0x99u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "an open popup does not repaint for an unrelated window");
 
@@ -812,7 +812,7 @@ int main(void)
     s_popup_open = true;
     s_popup_win = 0x50u;
     event.window = 0x50u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_POPUP,
             "the popup's own window is repainted when it is open");
 
@@ -821,7 +821,7 @@ int main(void)
     s_dialog_info_open = true;
     s_dialog_info_win = 0x51u;
     event.window = 0x51u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_DIALOG_INFO,
             "the info dialog's window is repainted when it is open");
 
@@ -830,7 +830,7 @@ int main(void)
     s_notify_desktop_open = true;
     s_notify_desktop_win = 0x52u;
     event.window = 0x52u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NOTIFY_DESKTOP,
             "the desktop notify window is repainted when it is open");
 
@@ -839,7 +839,7 @@ int main(void)
     s_cycle_open = true;
     s_cycle_win = 0x53u;
     event.window = 0x53u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_CYCLE,
             "the cycle menu window is repainted when it is open");
 
@@ -848,7 +848,7 @@ int main(void)
     s_search_open = true;
     s_search_win = 0x54u;
     event.window = 0x54u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_SEARCH,
             "the search widget window is repainted when it is open");
 
@@ -856,7 +856,7 @@ int main(void)
     s_reset();
     s_run_owns = true;
     event.window = 0x55u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_RUN,
             "a run-box-owned window is repainted");
 
@@ -865,7 +865,7 @@ int main(void)
     s_confirm_open = true;
     s_confirm_win = 0x56u;
     event.window = 0x56u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_CONFIRM,
             "the confirm dialog window is repainted when it is open");
 
@@ -873,7 +873,7 @@ int main(void)
     s_reset();
     s_wincmenu_owns = true;
     event.window = 0x57u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_WINCMENU,
             "a wincmenu-owned window is repainted");
 
@@ -881,7 +881,7 @@ int main(void)
     s_reset();
     s_rootmenu_owns = true;
     event.window = 0x58u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_ROOTMENU,
             "a rootmenu-owned window is repainted");
 
@@ -889,7 +889,7 @@ int main(void)
     s_reset();
     s_winlist_owns = true;
     event.window = 0x59u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_WINLIST,
             "a winlist-owned window is repainted");
 
@@ -897,7 +897,7 @@ int main(void)
     s_reset();
     s_iconmenu_owns = true;
     event.window = 0x5bu;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_ICONMENU,
             "an iconmenu-owned window is repainted");
 
@@ -906,7 +906,7 @@ int main(void)
     s_reset();
     s_lookup_result = NULL;
     event.window = 0x5au;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "an event for a window nothing recognizes triggers no" \
             " repaint at all");
@@ -922,7 +922,7 @@ int main(void)
     client.info.name = "some client";
     s_lookup_result = &client;
     event.window = 0x111u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_ICON,
             "the icon window dispatches to ri_render_client_icon");
 
@@ -937,7 +937,7 @@ int main(void)
     client.info.name = "some client";
     s_lookup_result = &client;
     event.window = 0x999u;
-    handler_expose(connection, surfaces, &event, &config);
+    handler_expose(connection, stages, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "a managed client whose window matches none of icon," \
             " frame, or titlebar triggers no repaint");

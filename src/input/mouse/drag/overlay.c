@@ -36,7 +36,7 @@
 /* Project includes */
 #include <client.h>
 #include <render/text.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -216,7 +216,7 @@ void drag_overlay_repaint(xcb_connection_t *connection)
     int16_t ascent;
     int16_t descent;
     int16_t text_y;
-    const surface_td *surface;
+    const stage_td *stage;
     xcb_pixmap_t buffer;
     xcb_drawable_t target;
     xcb_gcontext_t gc;
@@ -284,10 +284,10 @@ void drag_overlay_repaint(xcb_connection_t *connection)
     text_y = (int16_t)
         (((int32_t) WM_DRAG_OVERLAY_HEIGHT + ascent - descent) / 2);
 
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    buffer = (surface != NULL)
+    stage = wm_get_stage_by_id(s_drag.client->screen_id);
+    buffer = (stage != NULL)
         ? xcb_offscreen_buffer_create(connection,
-                surface->screen->root_depth, s_drag.overlay_window,
+                stage->screen->root_depth, s_drag.overlay_window,
                 overlay_w, (uint16_t) WM_DRAG_OVERLAY_HEIGHT)
         : XCB_NONE;
     target = (buffer != XCB_NONE) ? buffer : s_drag.overlay_window;

@@ -48,10 +48,10 @@
 /* Project includes */
 #include <config.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Command includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Input includes */
 #include <input/mouse/drag.h>
@@ -70,11 +70,11 @@ static bool s_pending = false;
  *  is true */
 static enum compass_direction_e s_direction;
 
-/** Surface @a s_pending counts down for, meaningful only while it is
+/** Stage @a s_pending counts down for, meaningful only while it is
  *  true; tracked by pointer rather than id, exactly like the desktop
  *  warp's @c s_drag.client, since re-validated in full before ever
  *  being dereferenced again */
-static surface_td *s_surface = NULL;
+static stage_td *s_stage = NULL;
 
 /** When the held edge becomes due to pan, only meaningful while
  *  @a s_pending is true */
@@ -82,56 +82,56 @@ static struct timespec s_due;
 
 
 /**
- * @brief Whether @p surface has a pannable viewport configured at all
+ * @brief Whether @p stage has a pannable viewport configured at all
  *
- * @param surface Surface to check
+ * @param stage Stage to check
  *
- * @return Whether @p surface's screen has a @c viewport wider or
+ * @return Whether @p stage's screen has a @c viewport wider or
  *         taller than one physical screen
  *
  * @note Complexity: @e O(1)
  */
-static bool s_viewport_edge_is_active(const surface_td *surface)
+static bool s_viewport_edge_is_active(const stage_td *stage)
 {
-    if (surface->config == NULL ||
-            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+    if (stage->config == NULL ||
+            stage->id >= (uint32_t) CONFIG_MAX_SCREENS) {
         return false;
     }
 
-    return surface->config->base.screens[surface->id].viewport.columns >
+    return stage->config->base.screens[stage->id].viewport.columns >
             1u ||
-        surface->config->base.screens[surface->id].viewport.rows > 1u;
+        stage->config->base.screens[stage->id].viewport.rows > 1u;
 }
 
 
 /**
- * @brief Pan @p surface's current desktop one screen toward
+ * @brief Pan @p stage's current desktop one screen toward
  *        @p direction
  *
  * Shared by @a mouse_viewport_edge_tick's first pan and every repeat
  * after it, which only differ in which countdown re-arms them.
  *
- * @param surface   Surface to pan
+ * @param stage     Stage to pan
  * @param direction Compass direction to pan toward
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the current desktop
  */
-static void s_viewport_edge_pan(surface_td *surface,
+static void s_viewport_edge_pan(stage_td *stage,
         enum compass_direction_e direction)
 {
     switch (direction) {
     case COMPASS_NORTH:
-        scmd_surface_viewport_pan_north(surface);
+        scmd_stage_viewport_pan_north(stage);
         break;
     case COMPASS_SOUTH:
-        scmd_surface_viewport_pan_south(surface);
+        scmd_stage_viewport_pan_south(stage);
         break;
     case COMPASS_EAST:
-        scmd_surface_viewport_pan_east(surface);
+        scmd_stage_viewport_pan_east(stage);
         break;
     case COMPASS_WEST:
-        scmd_surface_viewport_pan_west(surface);
+        scmd_stage_viewport_pan_west(stage);
         break;
     }
 }
@@ -141,30 +141,30 @@ static void s_viewport_edge_pan(surface_td *surface,
  * edge, and schedule (or keep, or cancel) the pending viewport-pan
  * countdown accordingly; see the header's doc comment for the full
  * reasoning */
-void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
+void mouse_viewport_edge_check(list_td *stages, xcb_window_t root,
         int16_t root_x, int16_t root_y)
 {
-    surface_td *surface;
+    stage_td *stage;
     bool at_left;
     bool at_right;
     bool at_top;
     bool at_bottom;
     enum compass_direction_e direction;
 
-    surface = lookup_surface_for_root(surfaces, root);
-    if (surface == NULL || surface->config == NULL ||
-            !surface->config->base.viewport.pan_on_edge_hover ||
-            !s_viewport_edge_is_active(surface)) {
+    stage = lookup_stage_for_root(stages, root);
+    if (stage == NULL || stage->config == NULL ||
+            !stage->config->base.viewport.pan_on_edge_hover ||
+            !s_viewport_edge_is_active(stage)) {
         s_pending = false;
         return;
     }
 
     at_left = root_x <= 0;
     at_right = (int32_t) root_x >=
-        (int32_t) surface_width(surface) - 1;
+        (int32_t) stage_width(stage) - 1;
     at_top = root_y <= 0;
     at_bottom = (int32_t) root_y >=
-        (int32_t) surface_height(surface) - 1;
+        (int32_t) stage_height(stage) - 1;
 
     /* A screen corner holds two edges at once; the horizontal one
      * wins, matching the same convention 'drag_warp_edge_check'
@@ -182,7 +182,7 @@ void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
         return;
     }
 
-    if (s_pending && s_direction == direction && s_surface == surface) {
+    if (s_pending && s_direction == direction && s_stage == stage) {
         /* Same edge still held: let the existing countdown keep
          * running rather than restarting it on every motion event. */
         return;
@@ -190,7 +190,7 @@ void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
 
     s_pending = true;
     s_direction = direction;
-    s_surface = surface;
+    s_stage = stage;
     if (clock_gettime(CLOCK_MONOTONIC, &s_due) == 0) {
         clock_add_ms(&s_due, WM_VIEWPORT_PAN_DELAY_MS);
     } else {
@@ -227,16 +227,16 @@ void mouse_viewport_edge_tick(xcb_connection_t *connection)
 
     s_pending = false;
 
-    if (drag_is_active() || s_surface == NULL ||
-            s_surface->screen == NULL || s_surface->config == NULL ||
-            !s_surface->config->base.viewport.pan_on_edge_hover ||
-            !s_viewport_edge_is_active(s_surface)) {
+    if (drag_is_active() || s_stage == NULL ||
+            s_stage->screen == NULL || s_stage->config == NULL ||
+            !s_stage->config->base.viewport.pan_on_edge_hover ||
+            !s_viewport_edge_is_active(s_stage)) {
         return;
     }
 
     still_at_edge = false;
     reply = xcb_query_pointer_reply(connection,
-            xcb_query_pointer(connection, s_surface->screen->root),
+            xcb_query_pointer(connection, s_stage->screen->root),
             NULL);
     if (reply != NULL) {
         if (reply->same_screen) {
@@ -246,14 +246,14 @@ void mouse_viewport_edge_tick(xcb_connection_t *connection)
                 break;
             case COMPASS_EAST:
                 still_at_edge = (int32_t) reply->root_x >=
-                    (int32_t) surface_width(s_surface) - 1;
+                    (int32_t) stage_width(s_stage) - 1;
                 break;
             case COMPASS_NORTH:
                 still_at_edge = reply->root_y <= 0;
                 break;
             case COMPASS_SOUTH:
                 still_at_edge = (int32_t) reply->root_y >=
-                    (int32_t) surface_height(s_surface) - 1;
+                    (int32_t) stage_height(s_stage) - 1;
                 break;
             }
         }
@@ -265,7 +265,7 @@ void mouse_viewport_edge_tick(xcb_connection_t *connection)
         return;
     }
 
-    s_viewport_edge_pan(s_surface, s_direction);
+    s_viewport_edge_pan(s_stage, s_direction);
 
     /* Panning the viewport never moves the pointer itself, unlike a
      * desktop warp, so no further 'MotionNotify' is coming to re-arm

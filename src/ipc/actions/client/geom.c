@@ -26,7 +26,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -46,9 +46,9 @@
  * @note Complexity: @e O(1)
  */
 static void s_center(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_center(client);
 }
 
@@ -60,9 +60,9 @@ static void s_center(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_move_monitor_north(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_move_monitor_north(client);
 }
 
@@ -74,9 +74,9 @@ static void s_move_monitor_north(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_move_monitor_south(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_move_monitor_south(client);
 }
 
@@ -88,9 +88,9 @@ static void s_move_monitor_south(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_move_monitor_east(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_move_monitor_east(client);
 }
 
@@ -102,9 +102,9 @@ static void s_move_monitor_east(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_move_monitor_west(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_move_monitor_west(client);
 }
 
@@ -116,9 +116,9 @@ static void s_move_monitor_west(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_maximize_horz(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_maximize_horz(client);
 }
 
@@ -130,9 +130,9 @@ static void s_maximize_horz(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_maximize_vert(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_maximize_vert(client);
 }
 
@@ -144,9 +144,9 @@ static void s_maximize_vert(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_maximize(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_maximize(client);
 }
 

@@ -35,7 +35,7 @@
 #include <types/pair.h>
 
 /* Project includes */
-#include <surface.h>
+#include <stage.h>
 
 
 /**
@@ -74,33 +74,33 @@ void dlgutil_button_border_draw(xcb_connection_t *connection,
  * @c CONFIG_PLACEMENT_MONITOR_POINTER uses for window placement, since
  * a dialog has no window of its own to anchor a monitor resolution to
  * the way client placement does.  Falls back to a monitor spanning the
- * whole surface if the pointer query fails or @p surface has no
+ * whole stage if the pointer query fails or @p stage has no
  * monitors of its own.
  *
  * @param connection XCB connection, for the pointer query
- * @param surface    Surface to resolve a monitor on
+ * @param stage      Stage to resolve a monitor on
  *
  * @return The resolved monitor
  *
- * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
+ * @note Complexity: @e O(n), where @e n is @p stage->monitor_count
  */
 monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
-        const surface_td *surface);
+        const stage_td *stage);
 
 /**
  * @brief Center a dialog of the given size on its target monitor
  *
  * @param connection XCB connection, for the pointer query
- * @param surface    Surface to center within
+ * @param stage      Stage to center within
  * @param width      Dialog width in pixels
  * @param height     Dialog height in pixels
  * @param out_x      Receives the dialog's left edge
  * @param out_y      Receives the dialog's top edge
  *
- * @note Complexity: @e O(n), where @e n is @p surface's monitor count
+ * @note Complexity: @e O(n), where @e n is @p stage's monitor count
  */
 void menu_dialog_center(xcb_connection_t *connection,
-        const surface_td *surface,
+        const stage_td *stage,
         uint16_t width, uint16_t height,
         int16_t *restrict out_x, int16_t *restrict out_y);
 

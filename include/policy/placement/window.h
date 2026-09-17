@@ -47,9 +47,9 @@
  * this file does not recognize leaves the window where the X server
  * put it.
  *
- * @param wm      Window manager instance
- * @param surface Surface that will host the client
- * @param client  Client to place
+ * @param wm     Window manager instance
+ * @param stage  Stage that will host the client
+ * @param client Client to place
  *
  * @note Complexity: @e O(g * n) under @c smart and @c manual, and
  *       @e O(n) otherwise, where @e g is the number of grid positions
@@ -58,7 +58,7 @@
  *       whichever policy follows it
  */
 void place_window_apply(const wm_td *wm,
-        surface_td *surface, client_td *client);
+        stage_td *stage, client_td *client);
 
 /**
  * @brief Place the client following the cascade policy, unconditionally
@@ -70,14 +70,14 @@ void place_window_apply(const wm_td *wm,
  * @a enact_desktop_client_rearrange_all), and not for placing a single
  * newly mapped client, which @a place_window_apply is for.
  *
- * @param wm      Window manager instance
- * @param surface Surface the client lives on
- * @param client  Client to place
+ * @param wm     Window manager instance
+ * @param stage  Stage the client lives on
+ * @param client Client to place
  *
  * @note Complexity: @e O(1)
  */
 void place_window_apply_cascade(const wm_td *wm,
-        surface_td *surface, client_td *client);
+        stage_td *stage, client_td *client);
 
 
 #endif  /* ! POLICY_PLACEMENT_WINDOW_H */

@@ -51,7 +51,7 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -587,11 +587,11 @@ xcb_void_cookie_t xcb_ewmh_set_wm_window_type(xcb_ewmh_connection_t *ewmh,
  * @note Complexity: @e O(1)
  */
 void menu_dialog_center(xcb_connection_t *connection,
-        const surface_td *surface, uint16_t width, uint16_t height,
+        const stage_td *stage, uint16_t width, uint16_t height,
         int16_t *restrict out_x, int16_t *restrict out_y)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) width;
     (void) height;
 
@@ -600,14 +600,14 @@ void menu_dialog_center(xcb_connection_t *connection,
 }
 
 
-/** Non-null opaque connection and surface handles, never dereferenced
+/** Non-null opaque connection and stage handles, never dereferenced
  *  by anything this file links for real (confirm.c only checks
- *  'surface->screen != NULL', so a real, zeroed surface_td is used
+ *  'stage->screen != NULL', so a real, zeroed stage_td is used
  *  instead of an opaque stand-in for that one field) */
 static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
-static surface_td s_surface;
+static stage_td s_stage;
 static xcb_screen_t s_screen;
 static config_td s_config;
 
@@ -671,9 +671,9 @@ static void s_reset(void)
     s_prior_focus_window = XCB_WINDOW_NONE;
     s_last_user_time = 0u;
 
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
     memset(&s_screen, 0, sizeof(s_screen));
-    s_surface.screen = &s_screen;
+    s_stage.screen = &s_screen;
     memset(&s_config, 0, sizeof(s_config));
 }
 
@@ -684,7 +684,7 @@ static void s_test_show_creates_and_maps_window(void)
 {
     s_reset();
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Really quit?", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
 
     TAP_OK(menu_confirm_dialog_is_open(),
@@ -708,12 +708,12 @@ static void s_test_show_while_open_is_noop(void)
 
     s_reset();
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "First prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
     first_window = menu_confirm_dialog_window();
     s_call_create_window = 0;
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Second prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
 
     TAP_EQ_INT(s_call_create_window, 0,
@@ -724,17 +724,17 @@ static void s_test_show_while_open_is_noop(void)
 }
 
 
-/* menu_confirm_dialog_show is a no-op for a NULL connection, surface,
- * config, or a surface with no screen, none of which crash */
+/* menu_confirm_dialog_show is a no-op for a NULL connection, stage,
+ * config, or a stage with no screen, none of which crash */
 static void s_test_show_null_guards(void)
 {
-    surface_td surface_without_screen;
+    stage_td stage_without_screen;
 
     s_reset();
-    memset(&surface_without_screen, 0, sizeof(surface_without_screen));
-    surface_without_screen.screen = NULL;
+    memset(&stage_without_screen, 0, sizeof(stage_without_screen));
+    stage_without_screen.screen = NULL;
 
-    menu_confirm_dialog_show(NULL, &s_surface, &s_config, "x", "n", "y",
+    menu_confirm_dialog_show(NULL, &s_stage, &s_config, "x", "n", "y",
             NULL, NULL, 0u);
     TAP_OK(!menu_confirm_dialog_is_open(),
             "a NULL connection never opens a dialog");
@@ -742,17 +742,17 @@ static void s_test_show_null_guards(void)
     menu_confirm_dialog_show(s_fake_connection, NULL, &s_config, "x",
             "n", "y", NULL, NULL, 0u);
     TAP_OK(!menu_confirm_dialog_is_open(),
-            "a NULL surface never opens a dialog");
+            "a NULL stage never opens a dialog");
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, NULL, "x",
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, NULL, "x",
             "n", "y", NULL, NULL, 0u);
     TAP_OK(!menu_confirm_dialog_is_open(),
             "a NULL config never opens a dialog");
 
-    menu_confirm_dialog_show(s_fake_connection, &surface_without_screen,
+    menu_confirm_dialog_show(s_fake_connection, &stage_without_screen,
             &s_config, "x", "n", "y", NULL, NULL, 0u);
     TAP_OK(!menu_confirm_dialog_is_open(),
-            "a surface with no screen never opens a dialog");
+            "a stage with no screen never opens a dialog");
 }
 
 
@@ -762,7 +762,7 @@ static void s_test_toggle_selection_wraps(void)
 {
     s_reset();
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
 
     menu_confirm_dialog_accept(s_fake_connection);
@@ -773,7 +773,7 @@ static void s_test_toggle_selection_wraps(void)
             "and never activates confirm at the same time");
 
     s_reset();
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
     menu_confirm_dialog_toggle_selection();
     menu_confirm_dialog_accept(s_fake_connection);
@@ -784,7 +784,7 @@ static void s_test_toggle_selection_wraps(void)
             "and never activates cancel in that case");
 
     s_reset();
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
     menu_confirm_dialog_toggle_selection();
     menu_confirm_dialog_toggle_selection();
@@ -802,7 +802,7 @@ static void s_test_accept_closes_dialog(void)
 
     s_reset();
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
     shown_window = menu_confirm_dialog_window();
 
@@ -825,7 +825,7 @@ static void s_test_accept_with_null_callback_is_safe(void)
 {
     s_reset();
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", NULL, NULL, 0u);
     menu_confirm_dialog_toggle_selection();
 
@@ -843,7 +843,7 @@ static void s_test_cancel_ignores_selection(void)
 {
     s_reset();
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
     menu_confirm_dialog_toggle_selection();
 
@@ -865,7 +865,7 @@ static void s_test_close_restores_prior_focus(void)
     s_reset();
     s_prior_focus_window = (xcb_window_t) 4242;
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", NULL, NULL, 0u);
     s_call_set_input_focus = 0;
     s_last_focus_window = XCB_WINDOW_NONE;
@@ -888,7 +888,7 @@ static void s_test_handle_click_dispatches_by_position(void)
     bool result;
 
     s_reset();
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
 
     result = menu_confirm_dialog_handle_click(s_fake_connection,
@@ -913,7 +913,7 @@ static void s_test_click_negative_coordinates_is_safe(void)
     bool result;
 
     s_reset();
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", s_on_confirm, s_on_cancel, 0u);
 
     result = menu_confirm_dialog_handle_click(s_fake_connection,
@@ -935,7 +935,7 @@ static void s_test_ms_remaining_no_timeout(void)
     int ms;
 
     s_reset();
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", NULL, NULL, 0u);
 
     ms = menu_confirm_dialog_ms_remaining();
@@ -951,7 +951,7 @@ static void s_test_ms_remaining_with_timeout(void)
     int ms;
 
     s_reset();
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", NULL, NULL, 5u);
 
     ms = menu_confirm_dialog_ms_remaining();
@@ -974,7 +974,7 @@ static void s_test_timeout_ms_remaining_bounded(void)
     int ms;
 
     s_reset();
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Prompt", "No", "Yes", NULL, s_on_cancel, 1u);
 
     ms = menu_confirm_dialog_ms_remaining();
@@ -1032,7 +1032,7 @@ static void s_test_long_prompt_is_truncated_safely(void)
     memset(long_prompt, 'A', sizeof(long_prompt) - 1u);
     long_prompt[sizeof(long_prompt) - 1u] = '\0';
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             long_prompt, "No", "Yes", NULL, NULL, 0u);
 
     TAP_OK(menu_confirm_dialog_is_open(),
@@ -1047,7 +1047,7 @@ static void s_test_null_labels_are_safe(void)
 {
     s_reset();
 
-    menu_confirm_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_confirm_dialog_show(s_fake_connection, &s_stage, &s_config,
             NULL, NULL, NULL, NULL, NULL, 0u);
 
     TAP_OK(menu_confirm_dialog_is_open(),

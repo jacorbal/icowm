@@ -4,7 +4,7 @@
  * @brief Main event loop, partial update, and full update
  *
  * Declares the functions that run the window manager's main event loop
- * and maintain surface rendering state.
+ * and maintain stage rendering state.
  *
  * IcoWM's operation flow, one turn of the event loop:
  *

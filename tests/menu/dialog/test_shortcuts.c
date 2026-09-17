@@ -38,10 +38,10 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* CMD includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Local includes */
 #include <menu/dialog/message.h>
@@ -72,32 +72,32 @@ static bool s_captured_has_label[DIALOG_MSG_MAX_LINES];
 static uint8_t s_captured_count;
 
 static config_td s_config;
-static surface_td s_surface;
+static stage_td s_stage;
 
 /** Configured viewport size a scenario wants reported back, driving
  *  both stand-ins below the exact way production derives one from the
  *  other, so the Sticky row can be inspected listed and omitted
- *  without linking all of surface/viewport.c for two readers */
+ *  without linking all of stage/viewport.c for two readers */
 static uint32_t s_viewport_columns;
 static uint32_t s_viewport_rows;
 
-/** Test-controlled stand-in for @a surface_viewport_dims
+/** Test-controlled stand-in for @a stage_viewport_dims
  * @note Complexity: @e O(1) */
-void surface_viewport_dims(const surface_td *surface,
+void stage_viewport_dims(const stage_td *stage,
         uint32_t *columns_out, uint32_t *rows_out)
 {
-    (void) surface;
+    (void) stage;
 
     *columns_out = s_viewport_columns;
     *rows_out = s_viewport_rows;
 }
 
 
-/** Test-controlled stand-in for @a surface_viewport_has_room
+/** Test-controlled stand-in for @a stage_viewport_has_room
  * @note Complexity: @e O(1) */
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_viewport_columns > 1u || s_viewport_rows > 1u;
 }
@@ -127,7 +127,7 @@ void dialog_pair_append_blank(struct dialog_pair_s *pairs, uint8_t *count)
 
 
 /**
- * @brief Reset every captured/recorded value and the config/surface
+ * @brief Reset every captured/recorded value and the config/stage
  *        fixtures to a clean, known-default state ahead of one scenario
  *
  * @note Complexity: @e O(1)
@@ -144,11 +144,11 @@ static void s_reset(void)
     memset(&s_config, 0, sizeof(s_config));
     config_set_default_bindings_values(&s_config.bindings);
 
-    memset(&s_surface, 0, sizeof(s_surface));
-    s_surface.config = &s_config;
-    s_surface.id = 0u;
-    s_surface.desktop_count = 1u;
-    s_surface.monitor_count = 1u;
+    memset(&s_stage, 0, sizeof(s_stage));
+    s_stage.config = &s_config;
+    s_stage.id = 0u;
+    s_stage.desktop_count = 1u;
+    s_stage.monitor_count = 1u;
     s_viewport_columns = 1u;
     s_viewport_rows = 1u;
 }
@@ -156,14 +156,14 @@ static void s_reset(void)
 
 /* Recording stand-in for menu_message_dialog_show_pairs */
 void menu_message_dialog_show_pairs(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const struct dialog_pair_s *pairs, size_t count,
         menu_msg_level_e level)
 {
     size_t i;
 
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     (void) level;
     s_call_show_pairs++;
@@ -215,7 +215,7 @@ static bool s_any_row_contains(const char *needle)
 
 
 /**
- * @brief NULL connection, surface or config all leave the dialog
+ * @brief NULL connection, stage or config all leave the dialog
  *        unopened
  *
  * @note Complexity: @e O(1)
@@ -223,17 +223,17 @@ static bool s_any_row_contains(const char *needle)
 static void s_test_null_guards(void)
 {
     s_reset();
-    dialog_shortcuts_show(NULL, &s_surface, &s_config);
+    dialog_shortcuts_show(NULL, &s_stage, &s_config);
     TAP_EQ_INT(s_call_show_pairs, 0,
             "shortcuts_show: NULL connection is a no-op");
 
     s_reset();
     dialog_shortcuts_show(s_fake_connection, NULL, &s_config);
     TAP_EQ_INT(s_call_show_pairs, 0,
-            "shortcuts_show: NULL surface is a no-op");
+            "shortcuts_show: NULL stage is a no-op");
 
     s_reset();
-    dialog_shortcuts_show(s_fake_connection, &s_surface, NULL);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, NULL);
     TAP_EQ_INT(s_call_show_pairs, 0,
             "shortcuts_show: NULL config is a no-op");
 }
@@ -248,7 +248,7 @@ static void s_test_null_guards(void)
 static void s_test_basic_show(void)
 {
     s_reset();
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_EQ_INT(s_call_show_pairs, 1,
             "shortcuts_show: shows the dialog exactly once");
     TAP_OK(s_captured_count > 0u,
@@ -269,8 +269,8 @@ static void s_test_basic_show(void)
 static void s_test_goto_desktop_shared_prefix(void)
 {
     s_reset();
-    s_surface.desktop_count = 2u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    s_stage.desktop_count = 2u;
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(s_any_row_contains("modc+mod1+<0-9>"),
             "shortcuts_show: default go-to-desktop bindings collapse"
             " to one \"<0-9>\" row");
@@ -291,11 +291,11 @@ static void s_test_goto_desktop_shared_prefix(void)
 static void s_test_goto_desktop_no_shared_prefix(void)
 {
     s_reset();
-    s_surface.desktop_count = 2u;
+    s_stage.desktop_count = 2u;
     (void) strncpy(s_config.bindings.keyboard.desktop.go_to.desktop[3],
             "mod4+F3",
             sizeof(s_config.bindings.keyboard.desktop.go_to.desktop[3]) - 1u);
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(!s_any_row_contains("<0-9>"),
             "shortcuts_show: a non-uniform binding set does not collapse"
             " to a \"<0-9>\" row");
@@ -317,17 +317,17 @@ static void s_test_goto_desktop_no_shared_prefix(void)
 static void s_test_desktop_count_gating(void)
 {
     s_reset();
-    s_surface.desktop_count = 1u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    s_stage.desktop_count = 1u;
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(!s_any_row_contains("<0-9>"),
-            "shortcuts_show: a single-desktop surface shows no"
+            "shortcuts_show: a single-desktop stage shows no"
             " go-to-desktop row");
 
     s_reset();
-    s_surface.desktop_count = 2u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    s_stage.desktop_count = 2u;
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(s_any_row_contains("<0-9>"),
-            "shortcuts_show: a multi-desktop surface shows the"
+            "shortcuts_show: a multi-desktop stage shows the"
             " go-to-desktop row");
 }
 
@@ -341,19 +341,19 @@ static void s_test_desktop_count_gating(void)
 static void s_test_monitor_count_gating(void)
 {
     s_reset();
-    s_surface.monitor_count = 1u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    s_stage.monitor_count = 1u;
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(!s_any_row_contains(
                 s_config.bindings.keyboard.window.send_to.monitor.north),
-            "shortcuts_show: a single-monitor surface shows no"
+            "shortcuts_show: a single-monitor stage shows no"
             " send-to-monitor rows");
 
     s_reset();
-    s_surface.monitor_count = 2u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    s_stage.monitor_count = 2u;
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(s_any_row_contains(
                 s_config.bindings.keyboard.window.send_to.monitor.north),
-            "shortcuts_show: a multi-monitor surface shows the"
+            "shortcuts_show: a multi-monitor stage shows the"
             " send-to-monitor rows");
 }
 
@@ -369,10 +369,10 @@ static void s_test_monitor_count_gating(void)
 static void s_test_desktop_layout_rows_gating(void)
 {
     s_reset();
-    s_surface.desktop_count = 2u;
-    s_surface.id = 0u;
+    s_stage.desktop_count = 2u;
+    s_stage.id = 0u;
     s_config.base.screens[0].desktop_layout.rows = 1u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(!s_any_row_contains(
                 s_config.bindings.keyboard.window.send_to.desktop.north),
             "shortcuts_show: a single-row desktop layout shows no"
@@ -383,10 +383,10 @@ static void s_test_desktop_layout_rows_gating(void)
             " of the desktop layout's row count");
 
     s_reset();
-    s_surface.desktop_count = 2u;
-    s_surface.id = 0u;
+    s_stage.desktop_count = 2u;
+    s_stage.id = 0u;
     s_config.base.screens[0].desktop_layout.rows = 2u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(s_any_row_contains(
                 s_config.bindings.keyboard.window.send_to.desktop.north),
             "shortcuts_show: a multi-row desktop layout shows the"
@@ -407,7 +407,7 @@ static void s_test_feature_toggles(void)
     s_config.base.fortune.is_enabled = false;
     s_config.base.scratchpad.is_enabled = false;
     s_config.base.shutdown.enable_emergency_shortcut = false;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(!s_any_row_contains(s_config.bindings.keyboard.wm.fortune),
             "shortcuts_show: fortune row absent while fortune is"
             " disabled");
@@ -419,7 +419,7 @@ static void s_test_feature_toggles(void)
     s_config.base.fortune.is_enabled = true;
     s_config.base.scratchpad.is_enabled = true;
     s_config.base.shutdown.enable_emergency_shortcut = true;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(s_any_row_contains(s_config.bindings.keyboard.wm.fortune),
             "shortcuts_show: fortune row present while fortune is"
             " enabled");
@@ -439,7 +439,7 @@ static void s_test_feature_toggles(void)
 static void s_test_append_group_joining(void)
 {
     s_reset();
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(s_any_row_contains("Right=") && s_any_row_contains("Left=") &&
             s_any_row_contains("Up=") && s_any_row_contains("Down="),
             "shortcuts_show: a fully-bound group lists every direction,"
@@ -450,7 +450,7 @@ static void s_test_append_group_joining(void)
     s_config.bindings.keyboard.window.move.relative.left[0] = '\0';
     s_config.bindings.keyboard.window.move.relative.up[0] = '\0';
     s_config.bindings.keyboard.window.move.relative.down[0] = '\0';
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(!s_any_row_contains("Right=modc+mod1+l"),
             "shortcuts_show: a group left entirely unbound produces no"
             " row for it at all");
@@ -467,14 +467,14 @@ static void s_test_append_group_joining(void)
 static void s_test_viewport_gating(void)
 {
     s_reset();
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(!s_any_row_contains(s_config.bindings.keyboard.window.sticky),
             "shortcuts_show: sticky row absent on a viewport that"
             " cannot pan");
 
     s_reset();
     s_viewport_columns = 2u;
-    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    dialog_shortcuts_show(s_fake_connection, &s_stage, &s_config);
     TAP_OK(s_any_row_contains(s_config.bindings.keyboard.window.sticky),
             "shortcuts_show: sticky row present once the viewport can"
             " pan");

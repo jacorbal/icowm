@@ -52,22 +52,22 @@
  * @brief Initialize the window-search widget
  *
  * Collects every focusable, non-skip-taskbar client across every
- * desktop of @p surface, creates the floating centered widget, and
+ * desktop of @p stage, creates the floating centered widget, and
  * clears any previously typed query.  Closes and reopens cleanly if
  * already open.
  *
- * @param surfaces   All managed surfaces (passed to focus_apply on
+ * @param stages All managed stages (passed to focus_apply on
  *                   confirm)
  * @param connection XCB connection
- * @param surface    Surface on which to center the widget
+ * @param stage      Stage on which to center the widget
  * @param cfg        Active configuration (for theme colors and the
  *                   @c show-pixmaps flag)
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
- *       across every desktop of @p surface
+ *       across every desktop of @p stage
  */
-void search_init(list_td *surfaces, xcb_connection_t *connection,
-        surface_td *surface, const config_td *cfg);
+void search_init(list_td *stages, xcb_connection_t *connection,
+        stage_td *stage, const config_td *cfg);
 
 /**
  * @brief Destroy the window-search widget and restore previous focus
@@ -110,19 +110,19 @@ xcb_window_t search_window(void);
  * unworthy, therefore ignored.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces (passed to @p focus_apply on
+ * @param stages     All managed stages (passed to @p focus_apply on
  *                   confirm)
- * @param keysym     Key symbol of the pressed key
- * @param state      Modifier mask of the pressed key, with locking bits
+ * @param keysym Key symbol of the pressed key
+ * @param state  Modifier mask of the pressed key, with locking bits
  *                   already stripped, used only to tell a plain @c Tab
  *                   from @c Shift+Tab
- * @param cfg        Active configuration
+ * @param cfg Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of collected
  *       clients (re-filtering happens on every character)
  */
 void search_handle_keypress(xcb_connection_t *connection,
-        list_td *surfaces, xcb_keysym_t keysym, uint16_t state,
+        list_td *stages, xcb_keysym_t keysym, uint16_t state,
         const config_td *cfg);
 
 /**
@@ -133,16 +133,16 @@ void search_handle_keypress(xcb_connection_t *connection,
  * (the text-entry bar) does nothing but is still consumed.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces (passed to @p focus_apply on
+ * @param stages     All managed stages (passed to @p focus_apply on
  *                   confirm)
- * @param x          Pointer X, relative to the widget window
- * @param y          Pointer Y, relative to the widget window
- * @param cfg        Active configuration
+ * @param x   Pointer X, relative to the widget window
+ * @param y   Pointer Y, relative to the widget window
+ * @param cfg Active configuration
  *
  * @note Complexity: @e O(1)
  */
 void search_handle_click(xcb_connection_t *connection,
-        list_td *surfaces, int16_t x, int16_t y, const config_td *cfg);
+        list_td *stages, int16_t x, int16_t y, const config_td *cfg);
 
 /**
  * @brief Handle a pointer-motion event inside the search widget

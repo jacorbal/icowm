@@ -3,7 +3,7 @@
  *
  * @brief Theme configuration
  *
- * Fonts, colors, borders and geometry for every themeable surface:
+ * Fonts, colors, borders and geometry for every themeable stage:
  * window decorations, icons, menus, dialogs and the systray, as loaded
  * from the theme file a @c config.json names.
  *
@@ -63,7 +63,7 @@ enum config_titlebar_button_e {
 
 /**
  * @brief Font, color and border shape shared by every themeable
- *        surface, active and inactive windows and icons and the
+ *        stage, active and inactive windows and icons and the
  *        systray alike
  */
 struct config_theme_style_s {

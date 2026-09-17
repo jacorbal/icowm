@@ -35,7 +35,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <input/mouse/event.h>
@@ -45,11 +45,11 @@
 
 /* Handle a button-release event to end a drag */
 void mouse_handle_release(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_button_release_event_t *event,
+        list_td *stages, const xcb_button_release_event_t *event,
         const config_td *config)
 {
     client_td *client;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop = NULL;
     struct position_s root_pos = { 0, 0 };
 
@@ -61,7 +61,7 @@ void mouse_handle_release(xcb_connection_t *connection,
     }
 
     if (drag_background_is_active()) {
-        drag_background_end(connection, surfaces, root_pos);
+        drag_background_end(connection, stages, root_pos);
         return;
     }
 
@@ -70,10 +70,10 @@ void mouse_handle_release(xcb_connection_t *connection,
     }
 
     client = drag_client();
-    if (client != NULL && surfaces != NULL) {
-        (void) lookup_find_client(surfaces, client->id,
-                &surface, &desktop);
+    if (client != NULL && stages != NULL) {
+        (void) lookup_find_client(stages, client->id,
+                &stage, &desktop);
     }
 
-    drag_end(connection, surface, desktop, root_pos);
+    drag_end(connection, stage, desktop, root_pos);
 }

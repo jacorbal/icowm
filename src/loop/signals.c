@@ -54,8 +54,8 @@ bool loop_signals_process(const loop_ctx_td *ctx)
     if (wm_startup_requested_resume()) {
         LOGGER_INFO("'SIGCONT' received; re-establishing" \
                 " input grabs", L_NARG);
-        keyboard_load(ctx->surfaces, ctx->keysyms, ctx->config);
-        mouse_load(ctx->surfaces, ctx->config);
+        keyboard_load(ctx->stages, ctx->keysyms, ctx->config);
+        mouse_load(ctx->stages, ctx->config);
     }
 
     if (wm_startup_requested_child_reap()) {

@@ -41,7 +41,7 @@
 #include <menu/dialog/message.h>
 #include <menu/search.h>
 #include <policy/stacking.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /** Shared open-addressed-hash-table callbacks for every fixture
@@ -111,7 +111,7 @@ static desktop_td *s_focus_apply_last_desktop = NULL;
 static int s_viewport_center_calls = 0;
 static client_td *s_viewport_center_last_client = NULL;
 
-/** Desktops this file's own 'surface_desktop_get' stand-in answers
+/** Desktops this file's own 'stage_desktop_get' stand-in answers
  *  from, registered by 's_make_desktop', the same pattern
  *  'test_winlist.c' uses for its own stand-in of the same function */
 #define MAX_TEST_DESKTOPS (4)
@@ -300,12 +300,12 @@ uint32_t client_last_user_time(void)
 
 /* 'menu/dialog/info.h' stand-in */
 
-void dialog_info_show(xcb_connection_t *connection, surface_td *surface,
+void dialog_info_show(xcb_connection_t *connection, stage_td *stage,
         const config_td *config, const char *message,
         menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     (void) message;
 
@@ -358,12 +358,12 @@ void stacking_walk_down(const desktop_td *desktop,
 
 /* 'policy/focus.h' stand-in */
 
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) raise;
     (void) cfg;
 
@@ -393,20 +393,20 @@ void enact_client_unshade(client_td *client)
     s_client_unshade_last = client;
 }
 
-void enact_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
+void enact_stage_desktop_switch(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
 
     s_desktop_switch_calls++;
     s_desktop_switch_last_id = desktop_id;
 }
 
 
-/* 'surface.h' stand-ins */
+/* 'stage.h' stand-ins */
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
 
     for (int i = 0; i < s_desktops_registered; ++i) {
         if (s_desktops_by_id[i] != NULL &&
@@ -417,11 +417,11 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
     return NULL;
 }
 
-void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
+void stage_desktop_label(const stage_td *stage, uint32_t desktop_id,
         const char *desktop_name, bool is_pinned, bool shows_name,
         char *out_label, size_t length)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) is_pinned;
     (void) shows_name;
@@ -433,40 +433,40 @@ void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
 }
 
 
-/* 'surface.h' stand-in: reports whether the viewport can pan, which
+/* 'stage.h' stand-in: reports whether the viewport can pan, which
  * the sticky row of a result label is gated on */
 static bool s_viewport_has_room;
 
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_viewport_has_room;
 }
 
 
-/* 'cmds/surface.h' stand-ins */
+/* 'cmds/stage.h' stand-ins */
 
-bool scmd_surface_viewport_client_page(const surface_td *surface,
+bool scmd_stage_viewport_client_page(const stage_td *stage,
         const desktop_td *desktop, const client_td *client,
         uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) col_out;
     (void) row_out;
 
     /* The default (unconfigured, 1x1) viewport never has a second
-     * page to report, matching every test surface in this file, none
+     * page to report, matching every test stage in this file, none
      * of which sets up a multi-page viewport. */
     return false;
 }
 
-void scmd_surface_viewport_center_on_client(surface_td *surface,
+void scmd_stage_viewport_center_on_client(stage_td *stage,
         client_td *client)
 {
-    (void) surface;
+    (void) stage;
 
     s_viewport_center_calls++;
     s_viewport_center_last_client = client;
@@ -677,22 +677,22 @@ static client_td *s_make_client(uint32_t id, const char *name,
     return client;
 }
 
-/** Builds a one-desktop, one-monitor-sized surface with @p clients (in
+/** Builds a one-desktop, one-monitor-sized stage with @p clients (in
  *  top-of-stack-first order, i.e., the order 'stacking_walk_down' will
  *  hand them out) registered on that single desktop, ready for
  *  'search_init' */
-static void s_make_surface_one_desktop(surface_td *surface,
+static void s_make_stage_one_desktop(stage_td *stage,
         desktop_td *desktop, client_td **clients, int client_count,
         uint32_t width, uint32_t height)
 {
-    memset(surface, 0, sizeof(*surface));
-    surface->screen = &s_fake_screen;
-    surface->properties.dim.w = width;
-    surface->properties.dim.h = height;
-    surface->desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface->desktops, NULL, desktop);
-    surface->desktop_count = 1u;
-    surface->desktop_cur = desktop->id;
+    memset(stage, 0, sizeof(*stage));
+    stage->screen = &s_fake_screen;
+    stage->properties.dim.w = width;
+    stage->properties.dim.h = height;
+    stage->desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage->desktops, NULL, desktop);
+    stage->desktop_count = 1u;
+    stage->desktop_cur = desktop->id;
 
     for (int i = 0; i < client_count; ++i) {
         ohtbl_insert(desktop->clients, clients[i]);
@@ -723,11 +723,11 @@ static void s_make_config(config_td *cfg)
 
 /* search_init / search_is_open / search_window */
 
-/* NULL connection, surface or config are all no-ops: the widget must
+/* NULL connection, stage or config are all no-ops: the widget must
  * never half-open on invalid input */
 static void s_test_init_rejects_null_args(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -735,22 +735,22 @@ static void s_test_init_rejects_null_args(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, NULL, &surface, &cfg);
+    search_init((list_td *) NULL, NULL, &stage, &cfg);
     TAP_OK(!search_is_open(), "search_init with a null connection"
             " never opens the widget");
 
     search_init((list_td *) NULL, s_connection_stub, NULL, &cfg);
-    TAP_OK(!search_is_open(), "search_init with a null surface never"
+    TAP_OK(!search_is_open(), "search_init with a null stage never"
             " opens the widget");
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, NULL);
+    search_init((list_td *) NULL, s_connection_stub, &stage, NULL);
     TAP_OK(!search_is_open(), "search_init with a null config never"
             " opens the widget");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -758,16 +758,16 @@ static void s_test_init_rejects_null_args(void)
  * "no windows" informational dialog instead */
 static void s_test_init_empty_candidates_shows_dialog(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     config_td cfg;
 
     s_reset();
     desktop = s_make_desktop(0u, "one");
-    s_make_surface_one_desktop(&surface, desktop, NULL, 0, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, NULL, 0, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     TAP_OK(!search_is_open(),
             "an empty candidate list leaves the widget unopened");
@@ -778,16 +778,16 @@ static void s_test_init_empty_candidates_shows_dialog(void)
     TAP_EQ_INT(s_create_window_calls, 0,
             "no widget window is ever created for an empty result set");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
 /* One eligible candidate: the widget opens, creates and maps its
- * window on the surface's own root, grabs the keyboard on that same
+ * window on the stage's own root, grabs the keyboard on that same
  * root, sets input focus to the new window, and paints immediately */
 static void s_test_init_opens_and_paints_with_candidates(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -795,23 +795,23 @@ static void s_test_init_opens_and_paints_with_candidates(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     TAP_OK(search_is_open(), "a non-empty candidate list opens the"
             " widget");
     TAP_EQ_INT(s_create_window_calls, 1,
             "exactly one widget window is created");
     TAP_OK(s_created_parent == s_fake_screen.root,
-            "the widget window is created as a child of the surface's"
+            "the widget window is created as a child of the stage's"
             " own screen root");
     TAP_EQ_INT(s_map_window_calls, 1, "the widget window is mapped");
     TAP_EQ_INT(s_grab_keyboard_calls, 1,
             "the keyboard is grabbed exactly once");
     TAP_OK(s_grab_keyboard_window == s_fake_screen.root,
-            "the keyboard grab targets the surface's screen root, not"
+            "the keyboard grab targets the stage's screen root, not"
             " the widget window");
     TAP_EQ_INT(s_set_input_focus_calls, 1,
             "input focus is set exactly once");
@@ -825,7 +825,7 @@ static void s_test_init_opens_and_paints_with_candidates(void)
             " the first keystroke");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -834,7 +834,7 @@ static void s_test_init_opens_and_paints_with_candidates(void)
  * building the new one */
 static void s_test_init_while_open_destroys_previous(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -843,13 +843,13 @@ static void s_test_init_while_open_destroys_previous(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     first_window = search_window();
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     TAP_EQ_INT(s_window_destroy_calls, 1,
             "re-opening an already open widget destroys the previous"
@@ -860,7 +860,7 @@ static void s_test_init_while_open_destroys_previous(void)
             "the re-opened widget got a brand new window identifier");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -868,7 +868,7 @@ static void s_test_init_while_open_destroys_previous(void)
  * recorded and restored, via XCB_INPUT_FOCUS_PARENT, on destroy */
 static void s_test_destroy_restores_previous_focus(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -876,11 +876,11 @@ static void s_test_destroy_restores_previous_focus(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
     s_focus_reply_focus = (xcb_window_t) 555u;
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_set_input_focus_calls = 0;
     s_set_input_focus_window = XCB_WINDOW_NONE;
 
@@ -903,7 +903,7 @@ static void s_test_destroy_restores_previous_focus(void)
     TAP_OK(!search_is_open(),
             "the widget reports closed once destroyed");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -911,7 +911,7 @@ static void s_test_destroy_restores_previous_focus(void)
  * pseudo-windows XCB_INPUT_FOCUS_PARENT cannot sensibly target */
 static void s_test_destroy_skips_restoring_pseudo_focus(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -919,11 +919,11 @@ static void s_test_destroy_skips_restoring_pseudo_focus(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
     s_focus_reply_focus = (xcb_window_t) XCB_INPUT_FOCUS_POINTER_ROOT;
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_set_input_focus_calls = 0;
 
     search_destroy(s_connection_stub);
@@ -931,7 +931,7 @@ static void s_test_destroy_skips_restoring_pseudo_focus(void)
     TAP_EQ_INT(s_set_input_focus_calls, 0,
             "PointerRoot as the previous focus is never restored");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -940,7 +940,7 @@ static void s_test_destroy_skips_restoring_pseudo_focus(void)
  * rather than dereferencing a null reply */
 static void s_test_init_null_focus_reply_is_safe(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -948,11 +948,11 @@ static void s_test_init_null_focus_reply_is_safe(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
     s_focus_reply_is_null = true;
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     TAP_OK(search_is_open(),
             "a null xcb_get_input_focus_reply does not stop the"
             " widget from opening");
@@ -963,7 +963,7 @@ static void s_test_init_null_focus_reply_is_safe(void)
             "with no previous focus recorded, destroy never calls"
             " xcb_set_input_focus a second time");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -993,7 +993,7 @@ static void s_test_destroy_idempotent_and_null_safe(void)
  * result */
 static void s_test_collect_filters_ineligible_clients(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[4];
     config_td cfg;
@@ -1012,25 +1012,25 @@ static void s_test_collect_filters_ineligible_clients(void)
     clients[3] = s_make_client(4u, "transient", CLIENT_FLAG_FOCUSABLE,
             0);
     clients[3]->transient_for = (xcb_window_t) 1;
-    s_make_surface_one_desktop(&surface, desktop, clients, 4, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 4, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     TAP_OK(search_is_open(),
             "at least one eligible candidate still opens the widget");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
-/* A surface whose only client is transient for another window never
+/* A stage whose only client is transient for another window never
  * opens the widget at all, with no eligible candidate left to
  * offer */
 static void s_test_collect_transient_only_never_opens(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1040,25 +1040,25 @@ static void s_test_collect_transient_only_never_opens(void)
     clients[0] = s_make_client(1u, "transient", CLIENT_FLAG_FOCUSABLE,
             0);
     clients[0]->transient_for = (xcb_window_t) 2;
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     TAP_OK(!search_is_open(),
             "a transient client alone leaves no eligible candidate,"
             " so the widget never opens");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
-/* Every eligible client across every desktop of the surface is
- * collected, not only those on the surface's currently active one */
+/* Every eligible client across every desktop of the stage is
+ * collected, not only those on the stage's currently active one */
 static void s_test_collect_spans_every_desktop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop_a;
     desktop_td *desktop_b;
     client_td *clients_a[1];
@@ -1071,15 +1071,15 @@ static void s_test_collect_spans_every_desktop(void)
     clients_a[0] = s_make_client(1u, "on-a", 0, 0);
     clients_b[0] = s_make_client(2u, "on-b", 0, 0);
 
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = &s_fake_screen;
-    surface.properties.dim.w = 1024u;
-    surface.properties.dim.h = 768u;
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop_a);
-    cdlist_ins_next(surface.desktops, NULL, desktop_b);
-    surface.desktop_count = 2u;
-    surface.desktop_cur = 0u;
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = &s_fake_screen;
+    stage.properties.dim.w = 1024u;
+    stage.properties.dim.h = 768u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop_a);
+    cdlist_ins_next(stage.desktops, NULL, desktop_b);
+    stage.desktop_count = 2u;
+    stage.desktop_cur = 0u;
     ohtbl_insert(desktop_a->clients, clients_a[0]);
     ohtbl_insert(desktop_b->clients, clients_b[0]);
     s_set_stacking(desktop_a, clients_a, 1);
@@ -1087,13 +1087,13 @@ static void s_test_collect_spans_every_desktop(void)
 
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     TAP_OK(search_is_open(),
-            "candidates from a desktop other than the surface's"
+            "candidates from a desktop other than the stage's"
             " current one are still collected, opening the widget");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1117,7 +1117,7 @@ static void s_type(xcb_connection_t *connection, const char *text,
  * stack first, i.e., most recently focused first) */
 static void s_test_empty_query_matches_all_in_stack_order(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[3];
     config_td cfg;
@@ -1130,10 +1130,10 @@ static void s_test_empty_query_matches_all_in_stack_order(void)
     clients[0] = s_make_client(1u, "top", 0, 0);
     clients[1] = s_make_client(2u, "middle", 0, 0);
     clients[2] = s_make_client(3u, "bottom", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 3, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 3, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     /* No public getter exposes the result list directly; clicking each
      * row in turn and checking which client search_handle_click's
@@ -1145,14 +1145,14 @@ static void s_test_empty_query_matches_all_in_stack_order(void)
             "with an empty query, the first row is the most recently"
             " focused (top-of-stack) candidate");
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_click(s_connection_stub, (list_td *) NULL, 0,
             (int16_t) (26 + 10 + 10 + 1 * 20 + 1), &cfg);
     TAP_OK(s_focus_apply_last_client == clients[1],
             "the second row is the next-most-recently focused"
             " candidate");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1160,7 +1160,7 @@ static void s_test_empty_query_matches_all_in_stack_order(void)
  * result list ends up empty, so clicking any row does nothing at all */
 static void s_test_query_no_matches(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1168,10 +1168,10 @@ static void s_test_query_no_matches(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "firefox", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "zzz", &cfg);
 
     s_focus_apply_calls = 0;
@@ -1181,7 +1181,7 @@ static void s_test_query_no_matches(void)
             "a query matching nothing leaves every row unclickable,"
             " so no confirm ever fires");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1189,7 +1189,7 @@ static void s_test_query_no_matches(void)
  * satisfied by an identical string) and selects that candidate */
 static void s_test_query_exact_match(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -1198,10 +1198,10 @@ static void s_test_query_exact_match(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "firefox", 0, 0);
     clients[1] = s_make_client(2u, "xterm", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "firefox", &cfg);
 
     search_handle_click(s_connection_stub, (list_td *) NULL, 0,
@@ -1210,7 +1210,7 @@ static void s_test_query_exact_match(void)
             "typing a candidate's exact full name matches and selects"
             " exactly that candidate");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1218,7 +1218,7 @@ static void s_test_query_exact_match(void)
  * subsequence of "FireFox" still matches */
 static void s_test_query_case_insensitive_partial_match(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1226,10 +1226,10 @@ static void s_test_query_case_insensitive_partial_match(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "FireFox", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "ffx", &cfg);
 
     search_handle_click(s_connection_stub, (list_td *) NULL, 0,
@@ -1238,7 +1238,7 @@ static void s_test_query_case_insensitive_partial_match(void)
             "a lowercase, non-contiguous subsequence query matches a"
             " differently-cased candidate name");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1247,7 +1247,7 @@ static void s_test_query_case_insensitive_partial_match(void)
  * match that still satisfies the same query */
 static void s_test_query_scores_tighter_match_first(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -1260,10 +1260,10 @@ static void s_test_query_scores_tighter_match_first(void)
      * query should still promote 'ab-tight' to row 0 */
     clients[0] = s_make_client(1u, "a-x-x-x-x-x-x-x-x-x-b", 0, 0);
     clients[1] = s_make_client(2u, "ab-tight", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "ab", &cfg);
 
     search_handle_click(s_connection_stub, (list_td *) NULL, 0,
@@ -1273,7 +1273,7 @@ static void s_test_query_scores_tighter_match_first(void)
             " scattered one for the very same query, regardless of"
             " which was collected first");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1284,7 +1284,7 @@ static void s_test_query_scores_tighter_match_first(void)
  * nothing */
 static void s_test_keypress_escape_closes(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1292,10 +1292,10 @@ static void s_test_keypress_escape_closes(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff1bu, 0u, &cfg);
 
@@ -1303,7 +1303,7 @@ static void s_test_keypress_escape_closes(void)
     TAP_EQ_INT(s_focus_apply_calls, 0,
             "Escape never confirms a selection");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1311,7 +1311,7 @@ static void s_test_keypress_escape_closes(void)
  * back to empty restores every candidate as a result */
 static void s_test_keypress_backspace_erases_and_refilters(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -1320,10 +1320,10 @@ static void s_test_keypress_backspace_erases_and_refilters(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
     clients[1] = s_make_client(2u, "beta", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "beta", &cfg);
     search_handle_click(s_connection_stub, (list_td *) NULL, 0,
             (int16_t) (26 + 10 + 10 + 0 * 20 + 1), &cfg);
@@ -1331,7 +1331,7 @@ static void s_test_keypress_backspace_erases_and_refilters(void)
             "after typing an exact query, only its matching candidate"
             " is selectable at row 0");
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "beta", &cfg);
     for (int i = 0; i < 4; ++i) {
         search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -1343,7 +1343,7 @@ static void s_test_keypress_backspace_erases_and_refilters(void)
             "backspacing the whole query back to empty restores every"
             " candidate, with the top-of-stack one first again");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1351,7 +1351,7 @@ static void s_test_keypress_backspace_erases_and_refilters(void)
  * out-of-bounds decrement */
 static void s_test_keypress_backspace_on_empty_query_is_safe(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1359,10 +1359,10 @@ static void s_test_keypress_backspace_on_empty_query_is_safe(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff08u, 0u, &cfg);
 
@@ -1371,7 +1371,7 @@ static void s_test_keypress_backspace_on_empty_query_is_safe(void)
             " the widget");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1379,7 +1379,7 @@ static void s_test_keypress_backspace_on_empty_query_is_safe(void)
  * forward, wrapping from the last result back to the first */
 static void s_test_keypress_down_and_tab_cycle_forward(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -1388,10 +1388,10 @@ static void s_test_keypress_down_and_tab_cycle_forward(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
     clients[1] = s_make_client(2u, "beta", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff54u, 0u, &cfg);   /* Down */
 
@@ -1400,7 +1400,7 @@ static void s_test_keypress_down_and_tab_cycle_forward(void)
     TAP_OK(s_focus_apply_last_client == clients[1],
             "one Down from the top selects the second result");
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff09u, 0u, &cfg);   /* plain Tab */
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -1408,7 +1408,7 @@ static void s_test_keypress_down_and_tab_cycle_forward(void)
     TAP_OK(s_focus_apply_last_client == clients[1],
             "a plain Tab moves the selection exactly like Down");
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff54u, 0u, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -1419,7 +1419,7 @@ static void s_test_keypress_down_and_tab_cycle_forward(void)
             "Down past the last result wraps back around to the"
             " first");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1428,7 +1428,7 @@ static void s_test_keypress_down_and_tab_cycle_forward(void)
  * result to the last */
 static void s_test_keypress_up_and_shift_tab_cycle_backward(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -1437,10 +1437,10 @@ static void s_test_keypress_up_and_shift_tab_cycle_backward(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
     clients[1] = s_make_client(2u, "beta", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff52u, 0u, &cfg);   /* Up, wraps from 0 */
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -1448,7 +1448,7 @@ static void s_test_keypress_up_and_shift_tab_cycle_backward(void)
     TAP_OK(s_focus_apply_last_client == clients[1],
             "Up from the first result wraps around to the last");
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff09u,
             (uint16_t) XCB_MOD_MASK_SHIFT, &cfg);  /* Shift+Tab */
@@ -1458,7 +1458,7 @@ static void s_test_keypress_up_and_shift_tab_cycle_backward(void)
             "Shift+Tab (via the modifier mask) moves the selection"
             " exactly like Up");
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xfe20u, 0u, &cfg);   /* ISO_Left_Tab */
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -1467,7 +1467,7 @@ static void s_test_keypress_up_and_shift_tab_cycle_backward(void)
             "the dedicated ISO_Left_Tab keysym moves the selection"
             " exactly like Up too, even with no shift bit set");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1475,7 +1475,7 @@ static void s_test_keypress_up_and_shift_tab_cycle_backward(void)
  * out-of-range selection index */
 static void s_test_keypress_navigation_with_no_results_is_safe(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1483,10 +1483,10 @@ static void s_test_keypress_navigation_with_no_results_is_safe(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "zzz", &cfg);  /* empties the result set */
 
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -1498,7 +1498,7 @@ static void s_test_keypress_navigation_with_no_results_is_safe(void)
             " the widget");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1506,7 +1506,7 @@ static void s_test_keypress_navigation_with_no_results_is_safe(void)
  * Return does */
 static void s_test_keypress_kp_enter_confirms(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1514,10 +1514,10 @@ static void s_test_keypress_kp_enter_confirms(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff8du, 0u, &cfg);   /* KP_Enter */
 
@@ -1527,7 +1527,7 @@ static void s_test_keypress_kp_enter_confirms(void)
     TAP_OK(!search_is_open(),
             "confirming closes the widget");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1536,7 +1536,7 @@ static void s_test_keypress_kp_enter_confirms(void)
  * effect beyond what was already there */
 static void s_test_keypress_unrecognized_key_ignored(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1545,10 +1545,10 @@ static void s_test_keypress_unrecognized_key_ignored(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     draw_calls_before = s_menu_draw_row_bg_calls;
 
     /* 0xffbe is F1, well above the 0xFF printable-keysym ceiling
@@ -1563,7 +1563,7 @@ static void s_test_keypress_unrecognized_key_ignored(void)
             " untouched");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1571,7 +1571,7 @@ static void s_test_keypress_unrecognized_key_ignored(void)
  * re-filters the results */
 static void s_test_keypress_printable_appends_and_refilters(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -1580,10 +1580,10 @@ static void s_test_keypress_printable_appends_and_refilters(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
     clients[1] = s_make_client(2u, "beta", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 'b', 0u, &cfg);
 
@@ -1593,7 +1593,7 @@ static void s_test_keypress_printable_appends_and_refilters(void)
             "typing 'b' filters the result list down to the"
             " candidate whose name contains it");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1601,7 +1601,7 @@ static void s_test_keypress_printable_appends_and_refilters(void)
  * would fill to its maximum length, never overflowing it */
 static void s_test_keypress_query_length_is_capped(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1614,10 +1614,10 @@ static void s_test_keypress_query_length_is_capped(void)
     }
     long_name[sizeof(long_name) - 1u] = '\0';
     clients[0] = s_make_client(1u, long_name, 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     for (int i = 0; i < 200; ++i) {
         search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -1633,7 +1633,7 @@ static void s_test_keypress_query_length_is_capped(void)
             " never overflows it, and the widget stays open");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1660,7 +1660,7 @@ static void s_test_keypress_ignored_when_closed(void)
  * consumed without confirming anything */
 static void s_test_click_outside_rows_does_nothing(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1668,10 +1668,10 @@ static void s_test_click_outside_rows_does_nothing(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_click(s_connection_stub, (list_td *) NULL, 0, 5, &cfg);
 
     TAP_EQ_INT(s_focus_apply_calls, 0,
@@ -1681,7 +1681,7 @@ static void s_test_click_outside_rows_does_nothing(void)
             "and the widget stays open, since nothing was confirmed");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1702,7 +1702,7 @@ static void s_test_click_ignored_when_closed(void)
  * selection there and repaints immediately */
 static void s_test_motion_moves_selection_and_repaints(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -1712,10 +1712,10 @@ static void s_test_motion_moves_selection_and_repaints(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
     clients[1] = s_make_client(2u, "beta", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     draw_calls_before = s_menu_draw_row_bg_calls;
 
     search_handle_motion(0, (int16_t) (26 + 10 + 10 + 1 * 20 + 1));
@@ -1729,7 +1729,7 @@ static void s_test_motion_moves_selection_and_repaints(void)
             "the hovered row became the selection, exactly as if it"
             " had been reached by keyboard navigation");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1737,7 +1737,7 @@ static void s_test_motion_moves_selection_and_repaints(void)
  * again (the early-return "idx == s_search.selected" branch) */
 static void s_test_motion_same_row_skips_repaint(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1746,10 +1746,10 @@ static void s_test_motion_same_row_skips_repaint(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     draw_calls_before = s_menu_draw_row_bg_calls;
 
     search_handle_motion(0, (int16_t) (26 + 10 + 10 + 0 * 20 + 1));
@@ -1758,7 +1758,7 @@ static void s_test_motion_same_row_skips_repaint(void)
             " extra repaint");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1778,7 +1778,7 @@ static void s_test_motion_ignored_when_closed(void)
 /* An iconified client is restored (not merely unhidden) on confirm */
 static void s_test_confirm_iconified_is_restored(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1786,10 +1786,10 @@ static void s_test_confirm_iconified_is_restored(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, CLIENT_STATE_ICONIFIED);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff0du, 0u, &cfg);
 
@@ -1800,14 +1800,14 @@ static void s_test_confirm_iconified_is_restored(void)
     TAP_EQ_INT(s_client_unhide_calls, 0,
             "an iconified client is never separately unhidden too");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
 /* A plain hidden (not iconified) client is unhidden, never restored */
 static void s_test_confirm_hidden_is_unhidden(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1815,10 +1815,10 @@ static void s_test_confirm_hidden_is_unhidden(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", CLIENT_FLAG_HIDDEN, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff0du, 0u, &cfg);
 
@@ -1830,7 +1830,7 @@ static void s_test_confirm_hidden_is_unhidden(void)
     TAP_EQ_INT(s_client_restore_calls, 0,
             "a plain hidden (not iconified) client is never restored");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1838,7 +1838,7 @@ static void s_test_confirm_hidden_is_unhidden(void)
  * addition to any iconified/hidden handling */
 static void s_test_confirm_shaded_is_unshaded(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1846,10 +1846,10 @@ static void s_test_confirm_shaded_is_unshaded(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", CLIENT_FLAG_SHADED, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff0du, 0u, &cfg);
 
@@ -1858,16 +1858,16 @@ static void s_test_confirm_shaded_is_unshaded(void)
     TAP_OK(s_client_unshade_last == clients[0],
             "the unshaded client is the one that was selected");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
-/* A pinned client is never switched-to via enact_surface_desktop_switch,
+/* A pinned client is never switched-to via enact_stage_desktop_switch,
  * since pinning already keeps it visible on whichever desktop the
- * surface currently shows */
+ * stage currently shows */
 static void s_test_confirm_pinned_never_switches_desktop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop_a;
     desktop_td *desktop_b;
     client_td *clients[1];
@@ -1878,44 +1878,44 @@ static void s_test_confirm_pinned_never_switches_desktop(void)
     desktop_b = s_make_desktop(1u, "b");
     clients[0] = s_make_client(1u, "alpha", CLIENT_FLAG_PIN, 0);
 
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = &s_fake_screen;
-    surface.properties.dim.w = 1024u;
-    surface.properties.dim.h = 768u;
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop_a);
-    cdlist_ins_next(surface.desktops, NULL, desktop_b);
-    surface.desktop_count = 2u;
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = &s_fake_screen;
+    stage.properties.dim.w = 1024u;
+    stage.properties.dim.h = 768u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop_a);
+    cdlist_ins_next(stage.desktops, NULL, desktop_b);
+    stage.desktop_count = 2u;
     /* The pinned client is registered as living on desktop 1, while
-     * the surface currently shows desktop 0, so a non-pinned client
+     * the stage currently shows desktop 0, so a non-pinned client
      * in the same spot would trigger a desktop switch */
-    surface.desktop_cur = 0u;
+    stage.desktop_cur = 0u;
     ohtbl_insert(desktop_b->clients, clients[0]);
     s_set_stacking(desktop_b, clients, 1);
     s_set_stacking(desktop_a, NULL, 0);
 
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff0du, 0u, &cfg);
 
     TAP_EQ_INT(s_desktop_switch_calls, 0,
             "a pinned client's confirm never calls"
-            " enact_surface_desktop_switch");
+            " enact_stage_desktop_switch");
     TAP_OK(s_focus_apply_last_desktop == desktop_a,
-            "focus_apply is instead handed the surface's own current"
+            "focus_apply is instead handed the stage's own current"
             " desktop, exactly where the user already is");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
-/* A non-pinned client whose desktop differs from the surface's
+/* A non-pinned client whose desktop differs from the stage's
  * current one triggers a desktop switch before focusing it */
 static void s_test_confirm_non_pinned_other_desktop_switches(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop_a;
     desktop_td *desktop_b;
     client_td *clients[1];
@@ -1926,22 +1926,22 @@ static void s_test_confirm_non_pinned_other_desktop_switches(void)
     desktop_b = s_make_desktop(1u, "b");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
 
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = &s_fake_screen;
-    surface.properties.dim.w = 1024u;
-    surface.properties.dim.h = 768u;
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop_a);
-    cdlist_ins_next(surface.desktops, NULL, desktop_b);
-    surface.desktop_count = 2u;
-    surface.desktop_cur = 0u;
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = &s_fake_screen;
+    stage.properties.dim.w = 1024u;
+    stage.properties.dim.h = 768u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop_a);
+    cdlist_ins_next(stage.desktops, NULL, desktop_b);
+    stage.desktop_count = 2u;
+    stage.desktop_cur = 0u;
     ohtbl_insert(desktop_b->clients, clients[0]);
     s_set_stacking(desktop_b, clients, 1);
     s_set_stacking(desktop_a, NULL, 0);
 
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff0du, 0u, &cfg);
 
@@ -1954,15 +1954,15 @@ static void s_test_confirm_non_pinned_other_desktop_switches(void)
             "focus_apply is still called with the confirmed client"
             " afterward");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
-/* A non-pinned client already on the surface's current desktop
+/* A non-pinned client already on the stage's current desktop
  * triggers no desktop switch at all */
 static void s_test_confirm_same_desktop_never_switches(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -1970,10 +1970,10 @@ static void s_test_confirm_same_desktop_never_switches(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff0du, 0u, &cfg);
 
@@ -1984,7 +1984,7 @@ static void s_test_confirm_same_desktop_never_switches(void)
             "focus_apply still runs exactly once to focus and raise"
             " it");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -1992,7 +1992,7 @@ static void s_test_confirm_same_desktop_never_switches(void)
  * destroys the widget without touching any enact_ or focus_apply path */
 static void s_test_confirm_no_selection_just_destroys(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2000,10 +2000,10 @@ static void s_test_confirm_no_selection_just_destroys(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     s_type(s_connection_stub, "zzz", &cfg);  /* empties the result set */
 
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
@@ -2017,17 +2017,17 @@ static void s_test_confirm_no_selection_just_destroys(void)
             s_client_unshade_calls + s_desktop_switch_calls, 0,
             "nor any of the enact_*/desktop-switch helpers");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
 /* A pinned client whose recorded desktop id no longer resolves via
- * surface_desktop_get (e.g., that desktop has since been torn down)
+ * stage_desktop_get (e.g., that desktop has since been torn down)
  * makes s_search_confirm return early, calling neither
- * enact_surface_desktop_switch nor focus_apply */
+ * enact_stage_desktop_switch nor focus_apply */
 static void s_test_confirm_pinned_unresolvable_desktop_is_safe(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2035,13 +2035,13 @@ static void s_test_confirm_pinned_unresolvable_desktop_is_safe(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", CLIENT_FLAG_PIN, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     /* Unregister every desktop from this file's own
-     * surface_desktop_get stand-in right before confirming, so the
-     * pinned branch's lookup of 'surface->desktop_cur' resolves to
+     * stage_desktop_get stand-in right before confirming, so the
+     * pinned branch's lookup of 'stage->desktop_cur' resolves to
      * NULL, exactly as it would for a desktop torn down between the
      * widget opening and the user confirming */
     s_desktops_registered = 0;
@@ -2055,7 +2055,7 @@ static void s_test_confirm_pinned_unresolvable_desktop_is_safe(void)
 
     s_desktops_registered = 1;
     s_desktops_by_id[0] = desktop;
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2066,7 +2066,7 @@ static void s_test_confirm_pinned_unresolvable_desktop_is_safe(void)
  * one visible row and no scroll indicators are drawn */
 static void s_test_geometry_small_result_set_no_scroll(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[3];
     config_td cfg;
@@ -2076,10 +2076,10 @@ static void s_test_geometry_small_result_set_no_scroll(void)
     clients[0] = s_make_client(1u, "a", 0, 0);
     clients[1] = s_make_client(2u, "b", 0, 0);
     clients[2] = s_make_client(3u, "c", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 3, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 3, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     /* Clicking exactly at the third (last) row's own top-left corner
      * must still resolve to that row: if visible_rows had been
@@ -2091,17 +2091,17 @@ static void s_test_geometry_small_result_set_no_scroll(void)
             " reachable, all three fit in the visible rows without"
             " scrolling");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
-/* On a very short surface, the visible row count is capped at a
+/* On a very short stage, the visible row count is capped at a
  * minimum of one row rather than reaching zero (which would divide
  * the widget by an empty visible range and make every row
  * unreachable) */
-static void s_test_geometry_tiny_surface_keeps_one_row_minimum(void)
+static void s_test_geometry_tiny_stage_keeps_one_row_minimum(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[5];
     config_td cfg;
@@ -2117,23 +2117,23 @@ static void s_test_geometry_tiny_surface_keeps_one_row_minimum(void)
                 (i == 3) ? "c3" : "c4", 0, 0);
         (void) name;
     }
-    /* A surface only tall enough for the bar itself, well under one
+    /* A stage only tall enough for the bar itself, well under one
      * more row's worth of height: 'avail' clamps to zero, and
      * 's_search_compute_geometry' must still floor 'visible_rows' at
      * one rather than at zero */
-    s_make_surface_one_desktop(&surface, desktop, clients, 5, 1024u, 40u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 5, 1024u, 40u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     search_handle_click(s_connection_stub, (list_td *) NULL, 0,
             (int16_t) (26 + 10 + 10 + 0 * 20 + 1), &cfg);
     TAP_OK(s_focus_apply_last_client == clients[0],
-            "even on a surface too short to fit a full row's worth of"
+            "even on a stage too short to fit a full row's worth of"
             " extra height, the first result row is still reachable"
             " (visible_rows floors at one, never zero)");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2142,7 +2142,7 @@ static void s_test_geometry_tiny_surface_keeps_one_row_minimum(void)
  * selection */
 static void s_test_row_at_y_out_of_bounds_above_and_below(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -2151,10 +2151,10 @@ static void s_test_row_at_y_out_of_bounds_above_and_below(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "a", 0, 0);
     clients[1] = s_make_client(2u, "b", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     search_handle_click(s_connection_stub, (list_td *) NULL, 0, 0, &cfg);
     TAP_EQ_INT(s_focus_apply_calls, 0,
@@ -2168,7 +2168,7 @@ static void s_test_row_at_y_out_of_bounds_above_and_below(void)
             " visible rows entirely, also selects nothing");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2177,7 +2177,7 @@ static void s_test_row_at_y_out_of_bounds_above_and_below(void)
  * visible row, proving scroll_offset is folded into the hit test */
 static void s_test_scroll_offset_folds_into_row_hit_test(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[40];
     char names[40][8];
@@ -2191,11 +2191,11 @@ static void s_test_scroll_offset_folds_into_row_hit_test(void)
     }
     /* Tall enough to give a visible range of several rows, but with
      * 40 results still far more than fit, so scrolling is exercised */
-    s_make_surface_one_desktop(&surface, desktop, clients, 40, 1024u,
+    s_make_stage_one_desktop(&stage, desktop, clients, 40, 1024u,
             300u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     /* Move selection down far enough that scroll_to_selection must
      * scroll the visible range to keep it visible */
@@ -2218,7 +2218,7 @@ static void s_test_scroll_offset_folds_into_row_hit_test(void)
             " focused, proving scroll_offset was correctly folded"
             " into which candidate ended up selected");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2229,7 +2229,7 @@ static void s_test_scroll_offset_folds_into_row_hit_test(void)
  * extra scroll-indicator labels beyond one per visible row */
 static void s_test_draw_shows_scroll_indicators_when_overflowing(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[40];
     char names[40][8];
@@ -2242,11 +2242,11 @@ static void s_test_draw_shows_scroll_indicators_when_overflowing(void)
         (void) snprintf(names[i], sizeof(names[i]), "c%02d", i);
         clients[i] = s_make_client((uint32_t) (1 + i), names[i], 0, 0);
     }
-    s_make_surface_one_desktop(&surface, desktop, clients, 40, 1024u,
+    s_make_stage_one_desktop(&stage, desktop, clients, 40, 1024u,
             300u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     label_calls_before = s_menu_draw_label_calls;
 
     /* Scroll down once so both the up and down indicators are due:
@@ -2266,7 +2266,7 @@ static void s_test_draw_shows_scroll_indicators_when_overflowing(void)
             " (beyond one per visible row) once scrolled past the"
             " top");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2274,7 +2274,7 @@ static void s_test_draw_shows_scroll_indicators_when_overflowing(void)
  * indicators are drawn */
 static void s_test_draw_no_scroll_indicators_when_all_fit(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[2];
     config_td cfg;
@@ -2285,10 +2285,10 @@ static void s_test_draw_no_scroll_indicators_when_all_fit(void)
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "a", 0, 0);
     clients[1] = s_make_client(2u, "b", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 2, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 2, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
 
     label_calls_before = s_menu_draw_label_calls;
     search_draw(s_connection_stub, &cfg);
@@ -2302,14 +2302,14 @@ static void s_test_draw_no_scroll_indicators_when_all_fit(void)
             " paints exactly one label per row plus the query bar,"
             " no scroll-indicator extras");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
 /* search_draw with a null config is a safe no-op */
 static void s_test_draw_null_config_is_safe(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2318,10 +2318,10 @@ static void s_test_draw_null_config_is_safe(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     draw_calls_before = s_menu_draw_row_bg_calls;
 
     search_draw(s_connection_stub, NULL);
@@ -2330,7 +2330,7 @@ static void s_test_draw_null_config_is_safe(void)
             " not crash");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2352,7 +2352,7 @@ static void s_test_draw_while_closed_is_safe(void)
  * that does carry a client icon calls wmicon_draw_at */
 static void s_test_draw_with_show_pixmaps_draws_icon(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2360,17 +2360,17 @@ static void s_test_draw_with_show_pixmaps_draws_icon(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
     cfg.theme.menu.show_pixmaps = true;
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     TAP_OK(s_wmicon_draw_at_calls > 0,
             "with show_pixmaps enabled, painting a client result row"
             " draws its icon via wmicon_draw_at");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2378,7 +2378,7 @@ static void s_test_draw_with_show_pixmaps_draws_icon(void)
  * drawn for any row */
 static void s_test_draw_without_show_pixmaps_skips_icon(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2386,16 +2386,16 @@ static void s_test_draw_without_show_pixmaps_skips_icon(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     TAP_EQ_INT(s_wmicon_draw_at_calls, 0,
             "with show_pixmaps left at its default (false), no icon is"
             " ever drawn for any row");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2404,7 +2404,7 @@ static void s_test_draw_without_show_pixmaps_skips_icon(void)
  * argument */
 static void s_test_unnamed_client_uses_placeholder(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2412,10 +2412,10 @@ static void s_test_unnamed_client_uses_placeholder(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, NULL, 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     TAP_OK(search_is_open(),
             "a client with a null name is still collected and does"
             " not crash the widget");
@@ -2425,7 +2425,7 @@ static void s_test_unnamed_client_uses_placeholder(void)
     TAP_OK(s_focus_apply_last_client == clients[0],
             "and it still confirms exactly like any other candidate");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2434,7 +2434,7 @@ static void s_test_unnamed_client_uses_placeholder(void)
  * alongside it */
 static void s_test_hints_fullscreen_priority_and_independent_flags(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2446,7 +2446,7 @@ static void s_test_hints_fullscreen_priority_and_independent_flags(void)
                 CLIENT_FLAG_URGENT),
             (uint16_t) (CLIENT_STATE_FULLSCREEN |
                 CLIENT_STATE_MAXIMIZED));
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
     /* No public accessor exposes the built hint string directly; this
@@ -2454,7 +2454,7 @@ static void s_test_hints_fullscreen_priority_and_independent_flags(void)
      * incident with every exclusive-plus-independent hint bit set at
      * once, the combination 's_search_build_hints' has to fit within
      * its small fixed 'letters[8]' buffer without overflowing it */
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     TAP_OK(search_is_open(),
             "a client with every hint-worthy bit set at once (an"
             " exclusive geometry state plus two independent flags)"
@@ -2462,15 +2462,15 @@ static void s_test_hints_fullscreen_priority_and_independent_flags(void)
             " small fixed hint-letter buffer");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
-/* A surface with only one desktop never draws a desktop-name column at
+/* A stage with only one desktop never draws a desktop-name column at
  * all (the "desktop_count > 1" guard); one with several does */
-static void s_test_single_desktop_surface_paints_without_crash(void)
+static void s_test_single_desktop_stage_paints_without_crash(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *clients[1];
     config_td cfg;
@@ -2478,16 +2478,16 @@ static void s_test_single_desktop_surface_paints_without_crash(void)
     s_reset();
     desktop = s_make_desktop(0u, "solo");
     clients[0] = s_make_client(1u, "alpha", 0, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_stage_one_desktop(&stage, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
-    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_init((list_td *) NULL, s_connection_stub, &stage, &cfg);
     TAP_OK(search_is_open(),
-            "a single-desktop surface paints its one result row"
+            "a single-desktop stage paints its one result row"
             " without drawing (or crashing on) a desktop-name column");
 
     search_destroy(s_connection_stub);
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -2543,7 +2543,7 @@ int main(void)
     s_test_confirm_pinned_unresolvable_desktop_is_safe();
 
     s_test_geometry_small_result_set_no_scroll();
-    s_test_geometry_tiny_surface_keeps_one_row_minimum();
+    s_test_geometry_tiny_stage_keeps_one_row_minimum();
     s_test_row_at_y_out_of_bounds_above_and_below();
     s_test_scroll_offset_folds_into_row_hit_test();
 
@@ -2556,7 +2556,7 @@ int main(void)
 
     s_test_unnamed_client_uses_placeholder();
     s_test_hints_fullscreen_priority_and_independent_flags();
-    s_test_single_desktop_surface_paints_without_crash();
+    s_test_single_desktop_stage_paints_without_crash();
 
     return TAP_DONE();
 }

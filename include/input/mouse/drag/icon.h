@@ -45,7 +45,7 @@
  * @param icon_pos   Current icon window position (screen-relative)
  * @param event_time Timestamp from the triggering button-press event
  * @param root_pos   Root-relative position of the pointer at press time
- * @param screen_dim Surface dimensions, for edge snapping and
+ * @param screen_dim Stage dimensions, for edge snapping and
  *                   @p desktops.warp's edge detection
  *
  * @note Complexity: @e O(1)

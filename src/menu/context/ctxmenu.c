@@ -34,8 +34,8 @@
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Local includes */
 #include <menu/context/ctxmenu.h>
@@ -46,7 +46,7 @@
 
 /* Create and show a context menu window */
 void ctxmenu_show(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         struct position_s pos, const config_td *config)
 {
     uint32_t mask;
@@ -60,7 +60,7 @@ void ctxmenu_show(xcb_connection_t *connection,
     const desktop_td *desktop;
     size_t entry_count;
 
-    if (connection == NULL || surface == NULL || state == NULL ||
+    if (connection == NULL || stage == NULL || state == NULL ||
             config == NULL || state->entries == NULL ||
             state->entry_count <= 0) {
         return;
@@ -78,7 +78,7 @@ void ctxmenu_show(xcb_connection_t *connection,
 
     ctxmenu_close(state);
 
-    state->surface = surface;
+    state->stage = stage;
     state->config = config;
     state->selected = -1;
     state->last_motion_y = -1;
@@ -95,8 +95,8 @@ void ctxmenu_show(xcb_connection_t *connection,
     state->height = ctxmenu_layout_build(state);
 
     /* Use the active desktop's work area to clamp position */
-    work = (struct geometry_s) { { 0, 0 }, surface->properties.dim };
-    desktop = surface_desktop_get(surface, surface->desktop_cur);
+    work = (struct geometry_s) { { 0, 0 }, stage->properties.dim };
+    desktop = stage_desktop_get(stage, stage->desktop_cur);
     if (desktop != NULL) {
         work = desktop->workarea;
     }
@@ -133,7 +133,7 @@ void ctxmenu_show(xcb_connection_t *connection,
                 XCB_EVENT_MASK_POINTER_MOTION;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT,
-            state->window, surface->screen->root,
+            state->window, stage->screen->root,
             clamped_x, clamped_y,
             state->width, state->height,
             (uint16_t) config->theme.menu.border.width,
@@ -175,7 +175,7 @@ void ctxmenu_show(xcb_connection_t *connection,
     if (state->parent == NULL) {
         xcb_grab_keyboard(connection,
                 0,                      /* owner_events */
-                surface->screen->root,
+                stage->screen->root,
                 XCB_CURRENT_TIME,
                 XCB_GRAB_MODE_ASYNC,    /* pointer events unaffected */
                 XCB_GRAB_MODE_ASYNC);   /* delivered asynchronously */
@@ -189,7 +189,7 @@ void ctxmenu_show(xcb_connection_t *connection,
                                            correct 'event' window and
                                            window-relative coordinates,
                                            enabling hover highlight) */
-                surface->screen->root,
+                stage->screen->root,
                 XCB_EVENT_MASK_BUTTON_PRESS   |
                 XCB_EVENT_MASK_BUTTON_RELEASE |
                 XCB_EVENT_MASK_POINTER_MOTION,
@@ -234,7 +234,7 @@ void ctxmenu_close(ctxmenu_state_td *state)
     state->selected = -1;
     state->width = 0;
     state->height = 0;
-    state->surface = NULL;
+    state->stage = NULL;
     state->config = NULL;
 
     free(state->entry_top_y);

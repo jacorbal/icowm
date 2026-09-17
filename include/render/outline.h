@@ -41,8 +41,8 @@
  * these are entirely separate, @c override_redirect windows layered
  * on top.
  *
- * @param connection   X connection
- * @param root         Root window the 4 strips are created as
+ * @param connection X connection
+ * @param root       Root window the 4 strips are created as
  *                     children of
  * @param geom         Rectangle to outline, in root coordinates
  * @param border_width Thickness of each strip, in pixels
@@ -50,7 +50,7 @@
  * @param stack_below  A window every strip is kept stacked below
  *                     (never covering it), or @c XCB_WINDOW_NONE for
  *                     no such constraint
- * @param windows      Caller-owned 4-element array, initialized to
+ * @param windows Caller-owned 4-element array, initialized to
  *                     @c XCB_WINDOW_NONE before this call; filled in
  *                     with the 4 new window IDs
  *
@@ -70,7 +70,7 @@ void render_outline_show(xcb_connection_t *connection, xcb_window_t root,
  * @param stack_below  A window every strip is kept stacked below (never
  *                     covering it), or @c XCB_WINDOW_NONE for no such
  *                     constraint
- * @param windows      The same 4-element array @a render_outline_show
+ * @param windows The same 4-element array @a render_outline_show
  *                     filled in; entries still @c XCB_WINDOW_NONE are
  *                     skipped
  *

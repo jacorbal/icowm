@@ -87,7 +87,7 @@ void render_desktop_background_cache_invalidate(void);
  *                   @a render_desktop_background_render is called,
  *                   whichever comes first; a no-op on every call after
  *                   that
- * @param atom       Atom to check
+ * @param atom Atom to check
  *
  * @return @c true if @p atom is one of the candidate background pixmap
  *         properties

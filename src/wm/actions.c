@@ -37,7 +37,7 @@
 #include <cctl/sn.h>
 
 /* Commands includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Default initial values */
 #include <defs/icon.h>
@@ -63,10 +63,10 @@
 #include <lookup.h>
 #include <rules.h>
 #include <session.h>
-#include <surface.h>
-#include <surface/action.h>
-#include <surface/desktop.h>
-#include <surface/workarea.h>
+#include <stage.h>
+#include <stage/action.h>
+#include <stage/desktop.h>
+#include <stage/workarea.h>
 #include <systray.h>
 #include <xsettings.h>
 
@@ -82,7 +82,7 @@ struct s_reload_ctx_s {
     const wm_td *wm;                /**< Window manager instance */
     const struct config_base_s *config_base;
                                     /**< Configuration just reloaded */
-    surface_td *surface;            /**< Surface being reloaded */
+    stage_td *stage;            /**< Stage being reloaded */
     const struct geometry_s *tray;  /**< Tray rectangle on it */
     bool is_tray_visible;           /**< Whether the tray is showing */
     uint32_t index;                 /**< Desktop index reached */
@@ -173,19 +173,19 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
         return;
     }
 
-    /* A surface-wide setting, unlike the per-desktop 'background'/
+    /* A stage-wide setting, unlike the per-desktop 'background'/
      * 'desktops' array entries below, so this runs for every desktop
-     * still on 'ctx->surface' regardless of whether its own index still
+     * still on 'ctx->stage' regardless of whether its own index still
      * has a matching entry in the just-reloaded config: a desktop
      * panned to a page a shrunk viewport no longer has is pulled back
      * to the nearest one that still exists, translating whichever
      * clients were left stranded off it back into view, the same as an
      * ordinary pan already would. */
-    scmd_surface_viewport_reclamp(ctx->surface, desktop);
+    scmd_stage_viewport_reclamp(ctx->stage, desktop);
 
     ctx->index++;
     if (this_index >=
-            ctx->config_base->screens[ctx->surface->id].desktop_count) {
+            ctx->config_base->screens[ctx->stage->id].desktop_count) {
         return;
     }
 
@@ -201,7 +201,7 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
     if (!desktop->background.is_image &&
             !desktop->background.use_root_pixmap) {
         uint32_t new_color =
-            ctx->config_base->screens[ctx->surface->id]
+            ctx->config_base->screens[ctx->stage->id]
             .desktops[this_index].settings.background.color;
 
         desktop->background.bg.color =
@@ -243,7 +243,7 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
 
 
 /**
- * @brief Resynchronize every already-managed surface, desktop, and
+ * @brief Resynchronize every already-managed stage, desktop, and
  *        client after a configuration reload
  *
  * A configuration reload updates @p wm's configuration in place,
@@ -256,7 +256,7 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
  * @param wm Window manager instance
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e c
+ *       stages, @e d the number of desktops per stage, and @e c
  *       the number of clients per desktop
  */
 static void s_resync_after_reload(const wm_td *wm)
@@ -264,16 +264,16 @@ static void s_resync_after_reload(const wm_td *wm)
     struct s_reload_ctx_s reload_ctx;
     config_td *const config = wm_config(wm);
 
-    for (list_item_td *snode = list_head(wm_surfaces(wm));
+    for (list_item_td *snode = list_head(wm_stages(wm));
             snode != NULL; snode = list_next(snode)) {
-        surface_td *const s = (surface_td *) list_data(snode);
+        stage_td *const s = (stage_td *) list_data(snode);
         struct config_base_s *const cb = &(config->base);
         struct geometry_s tray;
-        /* Queried once per surface here, ahead of the desktop/client
+        /* Queried once per stage here, ahead of the desktop/client
          * loop below, rather than once per icon inside it.  This is
          * a synchronous round trip to the X server, as
          * 'systray_get_geometry''s comment notes, and every icon on
-         * this same surface shares the identical tray rectangle
+         * this same stage shares the identical tray rectangle
          * regardless. */
         bool tray_visible = systray_get_geometry(s, &tray);
 
@@ -283,11 +283,11 @@ static void s_resync_after_reload(const wm_td *wm)
 
         reload_ctx.wm = wm;
         reload_ctx.config_base = cb;
-        reload_ctx.surface = s;
+        reload_ctx.stage = s;
         reload_ctx.tray = &tray;
         reload_ctx.is_tray_visible = tray_visible;
         reload_ctx.index = 0u;
-        surface_desktop_walk_all(s, s_desktop_reload_visit,
+        stage_desktop_walk_all(s, s_desktop_reload_visit,
                 &reload_ctx);
 
         s->is_outdated = true;
@@ -302,28 +302,28 @@ static void s_resync_after_reload(const wm_td *wm)
          * invisible until one of those unrelated triggers happened to
          * fire, e.g., by switching desktops (switching away and back
          * hides and shows clients, an unmap/map pair that reaches
-         * 'surface_workarea_refresh_all' as a side effect of something
+         * 'stage_workarea_refresh_all' as a side effect of something
          * else entirely). */
-        surface_workarea_refresh_all(s);
+        stage_workarea_refresh_all(s);
     }
 }
 
 
 /* Rearrange every visible window on the current desktop */
-void wm_action_rearrange(const wm_td *wm, surface_td *surface)
+void wm_action_rearrange(const wm_td *wm, stage_td *stage)
 {
     const desktop_td *desktop;
 
-    if (surface == NULL) {
+    if (stage == NULL) {
         return;
     }
 
-    desktop = lookup_current_desktop(surface);
+    desktop = lookup_current_desktop(stage);
     if (desktop == NULL) {
         return;
     }
 
-    enact_desktop_client_rearrange_all(wm, surface, desktop);
+    enact_desktop_client_rearrange_all(wm, stage, desktop);
 }
 
 
@@ -367,27 +367,27 @@ int wm_action_config_reload(const wm_td *wm)
 
     /* Apply any 'randr.json' output profile that changed since the last
      * load, offering a chance to revert it (see 'dialog_rrsafe_ show')
-     * before 's_resync_after_reload' below, so any surface or client
+     * before 's_resync_after_reload' below, so any stage or client
      * resync there already reflects the new screen geometry if RandR
-     * itself just changed it.  Every surface's own changes are
-     * snapshotted, not only the first surface to actually change any:
-     * 'surface_action_randr_snapshot_begin' clears the slate once,
-     * ahead of the whole loop, and every 'surface_action_apply_randr_
+     * itself just changed it.  Every stage's own changes are
+     * snapshotted, not only the first stage to actually change any:
+     * 'stage_action_randr_snapshot_begin' clears the slate once,
+     * ahead of the whole loop, and every 'stage_action_apply_randr_
      * profiles' call below appends to that same snapshot rather than
      * starting a fresh one of its own, so the one dialog shown, after
-     * every surface has had its own profiles applied, its cancel (or
-     * the countdown elapsing) reverts every surface that changed, not
+     * every stage has had its own profiles applied, its cancel (or
+     * the countdown elapsing) reverts every stage that changed, not
      * only whichever happened to be first. */
-    if (wm_surfaces(wm) != NULL) {
+    if (wm_stages(wm) != NULL) {
         bool any_changed = false;
-        surface_td *first_changed = NULL;
+        stage_td *first_changed = NULL;
 
-        surface_action_randr_snapshot_begin();
+        stage_action_randr_snapshot_begin();
 
-        for (list_item_td *node = list_head(wm_surfaces(wm));
+        for (list_item_td *node = list_head(wm_stages(wm));
                 node != NULL; node = list_next(node)) {
-            surface_td *const s = (surface_td *) list_data(node);
-            bool changed = surface_action_randr_apply_profiles(s, true);
+            stage_td *const s = (stage_td *) list_data(node);
+            bool changed = stage_action_randr_apply_profiles(s, true);
 
             if (changed) {
                 any_changed = true;
@@ -414,9 +414,9 @@ int wm_action_config_reload(const wm_td *wm)
      * re-grabbing, so a binding that changed does not end up with both
      * its old and new key/button combination active at once. */
     if (wm_keysyms(wm) != NULL) {
-        keyboard_load(wm_surfaces(wm), wm_keysyms(wm), config);
+        keyboard_load(wm_stages(wm), wm_keysyms(wm), config);
     }
-    mouse_load(wm_surfaces(wm), config);
+    mouse_load(wm_stages(wm), config);
 
     /* Reload the systray reacting to config. reload */
     systray_reload(wm);

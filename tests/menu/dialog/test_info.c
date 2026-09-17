@@ -31,7 +31,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -39,20 +39,20 @@
 #include <menu/dialog/message.h>
 
 
-/** Fake, non-null XCB connection/surface/config handles, standing in
+/** Fake, non-null XCB connection/stage/config handles, standing in
  *  for live ones wherever info.c merely forwards them onward without
  *  ever dereferencing them itself */
 static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
-static surface_td s_fake_surface;
+static stage_td s_fake_stage;
 static config_td s_fake_config;
 
 /** Recording stand-ins' own call counters and captured arguments,
  *  reset by s_reset between scenarios */
 static int s_call_show;
 static xcb_connection_t *s_show_connection;
-static surface_td *s_show_surface;
+static stage_td *s_show_stage;
 static const config_td *s_show_config;
 static const char *s_show_message;
 static menu_msg_level_e s_show_level;
@@ -85,7 +85,7 @@ static void s_reset(void)
 {
     s_call_show = 0;
     s_show_connection = NULL;
-    s_show_surface = NULL;
+    s_show_stage = NULL;
     s_show_config = NULL;
     s_show_message = NULL;
     s_show_level = MENU_MSG_LEVEL_NONE;
@@ -116,12 +116,12 @@ static void s_reset(void)
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level)
 {
     s_call_show++;
     s_show_connection = connection;
-    s_show_surface = surface;
+    s_show_stage = stage;
     s_show_config = config;
     s_show_message = message;
     s_show_level = level;
@@ -138,12 +138,12 @@ void menu_message_dialog_show(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_show_pairs(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const struct dialog_pair_s *pairs, size_t count,
         menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     (void) pairs;
     (void) count;
@@ -217,14 +217,14 @@ xcb_window_t menu_message_dialog_window(void)
 static void s_test_show_forwards_arguments(void)
 {
     s_reset();
-    dialog_info_show(s_fake_connection, &s_fake_surface, &s_fake_config,
+    dialog_info_show(s_fake_connection, &s_fake_stage, &s_fake_config,
             "no such file", MENU_MSG_LEVEL_WARNING);
 
     TAP_EQ_INT(s_call_show, 1, "info_show: forwards to show exactly once");
     TAP_OK(s_show_connection == s_fake_connection,
             "info_show: forwards the connection unchanged");
-    TAP_OK(s_show_surface == &s_fake_surface,
-            "info_show: forwards the surface unchanged");
+    TAP_OK(s_show_stage == &s_fake_stage,
+            "info_show: forwards the stage unchanged");
     TAP_OK(s_show_config == &s_fake_config,
             "info_show: forwards the config unchanged");
     TAP_EQ_STR(s_show_message, "no such file",

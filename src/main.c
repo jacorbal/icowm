@@ -21,7 +21,7 @@
  *                /  _/______| | /| / /  |/  /
  *               _/ // __/ _ \ |/ |/ / /|_/ /
  *              /___/\__/\___/__/|__/_/  /_/
- *              Iconifying Window Manager (for X11)
+ *               Iconifying Window Manager
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

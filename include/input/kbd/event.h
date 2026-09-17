@@ -43,20 +43,20 @@
  * Dispatches client operations, desktop switches, program launches,
  * move/resize key steps, and cycle menu open/navigate.
  *
- * @param wm       Window manager instance (for actions that need more
- *                 than the surface list and configuration alone, such
+ * @param wm Window manager instance (for actions that need more
+ *                 than the stage list and configuration alone, such
  *                 as re-applying the placement policy)
- * @param keysyms  Allocated XCB key-symbols table
- * @param event    Incoming key-press event
- * @param surfaces All managed surfaces (for lookup and focus)
- * @param cfg      Active configuration
+ * @param keysyms Allocated XCB key-symbols table
+ * @param event   Incoming key-press event
+ * @param stages  All managed stages (for lookup and focus)
+ * @param cfg     Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of loaded
  *       bindings
  */
 void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         xcb_key_press_event_t *event,
-        list_td *surfaces,
+        list_td *stages,
         const config_td *cfg);
 
 /**
@@ -66,16 +66,16 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
  * Checks whether the released key is the modifier used to open the
  * cycle menu; if so, confirms the current selection automatically.
  *
- * @param keysyms  Allocated XCB key-symbols table
- * @param event    Incoming key-release event
- * @param surfaces All managed surfaces (used to pass to cycle_confirm)
- * @param cfg      Active configuration
+ * @param keysyms Allocated XCB key-symbols table
+ * @param event   Incoming key-release event
+ * @param stages  All managed stages (used to pass to cycle_confirm)
+ * @param cfg     Active configuration
  *
  * @note Complexity: @e O(1)
  */
 void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         xcb_key_release_event_t *event,
-        list_td *surfaces,
+        list_td *stages,
         const config_td *cfg);
 
 

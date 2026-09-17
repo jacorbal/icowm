@@ -134,8 +134,8 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  * instead (see @a s_enforce_layer_is_top_level), matching the condition
  * @c (ch->layer == selected->layer).
  *
- * @param top         Client to place, then recurse from
- * @param desktop     Desktop this layer pass is placing; only
+ * @param top     Client to place, then recurse from
+ * @param desktop Desktop this layer pass is placing; only
  *                    a descendant registered under this same desktop is
  *                    placed by this same call, matching a pinned client
  *                    staying registered under whichever desktop it was
@@ -144,7 +144,7 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  *                    (@a ccmd_client_bring_family's comment,
  *                    @c cmds/client/transient.c, for the fuller
  *                    reasoning)
- * @param layer       Layer this pass is placing; only a descendant
+ * @param layer Layer this pass is placing; only a descendant
  *                    sharing this exact layer with @p top is placed by
  *                    this same call
  * @param prev_target The previous client's target window
@@ -153,7 +153,7 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  *                    place as each client here is placed, so the
  *                    caller's next sibling stacks above whatever this
  *                    call last placed
- * @param depth       Current recursion depth; the caller's first call
+ * @param depth Current recursion depth; the caller's first call
  *                    always passes @c 0
  *
  * @note A null @p top, or exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH, is

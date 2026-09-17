@@ -1,7 +1,7 @@
 /**
  * @file wm/startup/subscribe.h
  *
- * @brief Subscribing to X server events on every managed surface
+ * @brief Subscribing to X server events on every managed stage
  *
  * @ingroup startup
  */
@@ -29,12 +29,12 @@
  * @retval  0 on success (including when XRandR is unavailable)
  * @retval -1 if @p wm or its members are null
  *
- * @note Complexity: @e O(n), where @e n is the amount of surfaces
+ * @note Complexity: @e O(n), where @e n is the amount of stages
  */
 int wm_startup_subscribe_randr_events(const wm_td *wm);
 
 /**
- * @brief Subscribe to root window events on all managed surfaces
+ * @brief Subscribe to root window events on all managed stages
  *
  * Also sets a default left-pointer cursor on every root window.
  *
@@ -44,7 +44,7 @@ int wm_startup_subscribe_randr_events(const wm_td *wm);
  * @retval -1 if @p wm or its members are null, or if another window
  *            manager already holds the root event subscription
  *
- * @note Complexity: @e O(n), where @e n is the amount of surfaces
+ * @note Complexity: @e O(n), where @e n is the amount of stages
  *
  * @see Implementation's comment for why the left-pointer lives here
  */

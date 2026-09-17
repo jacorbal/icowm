@@ -86,7 +86,7 @@ int mouse_hover_poll_ms_remaining(void);
  * tracked this way, and @a mouse_hover_poll_clear for where it stops.
  *
  * @param connection XCB connection
- * @param surfaces   Every managed surface, to look up the tracked
+ * @param stages     Every managed stage, to look up the tracked
  *                   window's client
  *
  * @note No-op if nothing is currently tracked, or if tracked but not
@@ -94,7 +94,7 @@ int mouse_hover_poll_ms_remaining(void);
  * @note Complexity: @e O(1)
  */
 void mouse_hover_poll_tick(xcb_connection_t *connection,
-        list_td *surfaces);
+        list_td *stages);
 
 /**
  * @brief Update the pointer cursor to match a window's resize border
@@ -115,7 +115,7 @@ void mouse_hover_poll_tick(xcb_connection_t *connection,
  * same zone.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces, for the client lookup
+ * @param stages     All managed stages, for the client lookup
  * @param event      Motion-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
@@ -125,7 +125,7 @@ void mouse_hover_poll_tick(xcb_connection_t *connection,
  *      @a mouse_resize_cursors_init
  */
 void mouse_handle_motion_hover(xcb_connection_t *connection,
-        list_td *surfaces, xcb_motion_notify_event_t *event);
+        list_td *stages, xcb_motion_notify_event_t *event);
 
 /**
  * @brief Start (or clear) hover-poll tracking of a window's resize

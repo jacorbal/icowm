@@ -833,7 +833,7 @@ static void s_test_name_refreshes_report_only_real_changes(void)
 
 int main(void)
 {
-    TAP_PLAN(41);
+    TAP_PLAN(42);
 
     s_test_wm_name_null_buffer_returns_zero();
     s_test_wm_name_zero_size_returns_zero();

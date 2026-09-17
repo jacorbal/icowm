@@ -6,7 +6,7 @@
  *
  * 'ctxmenu_show' only ever reaches an X server past its own guard
  * clause: every argument it accepts before that point (a null
- * 'connection', 'surface', 'state', or 'config', a null
+ * 'connection', 'stage', 'state', or 'config', a null
  * 'state->entries', or a non-positive 'state->entry_count') is
  * checked here, since none of those five paths ever calls
  * 'xcb_generate_id' or touches the server at all.  Once past that
@@ -50,7 +50,7 @@
 #include <harness/tap.h>
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/layout.h>
-#include <surface.h>
+#include <stage.h>
 #include <utils/xcb/atom.h>
 
 
@@ -105,16 +105,16 @@ uint16_t ctxmenu_layout_build(ctxmenu_state_td *state)
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_get
+ * @brief Link-only stand-in for @a stage_desktop_get
  *
  * Reached only past 'ctxmenu_show''s guard clause, on a live
  * connection this file never has.
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     return NULL;
 }
@@ -160,46 +160,46 @@ static void s_test_show_guards(void)
 {
     ctxmenu_entry_td entries[1];
     ctxmenu_state_td state;
-    surface_td surface;
+    stage_td stage;
     config_td config;
     struct position_s pos = { 0, 0 };
 
     memset(&entries, 0, sizeof(entries));
     memset(&state, 0, sizeof(state));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
     state.entries = entries;
     state.entry_count = 1;
     state.window = XCB_WINDOW_NONE;
 
-    ctxmenu_show(NULL, &surface, &state, pos, &config);
+    ctxmenu_show(NULL, &stage, &state, pos, &config);
     TAP_EQ_INT((int) state.window, (int) XCB_WINDOW_NONE,
             "null connection leaves the window unset");
 
     ctxmenu_show((xcb_connection_t *) 1, NULL, &state, pos, &config);
     TAP_EQ_INT((int) state.window, (int) XCB_WINDOW_NONE,
-            "null surface leaves the window unset");
+            "null stage leaves the window unset");
 
-    ctxmenu_show((xcb_connection_t *) 1, &surface, NULL, pos, &config);
+    ctxmenu_show((xcb_connection_t *) 1, &stage, NULL, pos, &config);
     TAP_OK(true, "null state does not crash");
 
-    ctxmenu_show((xcb_connection_t *) 1, &surface, &state, pos, NULL);
+    ctxmenu_show((xcb_connection_t *) 1, &stage, &state, pos, NULL);
     TAP_EQ_INT((int) state.window, (int) XCB_WINDOW_NONE,
             "null config leaves the window unset");
 
     state.entries = NULL;
-    ctxmenu_show((xcb_connection_t *) 1, &surface, &state, pos, &config);
+    ctxmenu_show((xcb_connection_t *) 1, &stage, &state, pos, &config);
     TAP_EQ_INT((int) state.window, (int) XCB_WINDOW_NONE,
             "null entries leaves the window unset");
 
     state.entries = entries;
     state.entry_count = 0;
-    ctxmenu_show((xcb_connection_t *) 1, &surface, &state, pos, &config);
+    ctxmenu_show((xcb_connection_t *) 1, &stage, &state, pos, &config);
     TAP_EQ_INT((int) state.window, (int) XCB_WINDOW_NONE,
             "zero entry_count leaves the window unset");
 
     state.entry_count = -1;
-    ctxmenu_show((xcb_connection_t *) 1, &surface, &state, pos, &config);
+    ctxmenu_show((xcb_connection_t *) 1, &stage, &state, pos, &config);
     TAP_EQ_INT((int) state.window, (int) XCB_WINDOW_NONE,
             "negative entry_count leaves the window unset");
 }
@@ -229,7 +229,7 @@ static void s_test_close_resets_fields(void)
     state.selected = 2;
     state.width = 100;
     state.height = 200;
-    state.surface = (surface_td *) 1;
+    state.stage = (stage_td *) 1;
     state.config = (config_td *) 1;
     state.entry_top_y = top_y;
     state.parent = NULL;
@@ -242,7 +242,7 @@ static void s_test_close_resets_fields(void)
     TAP_EQ_INT(state.selected, -1, "close resets selected to -1");
     TAP_EQ_INT((int) state.width, 0, "close resets width to zero");
     TAP_EQ_INT((int) state.height, 0, "close resets height to zero");
-    TAP_NULL(state.surface, "close clears the surface pointer");
+    TAP_NULL(state.stage, "close clears the stage pointer");
     TAP_NULL(state.config, "close clears the config pointer");
     TAP_NULL(state.entry_top_y, "close frees and nulls entry_top_y");
 }

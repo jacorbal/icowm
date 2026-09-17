@@ -31,7 +31,7 @@
 #include <defs/kbd.h>
 
 /* Project includes */
-#include <render/surface.h>
+#include <render/stage.h>
 
 
 
@@ -54,14 +54,14 @@ bool kbd_modal_is_active(void);
  * original position.
  *
  * @param connection XCB connection
- * @param surface    Surface the client belongs to, used for the root
+ * @param stage      Stage the client belongs to, used for the root
  *                   window
- * @param client     Client to move
+ * @param client Client to move
  *
  * @note Complexity: @e O(1)
  */
 void kbd_modal_move_start(xcb_connection_t *connection,
-        surface_td *surface, client_td *client);
+        stage_td *stage, client_td *client);
 
 /**
  * @brief Enter keyboard modal resize mode for the given client
@@ -73,14 +73,14 @@ void kbd_modal_move_start(xcb_connection_t *connection,
  * size.
  *
  * @param connection XCB connection
- * @param surface    Surface the client belongs to, used for the root
+ * @param stage      Stage the client belongs to, used for the root
  *                   window
- * @param client     Client to resize
+ * @param client Client to resize
  *
  * @note Complexity: @e O(1)
  */
 void kbd_modal_resize_start(xcb_connection_t *connection,
-        surface_td *surface, client_td *client);
+        stage_td *stage, client_td *client);
 
 /**
  * @brief Dispatch a key press while a keyboard modal session is active
@@ -91,9 +91,9 @@ void kbd_modal_resize_start(xcb_connection_t *connection,
  *
  * @param connection XCB connection (may be null; saved connection is
  *                   used as fallback)
- * @param surface    Current surface (used for move/resize step config)
- * @param keysym     X keysym of the pressed key
- * @param config     Active configuration, for the move and resize step
+ * @param stage  Current stage (used for move/resize step config)
+ * @param keysym X keysym of the pressed key
+ * @param config Active configuration, for the move and resize step
  *                   sizes
  *
  * @return @c true (the key is always consumed while modal is active)
@@ -101,7 +101,7 @@ void kbd_modal_resize_start(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 bool kbd_modal_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config);
 
 

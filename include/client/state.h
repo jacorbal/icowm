@@ -230,7 +230,7 @@ enum window_flags_e {
      *
      * Toggled by @c ACTION_CLIENT_TOGGLE_STICKY (see
      * @a ccmd_client_toggle_stick in @c cmds/client/flags.c).  Read by
-     * @a s_viewport_translate_visit (@c cmds/surface.c), which skips
+     * @a s_viewport_translate_visit (@c cmds/stage.c), which skips
      * translating any client holding this flag whenever the desktop's
      * viewport pans, whether that pan was triggered by a keyboard
      * shortcut, the pointer resting against a screen edge, or a window

@@ -50,6 +50,10 @@
 static int tap_count = 0;
 static int tap_failed = 0;
 
+/** How many assertions @c TAP_PLAN announced, compared against
+ *  @c tap_count by @c TAP_DONE itself */
+static int tap_planned = 0;
+
 
 /**
  * @brief Announce how many assertions this test binary will make
@@ -62,7 +66,8 @@ static int tap_failed = 0;
  *
  * @param n How many @c TAP_OK-family assertions follow
  */
-#define TAP_PLAN(n) printf("1..%d\n", (n))
+#define TAP_PLAN(n) \
+    (tap_planned = (n), (void) printf("1..%d\n", (n)))
 
 /**
  * @brief Assert that @p cond is true
@@ -191,12 +196,20 @@ static inline int tap_eq_str_impl(const char *a, const char *b,
  */
 static inline int tap_done_impl(void)
 {
+    int status = 0;
+
+    if (tap_count != tap_planned) {
+        printf("# planned %d but ran %d\n", tap_planned, tap_count);
+        status = 1;
+    }
     if (tap_failed > 0) {
         printf("# %d/%d failed\n", tap_failed, tap_count);
-        return 1;
+        status = 1;
     }
-    printf("# all %d passed\n", tap_count);
-    return 0;
+    if (status == 0) {
+        printf("# all %d passed\n", tap_count);
+    }
+    return status;
 }
 
 

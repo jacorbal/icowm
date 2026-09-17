@@ -109,11 +109,11 @@ void rootmenu_menu_json_free(void);
  * Combines the entries @a rootmenu_menu_json_load already parsed with
  * the fixed footer entries, and shows the result at @p pos.
  *
- * @param wm         Window manager instance, cached for the callbacks
+ * @param wm Window manager instance, cached for the callbacks
  *                   of the "Rearrange" and "Reload configuration"
  *                   entries
  * @param connection XCB connection
- * @param surface    Surface on which to display the menu
+ * @param stage      Stage on which to display the menu
  * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
@@ -122,7 +122,7 @@ void rootmenu_menu_json_free(void);
  *       entries
  */
 void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
-        surface_td *surface, struct position_s pos,
+        stage_td *stage, struct position_s pos,
         const config_td *config);
 
 /**
@@ -152,7 +152,7 @@ void rootmenu_repaint(xcb_window_t win);
  * @brief Handle a button-press event inside the root desktop menu
  *
  * @param connection XCB connection
- * @param surface    Surface associated with the event
+ * @param stage      Stage associated with the event
  * @param win        Window that received the press
  * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
@@ -162,7 +162,7 @@ void rootmenu_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool rootmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config);
 
 /**
@@ -192,7 +192,7 @@ bool rootmenu_owns_window(xcb_window_t win);
  * menu hierarchy.
  *
  * @param connection XCB connection
- * @param surface    Surface on which the menu is displayed
+ * @param stage      Stage on which the menu is displayed
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
@@ -201,7 +201,7 @@ bool rootmenu_owns_window(xcb_window_t win);
  * @note Complexity: @e O(n), where @e n is the number of menu entries
  */
 bool rootmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config);
 
 /**

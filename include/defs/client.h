@@ -22,7 +22,7 @@
 /**
  * @brief Absolute minimum a client's content area (its window, not
  *        counting decoration) can ever be resized down to, in pixels,
- *        when it has no own resize-increment hint of its own
+ *        when it has no resize-increment hint of its own
  *        (@c WM_NORMAL_HINTS's @c width_inc / @c height_inc, ICCCM
  *        §4.1.2.3) to measure itself in instead
  *

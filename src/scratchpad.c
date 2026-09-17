@@ -55,7 +55,7 @@
 #include <enact/client.h>
 #include <enact/desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -163,7 +163,7 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
     }
 
     if (client_is_hidden(s_scratchpad_client)) {
-        surface_td *surface;
+        stage_td *stage;
 
         if (s_scratchpad_client->desktop_id != desktop->id) {
             const desktop_td *const source =
@@ -175,18 +175,18 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
             }
         }
 
-        surface = wm_get_surface_by_id(desktop->screen_id);
+        stage = wm_get_stage_by_id(desktop->screen_id);
 
         /* Recomputed fresh on every single show, rather than trusting
          * whatever screen-relative position was last left on it: any
          * viewport pan since the last time this was visible already
          * shifted it right along with every other non-sticky client on
          * its desktop (see 's_viewport_translate_visit',
-         * 'cmds/surface.c'), so re-anchoring it against its configured
+         * 'cmds/stage.c'), so re-anchoring it against its configured
          * edge here, before it is actually shown, is what keeps it
          * pinned to its own zone instead of wherever that drift left
          * it. */
-        scratchpad_position(s_scratchpad_client, desktop, surface);
+        scratchpad_position(s_scratchpad_client, desktop, stage);
 
         enact_client_unhide(s_scratchpad_client);
 
@@ -204,7 +204,7 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
          * focusing this one.  Skipping it left whatever was focused
          * a moment ago with no real unfocus ever applied to it at all,
          * this client's raise just visually covering it instead. */
-        focus_apply(wm_surfaces(wm), surface, desktop,
+        focus_apply(wm_stages(wm), stage, desktop,
                 s_scratchpad_client, true, config);
     } else {
         enact_client_hide(s_scratchpad_client);
@@ -321,7 +321,7 @@ void scratchpad_notice_client_created(client_td *client)
 /* Position the current scratchpad client against its configured edge,
  * size, and desktop */
 void scratchpad_position(client_td *client,
-        const desktop_td *desktop, surface_td *surface)
+        const desktop_td *desktop, stage_td *stage)
 {
     const config_td *config;
     struct geometry_s area;
@@ -338,16 +338,16 @@ void scratchpad_position(client_td *client,
     int32_t y = 0;
 
     if (!scratchpad_is_client(client) || desktop == NULL ||
-            surface == NULL || surface->config == NULL) {
+            stage == NULL || stage->config == NULL) {
         return;
     }
 
-    config = surface->config;
+    config = stage->config;
 
     if (config->base.scratchpad.ignore_margins ||
             desktop->workarea.dim.w == 0u ||
             desktop->workarea.dim.h == 0u) {
-        area = (struct geometry_s) { { 0, 0 }, surface->properties.dim };
+        area = (struct geometry_s) { { 0, 0 }, stage->properties.dim };
     } else {
         area = desktop->workarea;
     }
@@ -491,21 +491,21 @@ void scratchpad_position(client_td *client,
 
 
 /* Reposition the current scratchpad client, if its desktop belongs to
- * the given surface */
-void scratchpad_reposition(surface_td *surface)
+ * the given stage */
+void scratchpad_reposition(stage_td *stage)
 {
     const desktop_td *desktop;
 
-    if (surface == NULL || s_scratchpad_client == NULL) {
+    if (stage == NULL || s_scratchpad_client == NULL) {
         return;
     }
 
     desktop = wm_get_client_desktop(s_scratchpad_client);
-    if (desktop == NULL || desktop->screen_id != surface->id) {
+    if (desktop == NULL || desktop->screen_id != stage->id) {
         return;
     }
 
-    scratchpad_position(s_scratchpad_client, desktop, surface);
+    scratchpad_position(s_scratchpad_client, desktop, stage);
 }
 
 

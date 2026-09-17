@@ -57,7 +57,7 @@
 #include <logger.h>
 #include <policy/stacking.h>
 #include <render/client/decoration.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /* ==================================================================== *
@@ -471,12 +471,12 @@ int16_t text_font_descent(void)
 
 
 /* wm.h */
-static surface_td *s_surface_by_id_result = NULL;
+static stage_td *s_stage_by_id_result = NULL;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_by_id_result;
+    (void) stage_id;
+    return s_stage_by_id_result;
 }
 
 
@@ -523,23 +523,23 @@ void viewport_mesh_cache_release_retired(xcb_connection_t *connection)
 }
 
 
-/* surface/viewport.c
+/* stage/viewport.c
  *
  * Reproduced here rather than linking that whole (separately tested)
  * file for one two-line predicate, the same way
  * tests/menu/dialog/test_confirm.c reproduces 'dlgutil_u16max'.  The
- * scenarios below drive it through a real 'config' on the surface,
+ * scenarios below drive it through a real 'config' on the stage,
  * exactly as production reaches it. */
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    if (surface == NULL || surface->config == NULL ||
-            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+    if (stage == NULL || stage->config == NULL ||
+            stage->id >= (uint32_t) CONFIG_MAX_SCREENS) {
         return false;
     }
 
-    return surface->config->base.screens[surface->id]
+    return stage->config->base.screens[stage->id]
                .viewport.columns > 1u ||
-           surface->config->base.screens[surface->id]
+           stage->config->base.screens[stage->id]
                .viewport.rows > 1u;
 }
 
@@ -828,7 +828,7 @@ static void s_reset_fixture(void)
     s_text_measure_result = 10;
     s_text_ascent_result = 12;
     s_text_descent_result = 3;
-    s_surface_by_id_result = NULL;
+    s_stage_by_id_result = NULL;
     s_get_property_calls = 0;
     s_get_property_reply_should_fail = true;
     s_get_property_pixmap_value = XCB_NONE;

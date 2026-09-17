@@ -124,8 +124,8 @@ static bool s_titlebar_buttons_fit(uint16_t avail_w, uint16_t pad_h,
 /**
  * @brief Whether a button has already been given up
  *
- * @param button   Button to look for
- * @param dropped  Buttons given up so far
+ * @param button    Button to look for
+ * @param dropped   Buttons given up so far
  * @param dropped_n How many @p dropped holds
  *
  * @note Complexity: @e O(n), where @e n is @p dropped_n
@@ -148,9 +148,9 @@ static bool s_titlebar_button_is_dropped(
  * @brief Count how many of a side's configured buttons are placed,
  *        given what has already been given up
  *
- * @param list     The side's configured buttons, in the theme's order
- * @param count    How many @p list holds
- * @param dropped  Buttons given up so far, or @c NULL for none
+ * @param list      The side's configured buttons, in the theme's order
+ * @param count     How many @p list holds
+ * @param dropped   Buttons given up so far, or @c NULL for none
  * @param dropped_n How many @p dropped holds
  *
  * @return Number of buttons that would be placed
@@ -514,7 +514,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
             ? (int16_t) ((title_h - btn) / 2u) : 0;
     }
 
-    /* A pin button dropped here (single-desktop surface, see
+    /* A pin button dropped here (single-desktop stage, see
      * 'hide_pin') or a sticky button dropped here (single-cell
      * viewport, see 'hide_sticky') is skipped entirely rather than
      * drawn inert: the output index only advances for a button

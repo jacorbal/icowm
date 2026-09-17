@@ -8,7 +8,7 @@
  * body is genuinely reachable without any live X connection: a null-
  * argument guard clause, then a flat sequence of field assignments,
  * most of them forwarded straight through wm.h's own narrow accessors
- * (wm_surfaces, wm_config, wm_restricted_memory_mib,
+ * (wm_stages, wm_config, wm_restricted_memory_mib,
  * wm_randr_base_event, wm_sync_base_event, wm_randr_available,
  * wm_sync_available), none of which itself does anything more than
  * read a field off the real 'struct wm_s'.  wm/instance.c, where every
@@ -85,16 +85,16 @@ static void s_test_null_guards(void)
 static void s_test_fills_every_field(void)
 {
     wm_td local_wm = s_make_wm();
-    list_td surfaces_storage;
+    list_td stages_storage;
     config_td config_storage;
     loop_ctx_td ctx;
     bool result;
 
-    memset(&surfaces_storage, 0, sizeof(surfaces_storage));
+    memset(&stages_storage, 0, sizeof(stages_storage));
     memset(&config_storage, 0, sizeof(config_storage));
     memset(&ctx, 0xAA, sizeof(ctx));
 
-    local_wm.surfaces = &surfaces_storage;
+    local_wm.stages = &stages_storage;
     local_wm.config = &config_storage;
     local_wm.restricted_memory_mib = 256u;
     local_wm.randr_base_event = 87u;
@@ -107,8 +107,8 @@ static void s_test_fills_every_field(void)
     TAP_OK(result, "loop_context_init on a real wm returns true");
     TAP_OK(ctx.wm == &local_wm,
             "loop_context_init caches the wm pointer itself");
-    TAP_OK(ctx.surfaces == &surfaces_storage,
-            "loop_context_init resolves surfaces via wm_surfaces");
+    TAP_OK(ctx.stages == &stages_storage,
+            "loop_context_init resolves stages via wm_stages");
     TAP_OK(ctx.config == &config_storage,
             "loop_context_init resolves config via wm_config");
     TAP_OK(ctx.keysyms == NULL,
@@ -135,7 +135,7 @@ static void s_test_fills_every_field(void)
 }
 
 
-/* A wm with a NULL surfaces/config pointer of its own is resolved
+/* A wm with a NULL stages/config pointer of its own is resolved
  * faithfully too: the accessors return NULL rather than crashing, and
  * loop_context_init simply stores what it was given back */
 static void s_test_null_fields_pass_through(void)
@@ -145,16 +145,16 @@ static void s_test_null_fields_pass_through(void)
     bool result;
 
     memset(&ctx, 0xAA, sizeof(ctx));
-    local_wm.surfaces = NULL;
+    local_wm.stages = NULL;
     local_wm.config = NULL;
 
     result = loop_context_init(&ctx, &local_wm);
 
     TAP_OK(result,
             "loop_context_init still succeeds when the wm's own"
-            " surfaces/config are NULL");
-    TAP_OK(ctx.surfaces == NULL,
-            "loop_context_init passes a NULL surfaces list through"
+            " stages/config are NULL");
+    TAP_OK(ctx.stages == NULL,
+            "loop_context_init passes a NULL stages list through"
             " unchanged");
     TAP_OK(ctx.config == NULL,
             "loop_context_init passes a NULL config through"

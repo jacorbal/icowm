@@ -37,8 +37,8 @@
 #include <logger.h>
 #include <lookup.h>
 #include <rules.h>
-#include <surface.h>
-#include <surface/workarea.h>
+#include <stage.h>
+#include <stage/workarea.h>
 #include <wm.h>
 
 /* Local includes */
@@ -50,24 +50,24 @@
  *
  * Everything a window mapped after this window manager started would
  * already have gone through, done here for one that was open before
- * it.  The client is created, put on the surface's current desktop,
+ * it.  The client is created, put on the stage's current desktop,
  * told which desktop that is, and run past the rules.
  *
- * @param wm      Window manager instance
- * @param surface Surface the window is on
- * @param window  Window to adopt
+ * @param wm     Window manager instance
+ * @param stage  Stage the window is on
+ * @param window Window to adopt
  *
  * @note The nested checks are early returns here rather than one deeper
  *       level each, which is the whole reason this is its function
  * @note Complexity: @e O(n), where @e n is the number of rules
  */
-static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
+static void s_adopt_one_window(const wm_td *wm, stage_td *stage,
         xcb_window_t window)
 {
     xcb_connection_t *const connection = wm_connection(wm);
     xcb_ewmh_connection_t *const ewmh = wm_ewmh(wm);
     const config_td *const config = wm_config(wm);
-    desktop_td *desktop = lookup_current_desktop(surface);
+    desktop_td *desktop = lookup_current_desktop(stage);
     client_td *client;
 
     if (desktop == NULL) {
@@ -86,7 +86,7 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
         client->ignore.unmap++;
     }
 
-    client->screen_id = surface->id;
+    client->screen_id = stage->id;
     client->desktop_id = desktop->id;
     desktop_action_client_add(desktop, client);
     if (ewmh != NULL) {
@@ -105,9 +105,9 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
      * one launched fresh, silently skipping any window still open from
      * before this window manager's restart, e.g., surviving a crash or
      * an intentional reload via 'exec'. */
-    if (rules_apply(wm, client, &surface, &desktop,
+    if (rules_apply(wm, client, &stage, &desktop,
                 RULES_TRIGGER_MAP)) {
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
     }
 
@@ -120,14 +120,14 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
         client_send_synthetic_configure_notify(connection, client);
     }
 
-    surface->is_outdated = true;
-    LOGGER_DEBUG("Adopted pre-existing window %#x on surface %u" \
-            " desktop %u", window, surface->id, desktop->id);
+    stage->is_outdated = true;
+    LOGGER_DEBUG("Adopted pre-existing window %#x on stage %u" \
+            " desktop %u", window, stage->id, desktop->id);
 }
 
 
 /**
- * @brief Adopt every window already mapped on one surface
+ * @brief Adopt every window already mapped on one stage
  *
  * Asks the root window for its children, then asks for all their
  * attributes before awaiting any answer, so the scan costs one round
@@ -135,13 +135,13 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
  * many windows as the user had open, and over a remote display that
  * difference is the whole of the startup delay.
  *
- * @param wm      Window manager instance
- * @param surface Surface to scan
+ * @param wm    Window manager instance
+ * @param stage Stage to scan
  *
  * @note Complexity: @e O(n), where @e n is the number of windows
- *       already on @p surface
+ *       already on @p stage
  */
-static void s_adopt_scan_surface(const wm_td *wm, surface_td *surface)
+static void s_adopt_scan_stage(const wm_td *wm, stage_td *stage)
 {
     xcb_connection_t *const connection = wm_connection(wm);
     xcb_query_tree_cookie_t qt_cookie;
@@ -151,17 +151,17 @@ static void s_adopt_scan_surface(const wm_td *wm, surface_td *surface)
     xcb_window_t *children;
     int nchildren;
 
-    LOGGER_TRACE("Querying window tree for surface %u" \
-            " (root %#x)", surface->id, surface->screen->root);
+    LOGGER_TRACE("Querying window tree for stage %u" \
+            " (root %#x)", stage->id, stage->screen->root);
 
     qt_cookie = xcb_query_tree(connection,
-            surface->screen->root);
+            stage->screen->root);
     qt_reply = xcb_query_tree_reply(connection,
             qt_cookie, &qt_error);
     if (qt_reply == NULL) {
         xcb_reply_log_error(qt_error, "a root window's own tree");
-        LOGGER_WARNING("Failed to query window tree for surface %u",
-                surface->id);
+        LOGGER_WARNING("Failed to query window tree for stage %u",
+                stage->id);
         return;
     }
 
@@ -169,8 +169,8 @@ static void s_adopt_scan_surface(const wm_td *wm, surface_td *surface)
     children = xcb_query_tree_children(qt_reply);
     nchildren = xcb_query_tree_children_length(qt_reply);
 
-    LOGGER_TRACE("Found %d child window(s) on surface %u",
-            nchildren, surface->id);
+    LOGGER_TRACE("Found %d child window(s) on stage %u",
+            nchildren, stage->id);
 
     /* Every child's attributes are asked for before any answer is
      * awaited, so that the whole scan costs one round trip to the
@@ -209,14 +209,14 @@ static void s_adopt_scan_surface(const wm_td *wm, surface_td *surface)
 
         if (!ar->override_redirect &&
                 ar->map_state == XCB_MAP_STATE_VIEWABLE) {
-            s_adopt_one_window(wm, surface, children[i]);
+            s_adopt_one_window(wm, stage, children[i]);
         }
 
         free(ar);
     }
 
     free(cookies);
-    surface_workarea_refresh_all(surface);
+    stage_workarea_refresh_all(stage);
     free(qt_reply);
 }
 
@@ -232,15 +232,15 @@ void cctl_adopt_scan(const wm_td *wm)
 
     LOGGER_DEBUG("Scanning for pre-existing mapped windows", L_NARG);
 
-    for (list_item_td *node = list_head(wm_surfaces(wm));
+    for (list_item_td *node = list_head(wm_stages(wm));
             node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
+        stage_td *const stage = (stage_td *) list_data(node);
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
-        s_adopt_scan_surface(wm, surface);
+        s_adopt_scan_stage(wm, stage);
     }
 
     xcb_flush(connection);

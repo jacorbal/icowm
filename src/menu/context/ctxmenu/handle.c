@@ -63,7 +63,7 @@ static bool s_entry_matches_typeahead(const ctxmenu_entry_td *e,
 
 /* Handle a key-press event while a context menu is open */
 bool ctxmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         xcb_keysym_t keysym, const config_td *config)
 {
     char target;
@@ -114,7 +114,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
                 sub_pos.x = state->origin_x + (int32_t) state->width;
                 sub_pos.y = state->origin_y +
                         ctxmenu_entry_top_y(state, sel);
-                ctxmenu_show(connection, surface, child_state,
+                ctxmenu_show(connection, stage, child_state,
                         sub_pos, config);
                 state->child = child_state;
             }
@@ -144,7 +144,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
         if (sel >= 0 && sel < state->entry_count) {
             if (state->entries[sel].type == CTXMENU_SUBMENU) {
                 /* Open submenu on Enter, same as Right arrow */
-                return ctxmenu_handle_keypress(connection, surface,
+                return ctxmenu_handle_keypress(connection, stage,
                         state, KS_RIGHT, config);
             }
             return ctxmenu_entry_activate(state, sel, true);
@@ -207,7 +207,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
              * 'ctxmenu_entry_activate' instead, which has no
              * 'CTXMENU_SUBMENU' case of its own, would silently close
              * the whole menu without ever opening it. */
-            return ctxmenu_handle_keypress(connection, surface,
+            return ctxmenu_handle_keypress(connection, stage,
                     state, KS_RIGHT, config);
         }
         return ctxmenu_entry_activate(state, match_idx, true);
@@ -219,7 +219,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
 
 /* Handle a button-press event inside a context menu window */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         int y, const config_td *config)
 {
     int idx;
@@ -284,7 +284,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         sub_pos.y = state->origin_y +
                 ctxmenu_entry_top_y(state, idx);
 
-        ctxmenu_show(connection, surface, child_state,
+        ctxmenu_show(connection, stage, child_state,
                 sub_pos, config);
         state->child = child_state;
         return true;

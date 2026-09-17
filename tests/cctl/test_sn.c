@@ -22,7 +22,7 @@
  * reassembly slots, its busy-cursor flag, its timeout arithmetic)
  * rather than on any other subsystem's real behavior.
  *
- * cctl_sn_begin's own guard clauses (null connection/surfaces/out_id,
+ * cctl_sn_begin's own guard clauses (null connection/stages/out_id,
  * a zero out_id_size, atom_intern failing, an out_id buffer too small
  * for the generated id) are covered, along with its own success path:
  * generating a unique id, broadcasting it (through the s_broadcast
@@ -55,7 +55,7 @@
  * cctl/sn.c's own translation unit is linked for real, alongside
  * utils/safe/safestr.c (small, pure, already-covered-elsewhere string
  * helpers, worth exercising for real rather than stood in for) and
- * adt/list.c (the real managed-surfaces list cctl/sn.c walks with
+ * adt/list.c (the real managed-stages list cctl/sn.c walks with
  * list_head/list_next/list_data).  utils/time/clock.c is not linked,
  * since sn.c derives every one of its own timeouts directly from
  * clock_gettime rather than through clock.h's helpers.  Every other
@@ -91,7 +91,7 @@
 
 /* Project includes */
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Utils includes */
 #include <utils/cursor.h>
@@ -346,47 +346,47 @@ static void s_stub_reset(void)
 
 
 /**
- * @brief Build a one-surface managed list with a real, non-null screen
+ * @brief Build a one-stage managed list with a real, non-null screen
  */
-static void s_make_one_surface_list(list_td **out_list,
-        surface_td *surface_storage, xcb_screen_t *screen_storage)
+static void s_make_one_stage_list(list_td **out_list,
+        stage_td *stage_storage, xcb_screen_t *screen_storage)
 {
-    memset(surface_storage, 0, sizeof(*surface_storage));
+    memset(stage_storage, 0, sizeof(*stage_storage));
     memset(screen_storage, 0, sizeof(*screen_storage));
     screen_storage->root = (xcb_window_t) 1000u;
-    surface_storage->screen = screen_storage;
+    stage_storage->screen = screen_storage;
 
     *out_list = list_init(NULL);
-    list_ins_next(*out_list, NULL, surface_storage);
+    list_ins_next(*out_list, NULL, stage_storage);
 }
 
 
-/* cctl_sn_begin refuses a null connection, null surfaces, null out_id,
+/* cctl_sn_begin refuses a null connection, null stages, null out_id,
  * or a zero out_id_size, in every case never broadcasting anything */
 static void s_test_begin_guard_clauses(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char out_id[SN_ID_MAX_LEN];
     bool result;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
-    result = cctl_sn_begin(NULL, surfaces, "xterm", 0u, out_id,
+    result = cctl_sn_begin(NULL, stages, "xterm", 0u, out_id,
             sizeof(out_id));
     TAP_OK(!result, "cctl_sn_begin refuses a null connection");
 
     result = cctl_sn_begin(s_fake_connection, NULL, "xterm", 0u, out_id,
             sizeof(out_id));
-    TAP_OK(!result, "cctl_sn_begin refuses null surfaces");
+    TAP_OK(!result, "cctl_sn_begin refuses null stages");
 
-    result = cctl_sn_begin(s_fake_connection, surfaces, "xterm", 0u, NULL,
+    result = cctl_sn_begin(s_fake_connection, stages, "xterm", 0u, NULL,
             sizeof(out_id));
     TAP_OK(!result, "cctl_sn_begin refuses a null out_id");
 
-    result = cctl_sn_begin(s_fake_connection, surfaces, "xterm", 0u,
+    result = cctl_sn_begin(s_fake_connection, stages, "xterm", 0u,
             out_id, 0u);
     TAP_OK(!result, "cctl_sn_begin refuses a zero out_id_size");
 
@@ -394,7 +394,7 @@ static void s_test_begin_guard_clauses(void)
             "none of the four guard clauses above ever broadcasts"
             " anything");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -402,17 +402,17 @@ static void s_test_begin_guard_clauses(void)
  * resolve either atom it needs */
 static void s_test_begin_atom_intern_failure(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char out_id[SN_ID_MAX_LEN];
     bool result;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
     s_atom_intern_fail_all = true;
 
-    result = cctl_sn_begin(s_fake_connection, surfaces, "xterm", 0u,
+    result = cctl_sn_begin(s_fake_connection, stages, "xterm", 0u,
             out_id, sizeof(out_id));
 
     TAP_OK(!result,
@@ -422,7 +422,7 @@ static void s_test_begin_atom_intern_failure(void)
             "no broadcast is attempted once the atoms themselves"
             " could not be resolved");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -430,16 +430,16 @@ static void s_test_begin_atom_intern_failure(void)
  * small to hold the generated id, still without broadcasting anything */
 static void s_test_begin_out_id_too_small(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char tiny_out_id[2];
     bool result;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
-    result = cctl_sn_begin(s_fake_connection, surfaces, "xterm", 0u,
+    result = cctl_sn_begin(s_fake_connection, stages, "xterm", 0u,
             tiny_out_id, sizeof(tiny_out_id));
 
     TAP_OK(!result,
@@ -449,7 +449,7 @@ static void s_test_begin_out_id_too_small(void)
             "no broadcast is attempted once the out_id buffer itself"
             " is too small");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -461,17 +461,17 @@ static void s_test_begin_out_id_too_small(void)
  * since none was pending before */
 static void s_test_begin_success_path_broadcasts_and_shows_cursor(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char first_out_id[SN_ID_MAX_LEN];
     char second_out_id[SN_ID_MAX_LEN];
     bool result;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
-    result = cctl_sn_begin(s_fake_connection, surfaces, "xterm", 3u,
+    result = cctl_sn_begin(s_fake_connection, stages, "xterm", 3u,
             first_out_id, sizeof(first_out_id));
 
     TAP_OK(result, "cctl_sn_begin succeeds with valid arguments");
@@ -494,12 +494,12 @@ static void s_test_begin_success_path_broadcasts_and_shows_cursor(void)
             "the busy cursor is loaded by its \"watch\" Xcursor name");
     TAP_EQ_INT(s_change_attrs_call_count, 1,
             "the busy cursor is applied to exactly the one managed"
-            " surface's root window");
+            " stage's root window");
 
     /* Beginning a second sequence while the first is still pending
      * must not show the busy cursor again */
     s_stub_reset();
-    result = cctl_sn_begin(s_fake_connection, surfaces, "vim", 3u,
+    result = cctl_sn_begin(s_fake_connection, stages, "vim", 3u,
             second_out_id, sizeof(second_out_id));
     TAP_OK(result, "a second sequence can begin while the first is"
             " still pending");
@@ -512,11 +512,11 @@ static void s_test_begin_success_path_broadcasts_and_shows_cursor(void)
      * so it was saved into its own buffer specifically so both can be
      * cancelled here) so later scenarios in this binary start from an
      * empty pending list again */
-    cctl_sn_cancel(s_fake_connection, surfaces, first_out_id);
-    cctl_sn_cancel(s_fake_connection, surfaces, second_out_id);
+    cctl_sn_cancel(s_fake_connection, stages, first_out_id);
+    cctl_sn_cancel(s_fake_connection, stages, second_out_id);
     s_stub_reset();
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -528,9 +528,9 @@ static void s_test_begin_success_path_broadcasts_and_shows_cursor(void)
  * names and restores the cursor */
 static void s_test_handle_client_message_two_chunk_remove(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char out_id[SN_ID_MAX_LEN];
     char remove_message[SN_MSG_MAX_LEN];
     xcb_client_message_event_t event;
@@ -538,10 +538,10 @@ static void s_test_handle_client_message_two_chunk_remove(void)
     size_t sent;
     int chunks_sent;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
-    cctl_sn_begin(s_fake_connection, surfaces, "xterm", 0u, out_id,
+    cctl_sn_begin(s_fake_connection, stages, "xterm", 0u, out_id,
             sizeof(out_id));
     s_stub_reset();
 
@@ -573,7 +573,7 @@ static void s_test_handle_client_message_two_chunk_remove(void)
         event.type = (chunks_sent == 0)
             ? (xcb_atom_t) 101u : (xcb_atom_t) 102u;
         memcpy(event.data.data8, remove_message + sent, chunk_len);
-        cctl_sn_handle_client_message(s_fake_connection, surfaces,
+        cctl_sn_handle_client_message(s_fake_connection, stages,
                 &event);
 
         sent += chunk_len;
@@ -590,45 +590,45 @@ static void s_test_handle_client_message_two_chunk_remove(void)
             "the restored cursor is loaded by its \"left_ptr\""
             " Xcursor name");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
 /* cctl_sn_handle_client_message's own guard clauses reject a null
- * connection/surfaces/event, a non-format-8 event, and an event whose
+ * connection/stages/event, a non-format-8 event, and an event whose
  * type is neither of the two startup-notification atoms, none of
  * which ever changes the cursor */
 static void s_test_handle_client_message_guard_clauses(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     xcb_client_message_event_t event;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
     memset(&event, 0, sizeof(event));
     event.format = 8;
     event.type = (xcb_atom_t) 101u;
 
-    cctl_sn_handle_client_message(NULL, surfaces, &event);
+    cctl_sn_handle_client_message(NULL, stages, &event);
     cctl_sn_handle_client_message(s_fake_connection, NULL, &event);
-    cctl_sn_handle_client_message(s_fake_connection, surfaces, NULL);
+    cctl_sn_handle_client_message(s_fake_connection, stages, NULL);
 
     event.format = 16;
-    cctl_sn_handle_client_message(s_fake_connection, surfaces, &event);
+    cctl_sn_handle_client_message(s_fake_connection, stages, &event);
 
     event.format = 8;
     event.type = (xcb_atom_t) 999u;
-    cctl_sn_handle_client_message(s_fake_connection, surfaces, &event);
+    cctl_sn_handle_client_message(s_fake_connection, stages, &event);
 
     TAP_EQ_INT(s_change_attrs_call_count, 0,
-            "none of a null connection, null surfaces, a null event, a"
+            "none of a null connection, null stages, a null event, a"
             " non-format-8 event, or an unrecognized message type ever"
             " reaches far enough to change the cursor");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -637,12 +637,12 @@ static void s_test_handle_client_message_guard_clauses(void)
  * (already expired) rather than any negative value */
 static void s_test_ms_remaining_reflects_timeout(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char out_id[SN_ID_MAX_LEN];
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
     TAP_EQ_INT(cctl_sn_ms_remaining(), -1,
@@ -654,7 +654,7 @@ static void s_test_ms_remaining_reflects_timeout(void)
             " leaving nothing pending changed");
 
     cctl_sn_set_timeout_seconds(1u);
-    cctl_sn_begin(s_fake_connection, surfaces, "xterm", 0u, out_id,
+    cctl_sn_begin(s_fake_connection, stages, "xterm", 0u, out_id,
             sizeof(out_id));
 
     TAP_OK(cctl_sn_ms_remaining() >= 0,
@@ -664,9 +664,9 @@ static void s_test_ms_remaining_reflects_timeout(void)
             "the countdown never exceeds the overridden one-second"
             " timeout, in milliseconds");
 
-    cctl_sn_cancel(s_fake_connection, surfaces, out_id);
+    cctl_sn_cancel(s_fake_connection, stages, out_id);
     s_stub_reset();
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -678,25 +678,25 @@ static void s_test_ms_remaining_reflects_timeout(void)
  * a quiet no-op */
 static void s_test_tick_before_timeout_leaves_sequence_pending(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char out_id[SN_ID_MAX_LEN];
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
-    cctl_sn_tick(s_fake_connection, surfaces);
+    cctl_sn_tick(s_fake_connection, stages);
     TAP_EQ_INT(s_change_attrs_call_count, 0,
             "cctl_sn_tick with nothing pending and no idle reassembly"
             " slots is a quiet no-op");
 
     cctl_sn_set_timeout_seconds(1u);
-    cctl_sn_begin(s_fake_connection, surfaces, "xterm", 0u, out_id,
+    cctl_sn_begin(s_fake_connection, stages, "xterm", 0u, out_id,
             sizeof(out_id));
     s_stub_reset();
 
-    cctl_sn_tick(s_fake_connection, surfaces);
+    cctl_sn_tick(s_fake_connection, stages);
 
     TAP_OK(cctl_sn_ms_remaining() >= 0,
             "cctl_sn_tick's own early-continue branch leaves a"
@@ -706,7 +706,7 @@ static void s_test_tick_before_timeout_leaves_sequence_pending(void)
             "a tick that changes nothing never touches the cursor"
             " either");
 
-    cctl_sn_cancel(s_fake_connection, surfaces, out_id);
+    cctl_sn_cancel(s_fake_connection, stages, out_id);
     TAP_EQ_INT(cctl_sn_ms_remaining(), -1,
             "cancelling the only pending sequence removes it, so"
             " cctl_sn_ms_remaining reports -1 again");
@@ -715,7 +715,7 @@ static void s_test_tick_before_timeout_leaves_sequence_pending(void)
             " default cursor exactly once");
 
     s_stub_reset();
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -726,17 +726,17 @@ static void s_test_tick_before_timeout_leaves_sequence_pending(void)
  * pending sequence */
 static void s_test_desktop_for_window(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
     char out_id[SN_ID_MAX_LEN];
     uint32_t out_desktop;
     bool result;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
-    cctl_sn_begin(s_fake_connection, surfaces, "xterm", 7u, out_id,
+    cctl_sn_begin(s_fake_connection, stages, "xterm", 7u, out_id,
             sizeof(out_id));
     s_stub_reset();
 
@@ -781,35 +781,35 @@ static void s_test_desktop_for_window(void)
             "the recovered desktop matches the origin_desktop this"
             " sequence began with");
 
-    cctl_sn_cancel(s_fake_connection, surfaces, out_id);
+    cctl_sn_cancel(s_fake_connection, stages, out_id);
     s_stub_reset();
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
 /* cctl_sn_cancel is a silent no-op with a null connection, null
- * surfaces, a null id, or an id that names no currently pending
+ * stages, a null id, or an id that names no currently pending
  * sequence */
 static void s_test_cancel_guard_clauses_and_unknown_id(void)
 {
-    surface_td surface_storage;
+    stage_td stage_storage;
     xcb_screen_t screen_storage;
-    list_td *surfaces;
+    list_td *stages;
 
-    s_make_one_surface_list(&surfaces, &surface_storage, &screen_storage);
+    s_make_one_stage_list(&stages, &stage_storage, &screen_storage);
     s_stub_reset();
 
-    cctl_sn_cancel(NULL, surfaces, "some-id");
+    cctl_sn_cancel(NULL, stages, "some-id");
     cctl_sn_cancel(s_fake_connection, NULL, "some-id");
-    cctl_sn_cancel(s_fake_connection, surfaces, NULL);
-    cctl_sn_cancel(s_fake_connection, surfaces, "no-such-pending-id");
+    cctl_sn_cancel(s_fake_connection, stages, NULL);
+    cctl_sn_cancel(s_fake_connection, stages, "no-such-pending-id");
 
     TAP_EQ_INT(s_change_attrs_call_count, 0,
-            "none of a null connection, null surfaces, a null id, or"
+            "none of a null connection, null stages, a null id, or"
             " an id naming no pending sequence ever changes the"
             " cursor");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 

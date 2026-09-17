@@ -38,7 +38,7 @@
  * message would be.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the dialog
+ * @param stage      Stage on which to center the dialog
  * @param config     Active configuration (theme colors and font)
  *
  * @note If @c fortune is not installed or exits without producing
@@ -49,7 +49,7 @@
  *       output actually read (bounded by @c DIALOG_FORTUNE_MAX_LENGTH)
  */
 void dialog_fortune_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config);
+        stage_td *stage, const config_td *config);
 
 
 #endif  /* ! MENU_FORTUNE_H */

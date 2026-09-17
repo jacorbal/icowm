@@ -34,9 +34,9 @@
 /* Default initial values */
 #include <defs/placement.h>
 
-/* Surface includes */
-#include <surface/desktop.h>
-#include <surface/monitor.h>
+/* Stage includes */
+#include <stage/desktop.h>
+#include <stage/monitor.h>
 
 /* Project includes */
 #include <client.h>
@@ -44,7 +44,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <wm.h>
 
@@ -58,7 +58,7 @@
  * @brief Resolve the monitor a placement decision should target
  *
  * - Under @c CONFIG_PLACEMENT_MONITOR_PRIMARY, always returns
- *   @p surface's primary monitor.
+ *   @p stage's primary monitor.
  * - Under @c CONFIG_PLACEMENT_MONITOR_INDEX, returns @p monitor_index
  *   specifically (out of range falls back to monitor 0, logging
  *   a warning, the same as @c systray.monitor.index and @c rules.json's
@@ -75,7 +75,7 @@
  *   what makes it leave its inputs unclipped.
  *
  * @param wm             Window manager state, for the pointer query
- * @param surface        Surface to resolve a monitor on
+ * @param stage          Stage to resolve a monitor on
  * @param monitor_policy Which strategy to resolve with
  * @param monitor_index  Explicit monitor index, only consulted under
  *                       @c CONFIG_PLACEMENT_MONITOR_INDEX
@@ -83,10 +83,10 @@
  * @return The resolved monitor's geometry
  *
  * @note Complexity: @e O(n), where @e n is the number of monitors or
- *       clients on @p surface, whichever the resolved policy walks
+ *       clients on @p stage, whichever the resolved policy walks
  */
 static monitor_td s_reference_monitor(const wm_td *wm,
-        surface_td *surface,
+        stage_td *stage,
         enum config_placement_monitor_e monitor_policy,
         uint32_t monitor_index)
 {
@@ -95,28 +95,28 @@ static monitor_td s_reference_monitor(const wm_td *wm,
     monitor_td result = {.x = 0, .y = 0, .w = 0u, .h = 0u};
 
     if (monitor_policy == CONFIG_PLACEMENT_MONITOR_PRIMARY) {
-        return surface_monitor_primary(surface);
+        return stage_monitor_primary(stage);
     }
 
     if (monitor_policy == CONFIG_PLACEMENT_MONITOR_INDEX) {
         uint32_t idx = monitor_index;
 
-        if (surface->monitor_count == 0u) {
+        if (stage->monitor_count == 0u) {
             return result;
         }
-        if (idx >= surface->monitor_count) {
+        if (idx >= stage->monitor_count) {
             LOGGER_WARNING("Placement targets monitor %u, which does" \
-                    " not exist on surface %u (%u monitor(s));" \
+                    " not exist on stage %u (%u monitor(s));" \
                     " falling back to monitor 0", monitor_index,
-                    surface->id, surface->monitor_count);
+                    stage->id, stage->monitor_count);
             idx = 0u;
         }
-        return surface->monitors[idx];
+        return stage->monitors[idx];
     }
 
     if (monitor_policy == CONFIG_PLACEMENT_MONITOR_ACTIVE) {
         desktop_td *desktop =
-            surface_desktop_get(surface, surface->desktop_cur);
+            stage_desktop_get(stage, stage->desktop_cur);
 
         if (desktop != NULL && desktop->client_active_id != 0u &&
                 desktop->clients != NULL) {
@@ -128,7 +128,7 @@ static monitor_td s_reference_monitor(const wm_td *wm,
                 if (active != NULL &&
                         active->id == desktop->client_active_id) {
                     monitor_td active_monitor =
-                        surface_monitor_for_point(surface,
+                        stage_monitor_for_point(stage,
                                 active->layout.geometry.cur.pos);
 
                     if (active_monitor.w > 0u && active_monitor.h > 0u) {
@@ -143,10 +143,10 @@ static monitor_td s_reference_monitor(const wm_td *wm,
          * fallback CONFIG_PLACEMENT_MONITOR_POINTER itself uses */
     }
 
-    cookie = xcb_query_pointer(wm_connection(wm), surface->screen->root);
+    cookie = xcb_query_pointer(wm_connection(wm), stage->screen->root);
     reply = xcb_query_pointer_reply(wm_connection(wm), cookie, NULL);
     if (reply != NULL) {
-        result = surface_monitor_for_point(surface,
+        result = stage_monitor_for_point(stage,
                 (struct position_s) { reply->root_x, reply->root_y });
         free(reply);
     }
@@ -156,8 +156,8 @@ static monitor_td s_reference_monitor(const wm_td *wm,
 
 
 /* Clip a workarea rectangle down to whichever physical monitor it
- * overlaps, on a surface with more than one */
-void placement_clip_to_monitor(const surface_td *surface,
+ * overlaps, on a stage with more than one */
+void placement_clip_to_monitor(const stage_td *stage,
         const struct geometry_s *wa, const struct dimensions_s *screen,
         monitor_td monitor,
         struct geometry_s *out_wa, struct dimensions_s *out_screen)
@@ -167,7 +167,7 @@ void placement_clip_to_monitor(const surface_td *surface,
     *out_wa = *wa;
     *out_screen = *screen;
 
-    if (surface == NULL || surface->monitor_count <= 1u) {
+    if (stage == NULL || stage->monitor_count <= 1u) {
         return;
     }
 
@@ -189,7 +189,7 @@ void placement_clip_to_monitor(const surface_td *surface,
  * a related client's monitor over the configured policy when one is
  * found */
 monitor_td placement_reference_monitor(const wm_td *wm,
-        surface_td *surface, const client_td *client,
+        stage_td *stage, const client_td *client,
         enum config_placement_monitor_e monitor_policy,
         uint32_t monitor_index)
 {
@@ -207,7 +207,7 @@ monitor_td placement_reference_monitor(const wm_td *wm,
 
         if (leader != XCB_WINDOW_NONE) {
             desktop_td *desktop =
-                surface_desktop_get(surface, surface->desktop_cur);
+                stage_desktop_get(stage, stage->desktop_cur);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;
@@ -227,7 +227,7 @@ monitor_td placement_reference_monitor(const wm_td *wm,
     }
 
     if (anchor != NULL) {
-        monitor_td result = surface_monitor_for_point(surface,
+        monitor_td result = stage_monitor_for_point(stage,
                 anchor->layout.geometry.cur.pos);
 
         if (result.w > 0u && result.h > 0u) {
@@ -235,13 +235,13 @@ monitor_td placement_reference_monitor(const wm_td *wm,
         }
     }
 
-    return s_reference_monitor(wm, surface, monitor_policy, monitor_index);
+    return s_reference_monitor(wm, stage, monitor_policy, monitor_index);
 }
 
 
 /* Resolve the workarea and monitor-clipped bounds a placement
  * calculation needs */
-void placement_workarea(const wm_td *wm, surface_td *surface,
+void placement_workarea(const wm_td *wm, stage_td *stage,
         const client_td *client,
         struct geometry_s *out_wa, struct geometry_s *out_mon_wa,
         struct dimensions_s *out_mon_sz)
@@ -249,10 +249,10 @@ void placement_workarea(const wm_td *wm, surface_td *surface,
     struct dimensions_s screen;
     const desktop_td *desktop;
 
-    screen.w = surface->properties.dim.w;
-    screen.h = surface->properties.dim.h;
+    screen.w = stage->properties.dim.w;
+    screen.h = stage->properties.dim.h;
 
-    desktop = surface_desktop_get(surface, surface->desktop_cur);
+    desktop = stage_desktop_get(stage, stage->desktop_cur);
     if (desktop != NULL && desktop->workarea.dim.w > 0u &&
             desktop->workarea.dim.h > 0u) {
         *out_wa = desktop->workarea;
@@ -262,8 +262,8 @@ void placement_workarea(const wm_td *wm, surface_td *surface,
         out_wa->dim = screen;
     }
 
-    placement_clip_to_monitor(surface, out_wa, &screen,
-            placement_reference_monitor(wm, surface, client,
+    placement_clip_to_monitor(stage, out_wa, &screen,
+            placement_reference_monitor(wm, stage, client,
                     wm_config(wm)->base.windows.monitor_policy,
                     wm_config(wm)->base.windows.monitor_index),
             out_mon_wa, out_mon_sz);

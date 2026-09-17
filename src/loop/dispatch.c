@@ -90,12 +90,12 @@ static void s_loop_dispatch_protocol_error(loop_ctx_td *ctx,
  * @param event Enter-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_enter_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    mouse_handle_enter(xcb_connection_get(), ctx->surfaces,
+    mouse_handle_enter(xcb_connection_get(), ctx->stages,
             (xcb_enter_notify_event_t *) *event, ctx->config);
 }
 
@@ -123,12 +123,12 @@ static void s_loop_dispatch_leave_notify(loop_ctx_td *ctx,
  * @param event Focus-in event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_focus_in(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_focus_in(xcb_connection_get(), ctx->surfaces,
+    handler_focus_in(xcb_connection_get(), ctx->stages,
             (xcb_focus_in_event_t *) *event);
 }
 
@@ -156,12 +156,12 @@ static void s_loop_dispatch_focus_out(loop_ctx_td *ctx,
  * @param event Configure-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_configure_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_configure_notify(xcb_connection_get(), ctx->surfaces,
+    handler_configure_notify(xcb_connection_get(), ctx->stages,
             (xcb_configure_notify_event_t *) *event);
 }
 
@@ -173,12 +173,12 @@ static void s_loop_dispatch_configure_notify(loop_ctx_td *ctx,
  * @param event Configure-request event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_configure_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_configure_request(xcb_connection_get(), ctx->surfaces,
+    handler_configure_request(xcb_connection_get(), ctx->stages,
             (xcb_configure_request_event_t *) *event);
 }
 
@@ -205,12 +205,12 @@ static void s_loop_dispatch_map_request(loop_ctx_td *ctx,
  * @param event Map-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_map_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_map_notify(xcb_connection_get(), ctx->stages,
             (xcb_map_notify_event_t *) *event);
 }
 
@@ -222,12 +222,12 @@ static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
  * @param event Unmap-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_unmap_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_unmap_notify(xcb_connection_get(), ctx->stages,
             (xcb_unmap_notify_event_t *) *event);
 }
 
@@ -239,12 +239,12 @@ static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
  * @param event Destroy-notify event
  *
  * @note Complexity: @e O(n + t), where @e n is the number of managed
- *       surfaces and @e t the number of docked systray icons
+ *       stages and @e t the number of docked systray icons
  */
 static void s_loop_dispatch_destroy_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_destroy_notify(ctx->wm, xcb_connection_get(), ctx->surfaces,
+    handler_window_destroy_notify(ctx->wm, xcb_connection_get(), ctx->stages,
             (xcb_destroy_notify_event_t *) *event);
 }
 
@@ -256,12 +256,12 @@ static void s_loop_dispatch_destroy_notify(loop_ctx_td *ctx,
  * @param event Property-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_property_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_property_notify(ctx->wm, xcb_connection_get(), ctx->surfaces,
+    handler_property_notify(ctx->wm, xcb_connection_get(), ctx->stages,
             (xcb_property_notify_event_t *) *event);
 }
 
@@ -273,12 +273,12 @@ static void s_loop_dispatch_property_notify(loop_ctx_td *ctx,
  * @param event Colormap-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_colormap_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_colormap_notify(xcb_connection_get(), ctx->surfaces,
+    handler_colormap_notify(xcb_connection_get(), ctx->stages,
             (xcb_colormap_notify_event_t *) *event);
 }
 
@@ -290,12 +290,12 @@ static void s_loop_dispatch_colormap_notify(loop_ctx_td *ctx,
  * @param event Expose event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_expose(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_expose(xcb_connection_get(), ctx->surfaces,
+    handler_expose(xcb_connection_get(), ctx->stages,
             (xcb_expose_event_t *) *event, ctx->config);
 }
 
@@ -307,7 +307,7 @@ static void s_loop_dispatch_expose(loop_ctx_td *ctx,
  * @param event Client-message event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_client_message(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -341,12 +341,12 @@ static void s_loop_dispatch_selection_clear(loop_ctx_td *ctx,
  * @param event Mapping-notify event
  *
  * @note Complexity: @e O(k * s), where @e k is the number of bindings
- *       and @e s the number of managed surfaces
+ *       and @e s the number of managed stages
  */
 static void s_loop_dispatch_mapping_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_mapping_notify(ctx->keysyms, ctx->surfaces,
+    handler_mapping_notify(ctx->keysyms, ctx->stages,
             (xcb_mapping_notify_event_t *) *event, ctx->config);
 }
 
@@ -358,12 +358,12 @@ static void s_loop_dispatch_mapping_notify(loop_ctx_td *ctx,
  * @param event Gravity-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_gravity_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_gravity_notify(xcb_connection_get(), ctx->stages,
             (xcb_gravity_notify_event_t *) *event);
 }
 
@@ -375,12 +375,12 @@ static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
  * @param event Circulate-notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_circulate_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_circulate_notify(xcb_connection_get(), ctx->stages,
             (xcb_circulate_notify_event_t *) *event);
 }
 
@@ -392,12 +392,12 @@ static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
  * @param event Circulate-request event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 static void s_loop_dispatch_circulate_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_circulate_request(xcb_connection_get(), ctx->surfaces,
+    handler_window_circulate_request(xcb_connection_get(), ctx->stages,
             (xcb_circulate_request_event_t *) *event);
 }
 

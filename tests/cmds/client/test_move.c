@@ -18,10 +18,10 @@
  * monitor lookup running underneath it; 'ccmd_screen_dim' is a link-
  * only stand-in refusing outright, reached only on the fallback path
  * once 'ccmd_client_resolve_workarea' itself refuses.  'ccmd_client_
- * monitor' is a test-controlled stand-in answering a fixed surface
+ * monitor' is a test-controlled stand-in answering a fixed stage
  * and monitor a test registers first, exercising the monitor-search
  * logic in 'ccmd_client_move_to_monitor' and 's_move_to_monitor_
- * toward' without a real surface list.  'surface_monitor_direction'
+ * toward' without a real stage list.  'stage_monitor_direction'
  * is a test-controlled stand-in too, answering whichever single
  * monitor a test registers as the neighbor in that direction.
  * 'ccmd_client_refill_maximized_geometry' is a test-controlled
@@ -64,7 +64,7 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <types/direction.h>
 #include <types/pair.h>
 
@@ -178,10 +178,10 @@ xcb_window_t ccmd_target_win(client_td *client)
 }
 
 
-/** Fixed surface/monitor pair @a ccmd_client_monitor answers with,
+/** Fixed stage/monitor pair @a ccmd_client_monitor answers with,
  *  registered by @a s_set_client_monitor; 'is_ok' controls whether
  *  the lookup succeeds at all */
-static surface_td *s_monitor_surface;
+static stage_td *s_monitor_stage;
 static monitor_td s_monitor_current;
 static bool s_monitor_ok;
 
@@ -190,7 +190,7 @@ static bool s_monitor_ok;
  * @brief Test-controlled stand-in for @a ccmd_client_monitor
  * @note Complexity: @e O(1)
  */
-bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
+bool ccmd_client_monitor(client_td *client, stage_td **out_stage,
         monitor_td *out_monitor)
 {
     (void) client;
@@ -199,8 +199,8 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
         return false;
     }
 
-    if (out_surface != NULL) {
-        *out_surface = s_monitor_surface;
+    if (out_stage != NULL) {
+        *out_stage = s_monitor_stage;
     }
     if (out_monitor != NULL) {
         *out_monitor = s_monitor_current;
@@ -210,15 +210,15 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
 }
 
 
-static void s_set_client_monitor(surface_td *surface, monitor_td current)
+static void s_set_client_monitor(stage_td *stage, monitor_td current)
 {
-    s_monitor_surface = surface;
+    s_monitor_stage = stage;
     s_monitor_current = current;
     s_monitor_ok = true;
 }
 
 
-/** The single neighboring monitor @a surface_monitor_direction
+/** The single neighboring monitor @a stage_monitor_direction
  *  answers with, registered by @a s_set_direction_neighbor; when
  *  'is_set' is false it answers back with 'current' unchanged,
  *  meaning "no neighbor that way" per the real function's own
@@ -228,13 +228,13 @@ static bool s_direction_neighbor_is_set;
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_monitor_direction
+ * @brief Test-controlled stand-in for @a stage_monitor_direction
  * @note Complexity: @e O(1)
  */
-monitor_td surface_monitor_direction(const surface_td *surface,
+monitor_td stage_monitor_direction(const stage_td *stage,
         monitor_td current, enum compass_direction_e direction)
 {
-    (void) surface;
+    (void) stage;
     (void) direction;
 
     if (!s_direction_neighbor_is_set) {
@@ -372,7 +372,7 @@ static void s_reset(void)
     s_wa_w = 0;
     s_wa_h = 0;
     s_monitor_ok = false;
-    s_monitor_surface = NULL;
+    s_monitor_stage = NULL;
     memset(&s_monitor_current, 0, sizeof(s_monitor_current));
     s_direction_neighbor_is_set = false;
     memset(&s_direction_neighbor, 0, sizeof(s_direction_neighbor));
@@ -679,18 +679,18 @@ static void s_test_center_maximized_horz_only_locks_x(void)
  * current one is a silent no-op, since there is nowhere to move to */
 static void s_test_move_to_monitor_same_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td current = {.x = 0, .y = 0, .w = 800u, .h = 600u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 1u;
-    surface.monitors[0] = current;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 1u;
+    stage.monitors[0] = current;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 100;
     client.layout.geometry.cur.pos.y = 100;
-    s_set_client_monitor(&surface, current);
+    s_set_client_monitor(&stage, current);
 
     ccmd_client_move_to_monitor(&client, 0u);
 
@@ -709,22 +709,22 @@ static void s_test_move_to_monitor_same_is_noop(void)
  * offset from its old monitor's corner onto the new one's corner */
 static void s_test_move_to_monitor_translates_offset(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
     monitor_td target_mon = {.x = 800, .y = 0, .w = 800u, .h = 600u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = cur_mon;
-    surface.monitors[1] = target_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 2u;
+    stage.monitors[0] = cur_mon;
+    stage.monitors[1] = target_mon;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 50;
     client.layout.geometry.cur.pos.y = 60;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor(&client, 1u);
 
@@ -752,21 +752,21 @@ static void s_test_move_to_monitor_translates_offset(void)
  * translate at all */
 static void s_test_move_to_monitor_fullscreen_refused(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
     monitor_td target_mon = {.x = 800, .y = 0, .w = 800u, .h = 600u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = cur_mon;
-    surface.monitors[1] = target_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 2u;
+    stage.monitors[0] = cur_mon;
+    stage.monitors[1] = target_mon;
     memset(&client, 0, sizeof(client));
     client.properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
     client.layout.geometry.cur.pos.x = 50;
     client.layout.geometry.cur.pos.y = 60;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor(&client, 1u);
 
@@ -783,23 +783,23 @@ static void s_test_move_to_monitor_fullscreen_refused(void)
 static void s_test_move_to_monitor_maximized_refolds_against_target(
         void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
     monitor_td target_mon = {.x = 800, .y = 0, .w = 1024u, .h = 768u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = cur_mon;
-    surface.monitors[1] = target_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 2u;
+    stage.monitors[0] = cur_mon;
+    stage.monitors[1] = target_mon;
     memset(&client, 0, sizeof(client));
     client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED;
     client.layout.geometry.cur.pos.x = 50;
     client.layout.geometry.cur.pos.y = 60;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
     s_refill_should_touch = true;
     s_refill_x = 800;
     s_refill_y = 0;
@@ -829,21 +829,21 @@ static void s_test_move_to_monitor_maximized_refolds_against_target(
  * reading past the end of the monitors array */
 static void s_test_move_to_monitor_out_of_range_falls_back(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 500, .y = 0, .w = 400u, .h = 300u};
     monitor_td mon0 = {.x = 0, .y = 0, .w = 400u, .h = 300u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 1u;
-    surface.monitors[0] = mon0;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 1u;
+    stage.monitors[0] = mon0;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 550;
     client.layout.geometry.cur.pos.y = 20;
     client.layout.geometry.cur.dim.w = 50u;
     client.layout.geometry.cur.dim.h = 50u;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor(&client, 42u);
 
@@ -857,29 +857,29 @@ static void s_test_move_to_monitor_out_of_range_falls_back(void)
  * is no valid index 0 to fall back to */
 static void s_test_move_to_monitor_zero_monitors_refused(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 100u, .h = 100u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 0u;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 0u;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 15;
 
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor(&client, 0u);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 15,
-            "a surface reporting zero monitors leaves the client"
+            "a stage reporting zero monitors leaves the client"
             " untouched");
 }
 
 
-/* When the client's surface cannot be resolved at all, the move is
+/* When the client's stage cannot be resolved at all, the move is
  * a silent no-op */
-static void s_test_move_to_monitor_unresolved_surface_is_noop(void)
+static void s_test_move_to_monitor_unresolved_stage_is_noop(void)
 {
     client_td client;
 
@@ -891,7 +891,7 @@ static void s_test_move_to_monitor_unresolved_surface_is_noop(void)
     ccmd_client_move_to_monitor(&client, 0u);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 25,
-            "an unresolved surface leaves the client untouched");
+            "an unresolved stage leaves the client untouched");
 }
 
 
@@ -901,16 +901,16 @@ static void s_test_move_to_monitor_unresolved_surface_is_noop(void)
  * monitor */
 static void s_test_move_to_monitor_clamps_oversized_client(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 1000u, .h = 1000u};
     monitor_td target_mon = {.x = 2000, .y = 0, .w = 300u, .h = 1000u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = cur_mon;
-    surface.monitors[1] = target_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 2u;
+    stage.monitors[0] = cur_mon;
+    stage.monitors[1] = target_mon;
     memset(&client, 0, sizeof(client));
     /* Deep into monitor 0, far right; translated as-is this would
      * land at 2000 + 900 = 2900, well past target_mon's right edge
@@ -919,7 +919,7 @@ static void s_test_move_to_monitor_clamps_oversized_client(void)
     client.layout.geometry.cur.pos.y = 0;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 200u;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor(&client, 1u);
 
@@ -936,22 +936,22 @@ static void s_test_move_to_monitor_clamps_oversized_client(void)
 static void s_test_move_to_monitor_clamps_when_client_bigger_than_target(
         void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 1000u, .h = 1000u};
     monitor_td target_mon = {.x = 2000, .y = 0, .w = 100u, .h = 100u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = cur_mon;
-    surface.monitors[1] = target_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 2u;
+    stage.monitors[0] = cur_mon;
+    stage.monitors[1] = target_mon;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 900;
     client.layout.geometry.cur.pos.y = 0;
     client.layout.geometry.cur.dim.w = 500u;
     client.layout.geometry.cur.dim.h = 500u;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor(&client, 1u);
 
@@ -967,16 +967,16 @@ static void s_test_move_to_monitor_clamps_when_client_bigger_than_target(
  * hanging off the near side either */
 static void s_test_move_to_monitor_clamps_near_edge(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 500, .y = 500, .w = 1000u, .h = 1000u};
     monitor_td target_mon = {.x = 0, .y = 0, .w = 800u, .h = 800u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = cur_mon;
-    surface.monitors[1] = target_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 2u;
+    stage.monitors[0] = cur_mon;
+    stage.monitors[1] = target_mon;
     memset(&client, 0, sizeof(client));
     /* At the current monitor's own left edge; translating verbatim
      * would place it at 0 - 500 + 500 = 0, already fine, so force a
@@ -985,7 +985,7 @@ static void s_test_move_to_monitor_clamps_near_edge(void)
     client.layout.geometry.cur.pos.y = 400;
     client.layout.geometry.cur.dim.w = 50u;
     client.layout.geometry.cur.dim.h = 50u;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor(&client, 1u);
 
@@ -997,58 +997,58 @@ static void s_test_move_to_monitor_clamps_near_edge(void)
 }
 
 
-/* A single-monitor surface has nowhere to move toward in any
+/* A single-monitor stage has nowhere to move toward in any
  * direction: every directional entry point is a no-op */
 static void s_test_direction_single_monitor_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td only_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 1u;
-    surface.monitors[0] = only_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 1u;
+    stage.monitors[0] = only_mon;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 33;
-    s_set_client_monitor(&surface, only_mon);
+    s_set_client_monitor(&stage, only_mon);
     s_set_direction_neighbor(0, 0, 800u, 600u);
 
     ccmd_client_move_to_monitor_north(&client);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 33,
-            "a single-monitor surface has no north neighbor to move"
+            "a single-monitor stage has no north neighbor to move"
             " toward");
 }
 
 
-/* A zero-monitor surface (the failure branch inside
+/* A zero-monitor stage (the failure branch inside
  * 's_move_to_monitor_toward' itself, not just the case above) is a
  * no-op too */
 static void s_test_direction_zero_monitors_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 100u, .h = 100u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 0u;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 0u;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 71;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
 
     ccmd_client_move_to_monitor_south(&client);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 71,
-            "a zero-monitor surface is a no-op for a directional"
+            "a zero-monitor stage is a no-op for a directional"
             " move too");
 }
 
 
-/* When 'ccmd_client_monitor' itself cannot resolve a surface, every
+/* When 'ccmd_client_monitor' itself cannot resolve a stage, every
  * directional entry point is a no-op */
-static void s_test_direction_unresolved_surface_is_noop(void)
+static void s_test_direction_unresolved_stage_is_noop(void)
 {
     client_td client;
 
@@ -1060,7 +1060,7 @@ static void s_test_direction_unresolved_surface_is_noop(void)
     ccmd_client_move_to_monitor_east(&client);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 88,
-            "an unresolved surface is a no-op for a directional"
+            "an unresolved stage is a no-op for a directional"
             " move too");
 }
 
@@ -1069,22 +1069,22 @@ static void s_test_direction_unresolved_surface_is_noop(void)
  * the monitors array, and the move lands exactly on it */
 static void s_test_direction_west_finds_real_neighbor(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 800, .y = 0, .w = 800u, .h = 600u};
     monitor_td west_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = cur_mon;
-    surface.monitors[1] = west_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 2u;
+    stage.monitors[0] = cur_mon;
+    stage.monitors[1] = west_mon;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 850;
     client.layout.geometry.cur.pos.y = 10;
     client.layout.geometry.cur.dim.w = 50u;
     client.layout.geometry.cur.dim.h = 50u;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
     s_set_direction_neighbor(0, 0, 800u, 600u);
 
     ccmd_client_move_to_monitor_west(&client);
@@ -1104,19 +1104,19 @@ static void s_test_direction_west_finds_real_neighbor(void)
  * falls through), nothing is moved */
 static void s_test_direction_neighbor_not_in_array_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     client_td client;
     monitor_td cur_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 1u;
-    surface.monitors[0] = cur_mon;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 1u;
+    stage.monitors[0] = cur_mon;
     memset(&client, 0, sizeof(client));
     client.layout.geometry.cur.pos.x = 5;
-    s_set_client_monitor(&surface, cur_mon);
+    s_set_client_monitor(&stage, cur_mon);
     /* Reports a neighbor whose coordinates match nothing in
-     * 'surface.monitors' at all */
+     * 'stage.monitors' at all */
     s_set_direction_neighbor(9000, 9000, 1u, 1u);
 
     ccmd_client_move_to_monitor_east(&client);
@@ -1218,13 +1218,13 @@ int main(void)
     s_test_move_to_monitor_maximized_refolds_against_target();
     s_test_move_to_monitor_out_of_range_falls_back();
     s_test_move_to_monitor_zero_monitors_refused();
-    s_test_move_to_monitor_unresolved_surface_is_noop();
+    s_test_move_to_monitor_unresolved_stage_is_noop();
     s_test_move_to_monitor_clamps_oversized_client();
     s_test_move_to_monitor_clamps_when_client_bigger_than_target();
     s_test_move_to_monitor_clamps_near_edge();
     s_test_direction_single_monitor_is_noop();
     s_test_direction_zero_monitors_is_noop();
-    s_test_direction_unresolved_surface_is_noop();
+    s_test_direction_unresolved_stage_is_noop();
     s_test_direction_west_finds_real_neighbor();
     s_test_direction_neighbor_not_in_array_is_noop();
     s_test_apply_geometry_null_client_is_noop();

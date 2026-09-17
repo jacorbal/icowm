@@ -45,12 +45,12 @@
  * manager name, then delegates to @a menu_confirm_dialog_show.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the dialog
+ * @param stage      Stage on which to center the dialog
  * @param config     Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
-void dialog_quit_show(xcb_connection_t *connection, surface_td *surface,
+void dialog_quit_show(xcb_connection_t *connection, stage_td *stage,
         const config_td *config);
 
 

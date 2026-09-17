@@ -8,7 +8,7 @@
  * @c handler_window_unmap_notify, and @c handler_window_destroy_notify in full,
  * plus @c handler_window_map_request narrowed to its guard clauses and
  * early-return "unmanaged" paths, all exercised through synthetic
- * XCB event structs and hand-built @c client_td/@c surface_td/
+ * XCB event structs and hand-built @c client_td/@c stage_td/
  * @c desktop_td/@c wm_td fixtures.  No live X connection is ever
  * needed.
  *
@@ -100,7 +100,7 @@
 #include <memguard.h>
 #include <rules.h>
 #include <scratchpad.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <utils/xcb/atom.h>
 #include <wm.h>
@@ -113,7 +113,7 @@
 
 /* Call counters/recorders for every link-only stand-in below */
 static unsigned int s_call_lookup_find_client = 0u;
-static unsigned int s_call_lookup_surface_for_root = 0u;
+static unsigned int s_call_lookup_stage_for_root = 0u;
 static unsigned int s_call_lookup_current_desktop = 0u;
 static unsigned int s_call_systray_icon_map_request = 0u;
 static unsigned int s_call_systray_handle_destroy = 0u;
@@ -129,7 +129,7 @@ static unsigned int s_call_drag_is_active = 0u;
 static unsigned int s_call_drag_cancel = 0u;
 static unsigned int s_call_drag_client = 0u;
 static unsigned int s_call_place_manual_cancel_client = 0u;
-static unsigned int s_call_surface_refresh_workareas = 0u;
+static unsigned int s_call_stage_refresh_workareas = 0u;
 static unsigned int s_call_ccmd_clear_wm_state = 0u;
 static unsigned int s_call_ccmd_set_wm_state = 0u;
 static unsigned int s_call_ccmd_client_sync_states = 0u;
@@ -151,9 +151,9 @@ static unsigned int s_call_mouse_plain_cursor = 0u;
 
 /* Controlled return values for the next call */
 static client_td *s_lookup_find_client_result = NULL;
-static surface_td *s_lookup_find_client_surface_out = NULL;
+static stage_td *s_lookup_find_client_stage_out = NULL;
 static desktop_td *s_lookup_find_client_desktop_out = NULL;
-static surface_td *s_lookup_surface_for_root_result = NULL;
+static stage_td *s_lookup_stage_for_root_result = NULL;
 static desktop_td *s_lookup_current_desktop_result = NULL;
 static bool s_systray_icon_map_request_result = false;
 static bool s_drag_is_active_result = false;
@@ -163,15 +163,15 @@ static xcb_window_t s_last_configure_window_target = 0u;
 
 
 /** Link-only stand-in for lookup_find_client */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **surface_out, desktop_td **desktop_out)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **stage_out, desktop_td **desktop_out)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
     s_call_lookup_find_client++;
-    if (surface_out != NULL) {
-        *surface_out = s_lookup_find_client_surface_out;
+    if (stage_out != NULL) {
+        *stage_out = s_lookup_find_client_stage_out;
     }
     if (desktop_out != NULL) {
         *desktop_out = s_lookup_find_client_desktop_out;
@@ -180,22 +180,22 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 }
 
 
-/** Link-only stand-in for lookup_surface_for_root */
-surface_td *lookup_surface_for_root(list_td *surfaces,
+/** Link-only stand-in for lookup_stage_for_root */
+stage_td *lookup_stage_for_root(list_td *stages,
         xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
 
-    s_call_lookup_surface_for_root++;
-    return s_lookup_surface_for_root_result;
+    s_call_lookup_stage_for_root++;
+    return s_lookup_stage_for_root_result;
 }
 
 
 /** Link-only stand-in for lookup_current_desktop */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     s_call_lookup_current_desktop++;
     return s_lookup_current_desktop_result;
@@ -239,10 +239,10 @@ bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
 static unsigned int s_call_cctl_sn_complete_for_pid = 0u;
 
 bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window)
+        list_td *stages, xcb_window_t window)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
     s_call_cctl_sn_complete_for_pid++;
@@ -260,10 +260,10 @@ uint32_t memguard_max_clients(void)
 
 /** Link-only stand-in for memguard_warn_client_cap */
 void memguard_warn_client_cap(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config)
+        stage_td *stage, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
 
     s_call_memguard_warn_client_cap++;
@@ -377,12 +377,12 @@ void ccmd_client_iconify(client_td *client)
 
 /** Link-only stand-in for focus_apply; never reached, see
  *  ccmd_client_iconify's comment above */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -454,14 +454,14 @@ void ccmd_client_unhide(client_td *client)
 }
 
 
-/** Link-only stand-in for surface_desktop_get; used by
+/** Link-only stand-in for stage_desktop_get; used by
  *  handler_window_map_request's own body for a real, reachable branch (the
  *  startup-notification origin desktop lookup), unlike the
  *  s_map_finish-only collaborators above */
-desktop_td *surface_desktop_get(surface_td *surface,
+desktop_td *stage_desktop_get(stage_td *stage,
         uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
     return NULL;
@@ -506,23 +506,23 @@ void ccmd_client_stick(client_td *client)
 /** Link-only stand-in for scratchpad_position; never reached, see
  *  client_link_transient's comment above */
 void scratchpad_position(client_td *client, const desktop_td *desktop,
-        surface_td *surface)
+        stage_td *stage)
 {
     (void) client;
     (void) desktop;
-    (void) surface;
+    (void) stage;
 }
 
 
 /** Link-only stand-in for rules_apply; never reached, see
  *  client_link_transient's comment above */
 bool rules_apply(const wm_td *wm, client_td *client,
-        surface_td **surface_io, desktop_td **desktop_io,
+        stage_td **stage_io, desktop_td **desktop_io,
         enum rules_trigger_e trigger)
 {
     (void) wm;
     (void) client;
-    (void) surface_io;
+    (void) stage_io;
     (void) desktop_io;
     (void) trigger;
 
@@ -532,11 +532,11 @@ bool rules_apply(const wm_td *wm, client_td *client,
 
 /** Link-only stand-in for place_window_apply; never reached, see
  *  client_link_transient's comment above */
-void place_window_apply(const wm_td *wm, surface_td *surface,
+void place_window_apply(const wm_td *wm, stage_td *stage,
         client_td *client)
 {
     (void) wm;
-    (void) surface;
+    (void) stage;
     (void) client;
 }
 
@@ -575,12 +575,12 @@ xcb_void_cookie_t xcb_change_property(xcb_connection_t *c, uint8_t mode,
 /** Link-only stand-in for place_manual_enqueue; never reached, see
  *  client_link_transient's comment above */
 bool place_manual_enqueue(xcb_connection_t *connection, const wm_td *wm,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         xcb_cursor_t cursor, place_manual_done_fn done)
 {
     (void) connection;
     (void) wm;
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) cursor;
@@ -613,11 +613,11 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 
 
 /** Link-only stand-in for client_focus_fallback */
-void client_focus_fallback(desktop_td *desktop, surface_td *surface,
+void client_focus_fallback(desktop_td *desktop, stage_td *stage,
         client_td *exclude)
 {
     (void) desktop;
-    (void) surface;
+    (void) stage;
     (void) exclude;
 
     s_call_client_focus_fallback++;
@@ -661,12 +661,12 @@ void place_manual_cancel_client(xcb_connection_t *connection,
 }
 
 
-/** Link-only stand-in for surface_workarea_refresh_all */
-void surface_workarea_refresh_all(surface_td *surface)
+/** Link-only stand-in for stage_workarea_refresh_all */
+void stage_workarea_refresh_all(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
-    s_call_surface_refresh_workareas++;
+    s_call_stage_refresh_workareas++;
 }
 
 
@@ -949,7 +949,7 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 static void s_test_reset_state(void)
 {
     s_call_lookup_find_client = 0u;
-    s_call_lookup_surface_for_root = 0u;
+    s_call_lookup_stage_for_root = 0u;
     s_call_lookup_current_desktop = 0u;
     s_call_systray_icon_map_request = 0u;
     s_call_systray_handle_destroy = 0u;
@@ -966,7 +966,7 @@ static void s_test_reset_state(void)
     s_call_drag_cancel = 0u;
     s_call_drag_client = 0u;
     s_call_place_manual_cancel_client = 0u;
-    s_call_surface_refresh_workareas = 0u;
+    s_call_stage_refresh_workareas = 0u;
     s_call_ccmd_clear_wm_state = 0u;
     s_call_ccmd_set_wm_state = 0u;
     s_call_ccmd_client_sync_states = 0u;
@@ -986,9 +986,9 @@ static void s_test_reset_state(void)
     s_call_change_window_attributes = 0u;
     s_call_mouse_plain_cursor = 0u;
     s_lookup_find_client_result = NULL;
-    s_lookup_find_client_surface_out = NULL;
+    s_lookup_find_client_stage_out = NULL;
     s_lookup_find_client_desktop_out = NULL;
-    s_lookup_surface_for_root_result = NULL;
+    s_lookup_stage_for_root_result = NULL;
     s_lookup_current_desktop_result = NULL;
     s_systray_icon_map_request_result = false;
     s_drag_is_active_result = false;
@@ -1112,69 +1112,69 @@ static void s_test_map_request_systray_icon(void)
 }
 
 
-/* handler_window_map_request: no resolvable surface at all (empty surface
+/* handler_window_map_request: no resolvable stage at all (empty stage
  * list too) leaves the window entirely unmapped and unmanaged */
-static void s_test_map_request_no_surface(void)
+static void s_test_map_request_no_stage(void)
 {
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
     config_td config;
-    list_td *surfaces;
+    list_td *stages;
     xcb_map_request_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     s_test_build_wm(&wm, &ewmh, &config);
-    wm.surfaces = surfaces;
+    wm.stages = stages;
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     event.parent = 0x1;
     s_lookup_find_client_result = NULL;
     s_systray_icon_map_request_result = false;
-    s_lookup_surface_for_root_result = NULL;
+    s_lookup_stage_for_root_result = NULL;
 
     handler_window_map_request(&wm, &event);
 
     TAP_OK(s_call_map_window == 0u,
-            "a window with no resolvable surface and an empty" \
-            " surface list is left entirely unmapped");
+            "a window with no resolvable stage and an empty" \
+            " stage list is left entirely unmapped");
     TAP_OK(s_call_lookup_current_desktop == 0u,
-            "with no surface resolved, the current-desktop lookup" \
+            "with no stage resolved, the current-desktop lookup" \
             " is never reached");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* handler_window_map_request: a resolvable surface with no current desktop
+/* handler_window_map_request: a resolvable stage with no current desktop
  * maps the window as unmanaged (visible, but untracked) */
 static void s_test_map_request_no_current_desktop(void)
 {
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     xcb_map_request_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_test_build_wm(&wm, &ewmh, &config);
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     event.parent = 0x1;
     s_lookup_find_client_result = NULL;
     s_systray_icon_map_request_result = false;
-    s_lookup_surface_for_root_result = &surface;
+    s_lookup_stage_for_root_result = &stage;
     s_lookup_current_desktop_result = NULL;
 
     handler_window_map_request(&wm, &event);
 
     TAP_OK(s_call_map_window == 1u,
-            "a resolvable surface with no current desktop maps the" \
+            "a resolvable stage with no current desktop maps the" \
             " window unmanaged exactly once");
     TAP_OK(s_call_client_init == 0u,
             "with no current desktop resolved, client_init is never" \
@@ -1388,28 +1388,28 @@ static void s_test_circulate_notify_null_event(void)
 
     handler_window_circulate_notify((xcb_connection_t *) 0x1234, NULL, NULL);
 
-    TAP_OK(s_call_lookup_surface_for_root == 0u,
-            "a null event never reaches the surface lookup");
+    TAP_OK(s_call_lookup_stage_for_root == 0u,
+            "a null event never reaches the stage lookup");
 }
 
 
-/* handler_window_circulate_notify: a resolved root outdates its surface */
-static void s_test_circulate_notify_outdates_surface(void)
+/* handler_window_circulate_notify: a resolved root outdates its stage */
+static void s_test_circulate_notify_outdates_stage(void)
 {
-    surface_td surface;
+    stage_td stage;
     xcb_circulate_notify_event_t event;
 
     s_test_reset_state();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     event.event = 0x1;
-    s_lookup_surface_for_root_result = &surface;
+    s_lookup_stage_for_root_result = &stage;
 
     handler_window_circulate_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
-    TAP_OK(surface.is_outdated,
-            "a resolved circulate-notify root outdates its surface");
+    TAP_OK(stage.is_outdated,
+            "a resolved circulate-notify root outdates its stage");
 }
 
 
@@ -1592,7 +1592,7 @@ static void s_test_unmap_notify_ignored_primary(void)
 static void s_test_unmap_notify_genuine_withdrawal(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_unmap_notify_event_t event;
 
@@ -1601,13 +1601,13 @@ static void s_test_unmap_notify_genuine_withdrawal(void)
     client.frame = 0x200;
     client.titlebar = 0x300;
     client.properties.state = (uint16_t) CLIENT_STATE_FULLSCREEN;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     desktop.client_active_id = client.id;
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;
-    s_lookup_find_client_surface_out = &surface;
+    s_lookup_find_client_stage_out = &stage;
     s_lookup_find_client_desktop_out = &desktop;
 
     handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
@@ -1631,10 +1631,10 @@ static void s_test_unmap_notify_genuine_withdrawal(void)
     TAP_OK(s_call_ccmd_client_sync_states == 1u,
             "a genuine self-withdrawal syncs the client's EWMH" \
             " states exactly once");
-    TAP_OK(client.is_outdated && surface.is_outdated &&
+    TAP_OK(client.is_outdated && stage.is_outdated &&
             desktop.is_outdated,
             "a genuine self-withdrawal outdates the client," \
-            " surface, and desktop directly");
+            " stage, and desktop directly");
 }
 
 
@@ -1646,20 +1646,20 @@ static void s_test_unmap_notify_withdrawal_not_active(void)
 {
     client_td client;
     client_td other_client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_unmap_notify_event_t event;
 
     s_test_reset_state();
     s_test_build_client(&client, 0x100);
     s_test_build_client(&other_client, 0x777);
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     desktop.client_active_id = other_client.id;
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;
-    s_lookup_find_client_surface_out = &surface;
+    s_lookup_find_client_stage_out = &stage;
     s_lookup_find_client_desktop_out = &desktop;
 
     handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
@@ -1757,7 +1757,7 @@ static void s_test_destroy_notify_cancels_active_drag(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     xcb_destroy_notify_event_t event;
 
     s_test_reset_state();
@@ -1765,11 +1765,11 @@ static void s_test_destroy_notify_cancels_active_drag(void)
     memset(&config, 0, sizeof(config));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;
-    s_lookup_find_client_surface_out = &surface;
+    s_lookup_find_client_stage_out = &stage;
     s_drag_is_active_result = true;
     s_drag_client_result = &client;
 
@@ -1791,7 +1791,7 @@ static void s_test_destroy_notify_leaves_unrelated_drag(void)
     config_td config;
     client_td client;
     client_td other_client;
-    surface_td surface;
+    stage_td stage;
     xcb_destroy_notify_event_t event;
 
     s_test_reset_state();
@@ -1800,11 +1800,11 @@ static void s_test_destroy_notify_leaves_unrelated_drag(void)
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_client(&other_client, 0x777);
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;
-    s_lookup_find_client_surface_out = &surface;
+    s_lookup_find_client_stage_out = &stage;
     s_drag_is_active_result = true;
     s_drag_client_result = &other_client;
 
@@ -1840,7 +1840,7 @@ static void s_test_destroy_notify_frame_vs_content(void)
     config_td config;
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     xcb_destroy_notify_event_t event;
 
     s_test_reset_state();
@@ -1851,11 +1851,11 @@ static void s_test_destroy_notify_frame_vs_content(void)
     client.frame = 0x200;
     client.titlebar = 0x300;
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;
-    s_lookup_find_client_surface_out = &surface;
+    s_lookup_find_client_stage_out = &stage;
     s_lookup_find_client_desktop_out = &desktop;
 
     handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
@@ -1877,7 +1877,7 @@ static void s_test_destroy_notify_frame_vs_content(void)
 
 
 /* handler_window_destroy_notify: removing a client from a resolved desktop
- * refreshes the surface's work areas, and falls back focus only when
+ * refreshes the stage's work areas, and falls back focus only when
  * that client was the desktop's active one */
 static void s_test_destroy_notify_removes_from_desktop(void)
 {
@@ -1886,7 +1886,7 @@ static void s_test_destroy_notify_removes_from_desktop(void)
     config_td config;
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     xcb_destroy_notify_event_t event;
 
     s_test_reset_state();
@@ -1896,11 +1896,11 @@ static void s_test_destroy_notify_removes_from_desktop(void)
     s_test_build_client(&client, 0x100);
     memset(&desktop, 0, sizeof(desktop));
     desktop.client_active_id = client.id;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;
-    s_lookup_find_client_surface_out = &surface;
+    s_lookup_find_client_stage_out = &stage;
     s_lookup_find_client_desktop_out = &desktop;
 
     handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
@@ -1909,8 +1909,8 @@ static void s_test_destroy_notify_removes_from_desktop(void)
     TAP_OK(s_call_desktop_action_client_rem == 1u,
             "a client destroyed on a resolved desktop is removed" \
             " from it exactly once");
-    TAP_OK(s_call_surface_refresh_workareas == 1u,
-            "removing a destroyed client refreshes its surface's" \
+    TAP_OK(s_call_stage_refresh_workareas == 1u,
+            "removing a destroyed client refreshes its stage's" \
             " work areas exactly once");
     TAP_OK(s_call_client_focus_fallback == 1u,
             "destroying the desktop's own active client falls back" \
@@ -1921,8 +1921,8 @@ static void s_test_destroy_notify_removes_from_desktop(void)
     TAP_OK(s_call_client_destroy == 1u,
             "a fully resolved, destroyed client is itself torn down" \
             " exactly once");
-    TAP_OK(surface.is_outdated && desktop.is_outdated,
-            "destroying a client outdates its surface and desktop");
+    TAP_OK(stage.is_outdated && desktop.is_outdated,
+            "destroying a client outdates its stage and desktop");
 }
 
 
@@ -1933,7 +1933,7 @@ int main(void)
     s_test_map_request_null_guards();
     s_test_map_request_already_managed();
     s_test_map_request_systray_icon();
-    s_test_map_request_no_surface();
+    s_test_map_request_no_stage();
     s_test_map_request_no_current_desktop();
     s_test_map_notify_null_event();
     s_test_map_notify_override_redirect_ignored();
@@ -1945,7 +1945,7 @@ int main(void)
     s_test_gravity_notify_updates_position();
     s_test_gravity_notify_decorated_resync();
     s_test_circulate_notify_null_event();
-    s_test_circulate_notify_outdates_surface();
+    s_test_circulate_notify_outdates_stage();
     s_test_circulate_request_null_event();
     s_test_circulate_request_unresolvable();
     s_test_circulate_request_place_on_top();

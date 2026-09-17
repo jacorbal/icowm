@@ -9,10 +9,10 @@
  * 'menu/draw.c' are linked here for real, so this file's own
  * assertions can focus purely on desktop.c's own contribution: the
  * 'cfg->base.overlay' gate, delegating the label text to
- * 'surface_desktop_label', and forwarding through to the right
+ * 'stage_desktop_label', and forwarding through to the right
  * generic call with the right static state and timeout.
- * 'surface_desktop_label' itself belongs to a different module
- * ('surface/desktops.c') and is stubbed as a recording stand-in here,
+ * 'stage_desktop_label' itself belongs to a different module
+ * ('stage/desktops.c') and is stubbed as a recording stand-in here,
  * the same as any other genuinely cross-module dependency; every raw
  * XCB entry point 'menu/notify.c' and 'menu/draw.c' call through to is
  * a link-only or recording stand-in, following the same pattern
@@ -41,7 +41,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 #include <types/pair.h>
 
 /* Default initial values */
@@ -63,13 +63,13 @@ static uint32_t s_next_generated_id;
 static int s_call_xcb_create_window;
 static int s_call_xcb_map_window;
 static int s_call_xcb_window_destroy;
-static int s_call_surface_desktop_label;
+static int s_call_stage_desktop_label;
 static uint32_t s_last_label_desktop_id;
 static char s_last_label_name[128];
 static bool s_last_label_is_pinned;
 static bool s_last_label_shows_name;
 
-/** Text 'surface_desktop_label' writes into its out_label buffer */
+/** Text 'stage_desktop_label' writes into its out_label buffer */
 static const char *s_label_reply = "Desktop 3";
 
 
@@ -238,10 +238,10 @@ uint16_t text_string_measure(const char *text)
 
 
 /**
- * @brief Recording stand-in for @a surface_desktop_label
+ * @brief Recording stand-in for @a stage_desktop_label
  *
  * The real formatting algorithm belongs to a different module
- * ('surface/desktops.c'), already exercised on its own elsewhere;
+ * ('stage/desktops.c'), already exercised on its own elsewhere;
  * what this file checks is only that 'notify_desktop_show' calls
  * through to it with the right arguments and then forwards whatever
  * it wrote into the generic popup, via
@@ -250,13 +250,13 @@ uint16_t text_string_measure(const char *text)
  *
  * @note Complexity: @e O(1)
  */
-void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
+void stage_desktop_label(const stage_td *stage, uint32_t desktop_id,
         const char *desktop_name, bool is_pinned, bool shows_name,
         char *out_label, size_t length)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_name;
-    s_call_surface_desktop_label++;
+    s_call_stage_desktop_label++;
     s_last_label_desktop_id = desktop_id;
     s_last_label_is_pinned = is_pinned;
     s_last_label_shows_name = shows_name;
@@ -268,11 +268,11 @@ void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_get
+ * @brief Link-only stand-in for @a stage_desktop_get
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
     /* Only ever compared against NULL: 'notify_desktop_show' passes
      * whatever this returns straight to the viewport page lookup,
@@ -281,7 +281,7 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
      * and needs to hand back */
     static long placeholder;
 
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
     return (desktop_td *) &placeholder;
@@ -289,11 +289,11 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 
 
 /**
- * @brief Link-only stand-in for @a scmd_surface_viewport_desktop_page
+ * @brief Link-only stand-in for @a scmd_stage_viewport_desktop_page
  *
  * Reports whichever page a scenario last registered, or none at all,
  * so the four combinations of desktops and pages can each be
- * exercised without pulling in the whole of 'cmds/surface.c'.
+ * exercised without pulling in the whole of 'cmds/stage.c'.
  *
  * @note Complexity: @e O(1)
  */
@@ -301,10 +301,10 @@ static bool s_viewport_has_page;
 static uint32_t s_viewport_col;
 static uint32_t s_viewport_row;
 
-bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+bool scmd_stage_viewport_desktop_page(const stage_td *stage,
         const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
 
     if (!s_viewport_has_page) {
@@ -345,7 +345,7 @@ static void s_reset(void)
     s_viewport_row = 0u;
     s_call_xcb_map_window = 0;
     s_call_xcb_window_destroy = 0;
-    s_call_surface_desktop_label = 0;
+    s_call_stage_desktop_label = 0;
     s_last_label_desktop_id = 0u;
     memset(s_last_label_name, 0, sizeof(s_last_label_name));
     s_last_label_is_pinned = true;
@@ -379,54 +379,54 @@ static config_td s_make_config(bool is_shown)
 }
 
 
-static surface_td s_make_surface(void)
+static stage_td s_make_stage(void)
 {
-    surface_td surface;
+    stage_td stage;
     static xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
     /* More than one, or the overlay has no desktop worth naming and
      * declines to show anything at all */
-    surface.desktop_count = 4u;
-    surface.properties.dim.w = 1024u;
-    surface.properties.dim.h = 768u;
-    return surface;
+    stage.desktop_count = 4u;
+    stage.properties.dim.w = 1024u;
+    stage.properties.dim.h = 768u;
+    return stage;
 }
 
 
 /* notify_desktop_show does nothing at all, not even formatting a
- * label, on any null argument or a screen-less surface */
+ * label, on any null argument or a screen-less stage */
 static void s_test_show_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface();
+    stage = s_make_stage();
     cfg = s_make_config(true);
 
-    notify_desktop_show(NULL, &surface, 2u, "Web", 
+    notify_desktop_show(NULL, &stage, 2u, "Web", 
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
-    TAP_EQ_INT(s_call_surface_desktop_label, 0,
+    TAP_EQ_INT(s_call_stage_desktop_label, 0,
             "a null connection never even formats a label");
 
     notify_desktop_show(s_fake_connection, NULL, 2u, "Web", 
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
-    TAP_EQ_INT(s_call_surface_desktop_label, 0,
-            "a null surface never formats a label");
+    TAP_EQ_INT(s_call_stage_desktop_label, 0,
+            "a null stage never formats a label");
 
-    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+    notify_desktop_show(s_fake_connection, &stage, 2u, "Web",
             NOTIFY_DESKTOP_CAUSE_SWITCH, NULL);
-    TAP_EQ_INT(s_call_surface_desktop_label, 0,
+    TAP_EQ_INT(s_call_stage_desktop_label, 0,
             "a null config never formats a label");
 
-    surface.screen = NULL;
-    notify_desktop_show(s_fake_connection, &surface, 2u, "Web", 
+    stage.screen = NULL;
+    notify_desktop_show(s_fake_connection, &stage, 2u, "Web", 
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
-    TAP_EQ_INT(s_call_surface_desktop_label, 0,
-            "a screen-less surface never formats a label");
+    TAP_EQ_INT(s_call_stage_desktop_label, 0,
+            "a screen-less stage never formats a label");
 }
 
 
@@ -434,17 +434,17 @@ static void s_test_show_null_guards(void)
  * opening any window, when the active configuration turns it off */
 static void s_test_show_respects_overlay_toggle(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface();
+    stage = s_make_stage();
     cfg = s_make_config(false);
 
-    notify_desktop_show(s_fake_connection, &surface, 1u, "Mail", 
+    notify_desktop_show(s_fake_connection, &stage, 1u, "Mail", 
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
 
-    TAP_EQ_INT(s_call_surface_desktop_label, 0,
+    TAP_EQ_INT(s_call_stage_desktop_label, 0,
             "a disabled overlay skips formatting the label entirely");
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a disabled overlay never opens a popup window");
@@ -454,24 +454,24 @@ static void s_test_show_respects_overlay_toggle(void)
 
 
 /* A normal show call, with the overlay enabled, formats the label via
- * surface_desktop_label with the requested desktop id and name, then
+ * stage_desktop_label with the requested desktop id and name, then
  * forwards the formatted text into a real, mapped popup window */
 static void s_test_show_formats_and_opens_popup(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface();
+    stage = s_make_stage();
     cfg = s_make_config(true);
     s_label_reply = "Desktop 4: Terminal";
 
-    notify_desktop_show(s_fake_connection, &surface, 3u, "Terminal",
+    notify_desktop_show(s_fake_connection, &stage, 3u, "Terminal",
             
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
 
-    TAP_EQ_INT(s_call_surface_desktop_label, 1,
-            "surface_desktop_label is called exactly once");
+    TAP_EQ_INT(s_call_stage_desktop_label, 1,
+            "stage_desktop_label is called exactly once");
     TAP_EQ_INT((long) s_last_label_desktop_id, (long) 3u,
             "the requested desktop index is forwarded unchanged");
     TAP_EQ_STR(s_last_label_name, "Terminal",
@@ -492,24 +492,24 @@ static void s_test_show_formats_and_opens_popup(void)
 }
 
 
-/* A null desktop_name still reaches surface_desktop_label (which
+/* A null desktop_name still reaches stage_desktop_label (which
  * itself is a different module's responsibility to null-guard), and
  * the popup still opens from whatever it wrote */
 static void s_test_show_handles_null_name(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface();
+    stage = s_make_stage();
     cfg = s_make_config(true);
     s_label_reply = "Desktop 5";
 
-    notify_desktop_show(s_fake_connection, &surface, 4u, NULL, 
+    notify_desktop_show(s_fake_connection, &stage, 4u, NULL, 
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
 
-    TAP_EQ_INT(s_call_surface_desktop_label, 1,
-            "a null desktop_name still reaches surface_desktop_label"
+    TAP_EQ_INT(s_call_stage_desktop_label, 1,
+            "a null desktop_name still reaches stage_desktop_label"
             " once");
     TAP_EQ_STR(s_last_label_name, "",
             "a null desktop_name is normalized to an empty string"
@@ -524,14 +524,14 @@ static void s_test_show_handles_null_name(void)
  * left open, and afterward the notification reports itself closed */
 static void s_test_close_closes_open_popup(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface();
+    stage = s_make_stage();
     cfg = s_make_config(true);
 
-    notify_desktop_show(s_fake_connection, &surface, 0u, "Desktop 1",
+    notify_desktop_show(s_fake_connection, &stage, 0u, "Desktop 1",
             
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     TAP_OK(notify_desktop_is_open(), "the popup opens as expected");
@@ -553,18 +553,18 @@ static void s_test_close_closes_open_popup(void)
  * opening */
 static void s_test_ms_remaining_reflects_state(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
     int remaining;
 
     s_reset();
-    surface = s_make_surface();
+    stage = s_make_stage();
     cfg = s_make_config(true);
 
     TAP_EQ_INT(notify_desktop_ms_remaining(), -1,
             "with nothing open, remaining time is -1");
 
-    notify_desktop_show(s_fake_connection, &surface, 0u, "Desktop 1",
+    notify_desktop_show(s_fake_connection, &stage, 0u, "Desktop 1",
             
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     remaining = notify_desktop_ms_remaining();
@@ -599,41 +599,41 @@ static void s_test_repaint_closed_is_harmless(void)
 static void s_test_content_follows_what_exists(void)
 {
     config_td cfg = s_make_config(true);
-    surface_td surface = s_make_surface();
+    stage_td stage = s_make_stage();
 
     /* One desktop and a viewport that cannot pan: nothing moved that
      * the user could not already see */
     s_reset();
-    surface.desktop_count = 1u;
-    notify_desktop_show(s_fake_connection, &surface, 0u, "Only",
+    stage.desktop_count = 1u;
+    notify_desktop_show(s_fake_connection, &stage, 0u, "Only",
             NOTIFY_DESKTOP_CAUSE_VIEWPORT, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "one desktop and a single-page viewport shows no popup"
             " at all");
-    TAP_EQ_INT(s_call_surface_desktop_label, 0,
+    TAP_EQ_INT(s_call_stage_desktop_label, 0,
             "and never even asks for a label");
 
     /* One desktop but a viewport with pages: the page names itself,
      * and the desktop label is not asked for at all */
     s_reset();
-    surface.desktop_count = 1u;
+    stage.desktop_count = 1u;
     s_viewport_has_page = true;
     s_viewport_col = 1u;
-    notify_desktop_show(s_fake_connection, &surface, 0u, "Only",
+    notify_desktop_show(s_fake_connection, &stage, 0u, "Only",
             NOTIFY_DESKTOP_CAUSE_VIEWPORT, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 1,
             "one desktop with pages does show a popup");
-    TAP_EQ_INT(s_call_surface_desktop_label, 0,
+    TAP_EQ_INT(s_call_stage_desktop_label, 0,
             "and names the page alone, never asking for a desktop"
             " label that would say nothing");
 
     /* Several desktops: the label is asked for, without the name,
      * which the overlay prepends itself */
     s_reset();
-    surface.desktop_count = 4u;
-    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+    stage.desktop_count = 4u;
+    notify_desktop_show(s_fake_connection, &stage, 2u, "Web",
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
-    TAP_EQ_INT(s_call_surface_desktop_label, 1,
+    TAP_EQ_INT(s_call_stage_desktop_label, 1,
             "several desktops do ask for the bracketed label");
     TAP_OK(!s_last_label_shows_name,
             "and ask for it without the name, which goes in front");
@@ -645,18 +645,18 @@ static void s_test_content_follows_what_exists(void)
 static void s_test_causes_are_gated_separately(void)
 {
     config_td cfg = s_make_config(true);
-    surface_td surface = s_make_surface();
+    stage_td stage = s_make_stage();
 
     cfg.base.overlay.on_viewport_move = false;
 
     s_reset();
-    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+    notify_desktop_show(s_fake_connection, &stage, 2u, "Web",
             NOTIFY_DESKTOP_CAUSE_VIEWPORT, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a viewport move is silent once its own setting is off");
 
     s_reset();
-    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+    notify_desktop_show(s_fake_connection, &stage, 2u, "Web",
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 1,
             "while a desktop switch still announces itself");

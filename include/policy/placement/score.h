@@ -55,10 +55,10 @@
  * occluded by, while still fragmenting the layout around a window that
  * may not even be there the next time this same desktop is scored.
  *
- * @param desktop         Desktop whose clients are inspected
- * @param skip_client     Client to ignore (the one being placed)
- * @param candidate       Candidate rectangle to score
- * @param win_pixel_cost  Cost weight per pixel of overlap with another
+ * @param desktop        Desktop whose clients are inspected
+ * @param skip_client    Client to ignore (the one being placed)
+ * @param candidate      Candidate rectangle to score
+ * @param win_pixel_cost Cost weight per pixel of overlap with another
  *                        client's current window rectangle
  * @param icon_pixel_cost Cost weight per pixel of overlap with another
  *                        client's currently visible icon rectangle

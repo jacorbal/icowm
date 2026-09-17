@@ -21,9 +21,9 @@
  * X connection is used; text_renderer_use_font, text_string_measure,
  * text_renderer_set_color, text_draw_string, text_font_ascent and
  * text_font_descent are controllable stand-ins for their own whole
- * subsystem (render/text.c), and wm_get_surface_by_id/
+ * subsystem (render/text.c), and wm_get_stage_by_id/
  * xcb_ewmh_connection_get are stand-ins that always report "no
- * surface"/"no EWMH connection" so the buffer-less and EWMH-less
+ * stage"/"no EWMH connection" so the buffer-less and EWMH-less
  * branches are the ones exercised; both are pure fallbacks already
  * reachable this way, and the buffered/EWMH branches only add extra
  * raw-XCB drawing calls without any new decision logic of this file's
@@ -54,7 +54,7 @@
 #include <client.h>
 #include <config.h>
 #include <render/text.h>
-#include <surface.h>
+#include <stage.h>
 #include <utils/xcb/connection.h>
 #include <wm.h>
 
@@ -358,11 +358,11 @@ xcb_void_cookie_t xcb_free_pixmap(xcb_connection_t *c, xcb_pixmap_t pixmap)
 
 
 /**
- * @brief Controllable stand-in for @a wm_get_surface_by_id, always
- *        reporting no surface so the buffer-less repaint branch runs
+ * @brief Controllable stand-in for @a wm_get_stage_by_id, always
+ *        reporting no stage so the buffer-less repaint branch runs
  * @note Complexity: @e O(1)
  */
-surface_td *wm_get_surface_by_id(uint32_t screen_id)
+stage_td *wm_get_stage_by_id(uint32_t screen_id)
 {
     (void) screen_id;
 
@@ -374,7 +374,7 @@ surface_td *wm_get_surface_by_id(uint32_t screen_id)
  * @brief Link-only stand-in for @a xcb_offscreen_buffer_create
  *
  * Never actually called in this file's tests, since
- * @a wm_get_surface_by_id above always reports no surface, taking
+ * @a wm_get_stage_by_id above always reports no stage, taking
  * the drag_overlay_repaint's buffer-less branch instead; provided
  * only to satisfy the link, as overlay.c references it in the branch
  * this file's tests never reach.
@@ -894,8 +894,8 @@ static void s_test_repaint_empty_text_is_noop(void)
 
 /* drag_overlay_repaint draws the current overlay_text using the
  * window-mode theme colors/font when is_overlay_icon is false, and
- * takes the no-offscreen-buffer branch since wm_get_surface_by_id is
- * stubbed to always report no surface */
+ * takes the no-offscreen-buffer branch since wm_get_stage_by_id is
+ * stubbed to always report no stage */
 static void s_test_repaint_draws_window_mode_text(void)
 {
     client_td client;

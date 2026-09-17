@@ -65,11 +65,11 @@ util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
 /**
  * @brief Load a cursor by its standard Xcursor name
  *
- * @param ctx             Context from @c util_cursor_ctx_new, or
+ * @param ctx Context from @c util_cursor_ctx_new, or
  *                        @c NULL to always use the fallback font
- * @param name            Standard Xcursor name (e.g., "left_ptr",
+ * @param name Standard Xcursor name (e.g., "left_ptr",
  *                        "watch", "top_side")
- * @param fallback_glyph  X core cursor-font glyph to fall back to if
+ * @param fallback_glyph X core cursor-font glyph to fall back to if
  *                        the active cursor theme does not provide
  *                        @p name
  *

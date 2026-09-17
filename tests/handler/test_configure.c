@@ -6,7 +6,7 @@
  * Covers @a handler_configure_request and @a handler_configure_notify,
  * exercised entirely through synthetic @c xcb_configure_request_event_t
  * and @c xcb_configure_notify_event_t structs built by hand, with a
- * hand-built @c client_td/surface_td/desktop_td triple on the stack;
+ * hand-built @c client_td/stage_td/desktop_td triple on the stack;
  * no live X connection is ever needed.  @a lookup_find_client is
  * replaced by a controlled stand-in (the same pattern used in
  * tests/handler/test_focus.c and tests/handler/test_crossing.c) so each
@@ -68,7 +68,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 
 /* Local includes */
@@ -78,9 +78,9 @@
 
 
 /* What lookup_find_client should hand back for the next call, and to
- * which surface/desktop it should attribute that client */
+ * which stage/desktop it should attribute that client */
 static client_td *s_lookup_result = NULL;
-static surface_td *s_lookup_surface_out = NULL;
+static stage_td *s_lookup_stage_out = NULL;
 static desktop_td *s_lookup_desktop_out = NULL;
 
 /* What systray_icon_size_enforce should report for the next call */
@@ -100,14 +100,14 @@ static bool s_repaint_use_active_style = false;
 
 
 /** Controlled stand-in for lookup_find_client */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **surface, desktop_td **desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **stage, desktop_td **desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
-    if (surface != NULL) {
-        *surface = s_lookup_surface_out;
+    if (stage != NULL) {
+        *stage = s_lookup_stage_out;
     }
     if (desktop != NULL) {
         *desktop = s_lookup_desktop_out;
@@ -225,7 +225,7 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 static void s_test_reset_state(void)
 {
     s_lookup_result = NULL;
-    s_lookup_surface_out = NULL;
+    s_lookup_stage_out = NULL;
     s_lookup_desktop_out = NULL;
     s_systray_enforce_result = false;
     s_call_systray_enforce = 0u;
@@ -322,12 +322,12 @@ static void s_test_build_request_event(
 /* A null event never crashes the request handler */
 static void s_test_request_null_event(void)
 {
-    list_td surfaces;
+    list_td stages;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&stages, 0, sizeof(stages));
 
-    handler_configure_request(NULL, &surfaces, NULL);
+    handler_configure_request(NULL, &stages, NULL);
 
     TAP_OK(s_call_configure_window == 0u,
             "a null request event triggers no xcb_configure_window call");
@@ -339,16 +339,16 @@ static void s_test_request_null_event(void)
 static void s_test_request_systray_enforced(void)
 {
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&stages, 0, sizeof(stages));
     s_lookup_result = NULL;
     s_systray_enforce_result = true;
     s_test_build_request_event(&event, 0x999, XCB_CONFIG_WINDOW_WIDTH,
             0, 0, 64u, 64u);
 
-    handler_configure_request(NULL, &surfaces, &event);
+    handler_configure_request(NULL, &stages, &event);
 
     TAP_OK(s_call_systray_enforce == 1u,
             "an unmanaged window is checked against the systray's" \
@@ -363,17 +363,17 @@ static void s_test_request_systray_enforced(void)
 static void s_test_request_unmanaged_forwarded(void)
 {
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&stages, 0, sizeof(stages));
     s_lookup_result = NULL;
     s_systray_enforce_result = false;
     s_test_build_request_event(&event, 0x999,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, 15, 25, 0u, 0u);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_OK(s_call_configure_window == 1u,
             "an unmanaged window's request is forwarded once");
@@ -390,36 +390,36 @@ static void s_test_request_unmanaged_forwarded(void)
 
 
 /* A plain, undecorated managed client moving via ConfigureRequest has
- * its stored geometry updated and its surface/desktop marked
+ * its stored geometry updated and its stage/desktop marked
  * outdated */
 static void s_test_request_plain_client_move(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, 50, 60, 0u, 0u);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 50,
             "a plain client's X is updated to the requested value");
     TAP_EQ_INT(client.layout.geometry.cur.pos.y, 60,
             "a plain client's Y is updated to the requested value");
-    TAP_OK(surface.is_outdated,
-            "moving a managed client marks its surface outdated");
+    TAP_OK(stage.is_outdated,
+            "moving a managed client marks its stage outdated");
     TAP_OK(desktop.is_outdated,
             "moving a managed client marks its desktop outdated");
     TAP_OK(client.is_outdated,
@@ -435,27 +435,27 @@ static void s_test_request_plain_client_move(void)
 static void s_test_request_wm_owns_geometry(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
     int32_t original_x;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_decorated_client(&client);
     client.properties.operation = CLIENT_OPERATION_MOVING;
     original_x = client.layout.geometry.cur.pos.x;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, 999, 999, 0u, 0u);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, original_x,
             "a client the window manager is moving keeps its X" \
@@ -475,31 +475,31 @@ static void s_test_request_wm_owns_geometry(void)
 static void s_test_request_maximized_horz_ignores_x_honors_y(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
     int32_t original_x;
     uint32_t original_w;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
     original_x = client.layout.geometry.cur.pos.x;
     original_w = client.layout.geometry.cur.dim.w;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
                 XCB_CONFIG_WINDOW_WIDTH,
             999, 555, 400u, 0u);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, original_x,
             "a horizontally maximized client's X stays put," \
@@ -517,30 +517,30 @@ static void s_test_request_maximized_horz_ignores_x_honors_y(void)
 static void s_test_request_maximized_full_ignores_everything(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
     int32_t original_x;
     int32_t original_y;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED;
     original_x = client.layout.geometry.cur.pos.x;
     original_y = client.layout.geometry.cur.pos.y;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, 999, 999,
             0u, 0u);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, original_x,
             "a fully maximized client's X stays put too");
@@ -558,33 +558,33 @@ static void s_test_request_maximized_full_ignores_everything(void)
 static void s_test_request_wh_matches_current(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             0, 0, (uint16_t) client.layout.geometry.cur.dim.w,
             (uint16_t) client.layout.geometry.cur.dim.h);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_OK(s_call_configure_window == 0u,
             "requesting the client's own current size triggers no" \
             " xcb_configure_window call");
-    TAP_OK(!surface.is_outdated,
+    TAP_OK(!stage.is_outdated,
             "requesting the client's own current size never marks" \
-            " its surface outdated");
+            " its stage outdated");
 }
 
 
@@ -594,15 +594,15 @@ static void s_test_request_wh_matches_current(void)
 static void s_test_request_shade_cooldown_suppresses(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     /* Shrink the CURRENT size so the request (matching the OLD size)
@@ -612,14 +612,14 @@ static void s_test_request_shade_cooldown_suppresses(void)
     client.layout.geometry.cur.dim.h = 222u;
     clock_gettime(CLOCK_MONOTONIC, &client.shade_transition_time);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             0, 0, (uint16_t) client.layout.geometry.old.dim.w,
             (uint16_t) client.layout.geometry.old.dim.h);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_OK(s_call_configure_window == 0u,
             "a stale-echo resize within the shade cooldown is" \
@@ -635,16 +635,16 @@ static void s_test_request_shade_cooldown_suppresses(void)
 static void s_test_request_shade_cooldown_expired_honors(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
     struct timespec long_ago;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     client.layout.geometry.cur.dim.w = 111u;
@@ -653,14 +653,14 @@ static void s_test_request_shade_cooldown_expired_honors(void)
     long_ago.tv_sec -= 3600;
     client.shade_transition_time = long_ago;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             0, 0, (uint16_t) client.layout.geometry.old.dim.w,
             (uint16_t) client.layout.geometry.old.dim.h);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_OK(s_call_configure_window == 1u,
             "a resize matching the old size is honored once the" \
@@ -678,17 +678,17 @@ static void s_test_request_shade_cooldown_expired_honors(void)
 static void s_test_request_gravity_adjusts_position(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
     int32_t old_x;
     int32_t old_y;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_SOUTH_EAST;
@@ -697,13 +697,13 @@ static void s_test_request_gravity_adjusts_position(void)
     old_x = client.layout.geometry.cur.pos.x;
     old_y = client.layout.geometry.cur.pos.y;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             0, 0, 400u, 300u);
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_OK(client.layout.geometry.cur.pos.x != old_x,
             "shrinking width under south-east gravity shifts the" \
@@ -722,25 +722,25 @@ static void s_test_request_gravity_adjusts_position(void)
 static void s_test_request_stack_mode_enforces_layers(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_request_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     s_test_build_request_event(&event, client.window,
             XCB_CONFIG_WINDOW_STACK_MODE, 0, 0, 0u, 0u);
     event.stack_mode = XCB_STACK_MODE_ABOVE;
 
-    handler_configure_request(connection, &surfaces, &event);
+    handler_configure_request(connection, &stages, &event);
 
     TAP_OK(s_call_enforce_layers == 1u,
             "a stack-mode-only request enforces desktop layering" \
@@ -751,12 +751,12 @@ static void s_test_request_stack_mode_enforces_layers(void)
 /* A null event never crashes the notify handler */
 static void s_test_notify_null_event(void)
 {
-    list_td surfaces;
+    list_td stages;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&stages, 0, sizeof(stages));
 
-    handler_configure_notify(NULL, &surfaces, NULL);
+    handler_configure_notify(NULL, &stages, NULL);
 
     TAP_OK(s_call_repaint_frame_decoration == 0u,
             "a null notify event triggers no decoration repaint");
@@ -767,17 +767,17 @@ static void s_test_notify_null_event(void)
 static void s_test_notify_unmanaged(void)
 {
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&stages, 0, sizeof(stages));
     memset(&event, 0, sizeof(event));
     event.response_type = XCB_CONFIGURE_NOTIFY;
     event.event = 0x999;
     event.window = 0x999;
     s_lookup_result = NULL;
 
-    handler_configure_notify(NULL, &surfaces, &event);
+    handler_configure_notify(NULL, &stages, &event);
 
     TAP_OK(s_call_layout_sync == 0u,
             "an unmanaged window's notify never syncs decoration" \
@@ -791,20 +791,20 @@ static void s_test_notify_unmanaged(void)
 static void s_test_notify_substructure_ignored(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
     int32_t old_x;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_plain_client(&client);
     old_x = client.layout.geometry.cur.pos.x;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     memset(&event, 0, sizeof(event));
     event.response_type = XCB_CONFIGURE_NOTIFY;
@@ -816,14 +816,14 @@ static void s_test_notify_substructure_ignored(void)
     event.width = 999u;
     event.height = 999u;
 
-    handler_configure_notify(NULL, &surfaces, &event);
+    handler_configure_notify(NULL, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, old_x,
             "a SubStructureNotify-delivered ConfigureNotify never" \
             " updates the stored position");
-    TAP_OK(!surface.is_outdated,
+    TAP_OK(!stage.is_outdated,
             "a SubStructureNotify-delivered ConfigureNotify never" \
-            " outdates the surface");
+            " outdates the stage");
 }
 
 
@@ -832,27 +832,27 @@ static void s_test_notify_substructure_ignored(void)
 
 /* A StructureNotify ConfigureNotify that changes both position and
  * size updates stored geometry, repaints the decoration, and outdates
- * the surface/desktop/client */
+ * the stage/desktop/client */
 static void s_test_notify_structure_size_changed(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td config;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config, 0, sizeof(config));
     s_test_build_decorated_client(&client);
     desktop.config = &config;
     desktop.client_active_id = client.id;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     memset(&event, 0, sizeof(event));
     event.response_type = XCB_CONFIGURE_NOTIFY;
@@ -863,7 +863,7 @@ static void s_test_notify_structure_size_changed(void)
     event.width = 500u;
     event.height = 400u;
 
-    handler_configure_notify(connection, &surfaces, &event);
+    handler_configure_notify(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 70,
             "a StructureNotify ConfigureNotify updates the stored X");
@@ -876,10 +876,10 @@ static void s_test_notify_structure_size_changed(void)
     TAP_OK(s_repaint_use_active_style,
             "the decoration repaint uses the active style for the" \
             " desktop's currently active client");
-    TAP_OK(client.is_outdated && surface.is_outdated &&
+    TAP_OK(client.is_outdated && stage.is_outdated &&
             desktop.is_outdated,
             "a geometry-changing ConfigureNotify outdates the" \
-            " client, its surface, and its desktop");
+            " client, its stage, and its desktop");
 }
 
 
@@ -888,19 +888,19 @@ static void s_test_notify_structure_size_changed(void)
 static void s_test_notify_structure_move_only(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_decorated_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     memset(&event, 0, sizeof(event));
     event.response_type = XCB_CONFIGURE_NOTIFY;
@@ -911,7 +911,7 @@ static void s_test_notify_structure_move_only(void)
     event.width = (uint16_t) client.layout.geometry.cur.dim.w;
     event.height = (uint16_t) client.layout.geometry.cur.dim.h;
 
-    handler_configure_notify(connection, &surfaces, &event);
+    handler_configure_notify(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 999,
             "a move-only ConfigureNotify still updates the stored" \
@@ -919,8 +919,8 @@ static void s_test_notify_structure_move_only(void)
     TAP_OK(s_call_repaint_frame_decoration == 0u,
             "a move-only ConfigureNotify never repaints the frame" \
             " decoration");
-    TAP_OK(surface.is_outdated,
-            "a move-only ConfigureNotify still outdates the surface");
+    TAP_OK(stage.is_outdated,
+            "a move-only ConfigureNotify still outdates the stage");
 }
 
 
@@ -932,19 +932,19 @@ static void s_test_notify_structure_move_only(void)
 static void s_test_notify_stale_position_refused(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_decorated_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
 
     /* Where the manager has just put it, and what it asked for: the
@@ -965,7 +965,7 @@ static void s_test_notify_stale_position_refused(void)
     event.width = (uint16_t) client.layout.geometry.cur.dim.w;
     event.height = (uint16_t) client.layout.geometry.cur.dim.h;
 
-    handler_configure_notify(connection, &surfaces, &event);
+    handler_configure_notify(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 400,
             "a stale echo never drags the stored X backwards");
@@ -977,7 +977,7 @@ static void s_test_notify_stale_position_refused(void)
     client.layout.requested_pos.y = 100;
     client.layout.geometry.cur.pos.x = 100;
     client.layout.geometry.cur.pos.y = 100;
-    handler_configure_notify(connection, &surfaces, &event);
+    handler_configure_notify(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 100,
             "while an echo confirming the last request is believed");
@@ -991,19 +991,19 @@ static void s_test_notify_stale_position_refused(void)
 static void s_test_notify_unrecorded_move_still_taken(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_decorated_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
 
     /* Some earlier request of the manager's own */
@@ -1025,7 +1025,7 @@ static void s_test_notify_unrecorded_move_still_taken(void)
     event.width = (uint16_t) client.layout.geometry.cur.dim.w;
     event.height = (uint16_t) client.layout.geometry.cur.dim.h;
 
-    handler_configure_notify(connection, &surfaces, &event);
+    handler_configure_notify(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 55,
             "a notify for a move the manager never recorded is still"
@@ -1040,19 +1040,19 @@ static void s_test_notify_unrecorded_move_still_taken(void)
 static void s_test_notify_unrequested_position_taken(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
     xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_decorated_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     client.layout.has_requested_pos = false;
 
@@ -1065,7 +1065,7 @@ static void s_test_notify_unrequested_position_taken(void)
     event.width = (uint16_t) client.layout.geometry.cur.dim.w;
     event.height = (uint16_t) client.layout.geometry.cur.dim.h;
 
-    handler_configure_notify(connection, &surfaces, &event);
+    handler_configure_notify(connection, &stages, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 777,
             "a client with nothing requested yet takes the reported"
@@ -1079,18 +1079,18 @@ static void s_test_notify_unrequested_position_taken(void)
 static void s_test_notify_inner_window_snapped_back(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_decorated_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     memset(&event, 0, sizeof(event));
     event.response_type = XCB_CONFIGURE_NOTIFY;
@@ -1102,7 +1102,7 @@ static void s_test_notify_inner_window_snapped_back(void)
     event.width = 200u;
     event.height = 100u;
 
-    handler_configure_notify(NULL, &surfaces, &event);
+    handler_configure_notify(NULL, &stages, &event);
 
     TAP_OK(s_call_layout_sync == 1u,
             "an inner-window ConfigureNotify at the wrong offset" \
@@ -1115,18 +1115,18 @@ static void s_test_notify_inner_window_snapped_back(void)
 static void s_test_notify_inner_window_already_correct(void)
 {
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_configure_notify_event_t event;
-    list_td surfaces;
+    list_td stages;
 
     s_test_reset_state();
-    memset(&surfaces, 0, sizeof(surfaces));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_decorated_client(&client);
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     s_lookup_desktop_out = &desktop;
     memset(&event, 0, sizeof(event));
     event.response_type = XCB_CONFIGURE_NOTIFY;
@@ -1137,7 +1137,7 @@ static void s_test_notify_inner_window_already_correct(void)
     event.width = 200u;
     event.height = 100u;
 
-    handler_configure_notify(NULL, &surfaces, &event);
+    handler_configure_notify(NULL, &stages, &event);
 
     TAP_OK(s_call_layout_sync == 0u,
             "an inner-window ConfigureNotify already at the correct" \

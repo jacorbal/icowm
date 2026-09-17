@@ -24,7 +24,7 @@
 #include <cctl/launch.h>
 
 /* Project includes */
-#include <surface.h>
+#include <stage.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu/redraw.h>
@@ -55,7 +55,7 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
     ctxmenu_entry_td e;
     ctxmenu_state_td *root;
     xcb_connection_t *conn;
-    surface_td *surf;
+    stage_td *surf;
 
     if (state == NULL || idx < 0 || idx >= state->entry_count) {
         return false;
@@ -74,9 +74,9 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
         root = root->parent;
     }
 
-    /* Save connection and surface before close clears them */
+    /* Save connection and stage before close clears them */
     conn = xcb_connection_get();
-    surf = root->surface;
+    surf = root->stage;
 
     /* Close first so keyboard and pointer grabs are released before the
      * callback runs; this lets callbacks establish their grabs */

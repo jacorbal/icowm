@@ -6,7 +6,7 @@
  *        bring-together, family-wide snapshots, and the transient
  *        tree's link/unlink lifecycle
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*
@@ -31,7 +31,7 @@
 #include <types/handles.h>
 
 /* Project includes */
-#include <surface.h>
+#include <stage.h>
 
 
 /**
@@ -115,13 +115,13 @@ client_td *client_group_transient_anchor(const client_td *client);
  * @a ccmd_client_focus itself (in @c cmds/client/focus.c): that
  * function is also reached from purely automatic focus restoration
  * having nothing to do with someone actually interacting with a client
- * right now (@a surface_client_show_all's "restore whichever client was
+ * right now (@a stage_client_show_all's "restore whichever client was
  * last active" step on every desktop switch foremost among them), and
  * calling this there too dragged a transient family across onto
  * whatever desktop merely happened to be switched to, chasing every
  * desktop its pinned parent had ever been focused on despite never
  * being pinned itself.  Deliberately the desktop currently viewed on
- * the top parent's surface, not that top parent's literal "home"
+ * the top parent's stage, not that top parent's literal "home"
  * desktop, since pinning a client never actually moves it between
  * desktops (see @a ccmd_client_bring_family's comment in
  * @c cmds/client/transient.c, for why that distinction matters here
@@ -132,7 +132,7 @@ client_td *client_group_transient_anchor(const client_td *client);
  *               every other family-wide action in this project already
  *               does
  *
- * @note A null @p client, one whose top parent's surface cannot be
+ * @note A null @p client, one whose top parent's stage cannot be
  *       resolved, or one with no transient family at all is a silent
  *       no-op
  * @note Complexity: @e O(f), where @e f is the number of @p client's
@@ -154,8 +154,8 @@ void ccmd_client_bring_family(client_td *client);
  * over the result to actually act on each one, since what to do with
  * a family member is the one part every call site still needs its way.
  *
- * @param desktop   Desktop to restrict the result to
- * @param top       Family's top-most ancestor; excluded from the result
+ * @param desktop Desktop to restrict the result to
+ * @param top     Family's top-most ancestor; excluded from the result
  *                  even if found on @p desktop itself; see
  *                  @a ccmd_client_transient_top_parent
  * @param count_out Receives the number of clients collected; set to
@@ -176,7 +176,7 @@ client_td
 
 /**
  * @brief Collect every other member of a transient family, found on any
- *        desktop of any surface, into a newly allocated snapshot array
+ *        desktop of any stage, into a newly allocated snapshot array
  *
  * The all-desktops counterpart to
  * @a ccmd_client_transient_family_snapshot, whose comment holds the
@@ -201,7 +201,7 @@ client_td
  * same idea was tried once already); see the full reasoning in
  * @c cmds/client/transient.c, right above the implementation.
  *
- * @param top       Family's top-most ancestor; excluded from the result
+ * @param top Family's top-most ancestor; excluded from the result
  *                  even where found; see
  *                  @a ccmd_client_transient_top_parent
  * @param count_out Receives the number of clients collected; set to

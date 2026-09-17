@@ -72,18 +72,18 @@ typedef struct {
  *
  * Reads mouse binding strings from @p config, parses each one,
  * registers it in the internal binding table, and grabs the
- * corresponding button on all roots in @p surfaces (with lock-modifier
+ * corresponding button on all roots in @p stages (with lock-modifier
  * variants so that @c Caps_Lock and @c Num_Lock do not interfere).
  *
- * @param surfaces All managed surfaces
- * @param config   Active configuration
+ * @param stages All managed stages
+ * @param config Active configuration
  *
  * @note Replaces whatever bindings were loaded before
  * @note Complexity: @e O(s * b * L), where @e s is the number of
- *       surfaces, @e b the number of configured bindings, and @e L is
+ *       stages, @e b the number of configured bindings, and @e L is
  *       the number of lock-modifier variants (4)
  */
-void mouse_load(list_td *surfaces, const config_td *config);
+void mouse_load(list_td *stages, const config_td *config);
 
 /**
  * @brief Return the number of loaded mouse bindings

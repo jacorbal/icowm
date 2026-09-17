@@ -46,11 +46,11 @@
  * (@c _NET_WM_ICON_NAME or @c _NET_WM_NAME) and only fall back to this
  * ICCCM one (@c WM_ICON_NAME or @c WM_NAME) when that fails.
  *
- * @param client         Client whose window property is read
- * @param atom           ICCCM atom to read
- * @param dest1          First destination buffer (always written when
+ * @param client Client whose window property is read
+ * @param atom   ICCCM atom to read
+ * @param dest1  First destination buffer (always written when
  *                       the property is present; at least 255 bytes)
- * @param dest2          Second destination buffer kept in sync with
+ * @param dest2 Second destination buffer kept in sync with
  *                       @p dest1, or @c NULL when there is only one
  * @param clear_on_empty When @c true, an empty or missing property
  *                       clears @p dest1 to an empty string; when

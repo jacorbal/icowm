@@ -34,10 +34,10 @@
 /* Project includes */
 #include <config.h>
 #include <enact.h>
-#include <enact/surface.h>
+#include <enact/stage.h>
 #include <i18n.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Menu includes */
@@ -50,8 +50,8 @@
 #include <menu/context/rootmenu.h>
 
 
-/** Surface stored at open time (needed by the exit callback) */
-static surface_td *s_surface = NULL;
+/** Stage stored at open time (needed by the exit callback) */
+static stage_td *s_stage = NULL;
 
 /** Config stored at open time (needed by the exit callback) */
 static const config_td *s_config = NULL;
@@ -88,8 +88,8 @@ static void s_cb_rearrange(xcb_connection_t *connection, void *userdata)
     (void) connection;
     (void) userdata;
 
-    if (s_surface != NULL) {
-        wm_action_rearrange(s_wm, s_surface);
+    if (s_stage != NULL) {
+        wm_action_rearrange(s_wm, s_stage);
     }
 }
 
@@ -125,14 +125,14 @@ static void s_cb_redraw(xcb_connection_t *connection, void *userdata)
 
 /**
  * @brief Callback: toggle whether panel/tray struts are set aside on
- *        the surface this menu was opened on
+ *        the stage this menu was opened on
  *
- * A surface-wide setting, not a per-window one, so it lives here rather
+ * A stage-wide setting, not a per-window one, so it lives here rather
  * than in the window context menu (@c Alt+Space).
  *
  * @param connection Unused, matches @c ctxmenu_on_activate_fn's
  *                   signature
- * @param userdata   Unused
+ * @param userdata Unused
  */
 static void s_cb_toggle_strutless_maximize(xcb_connection_t *connection,
         void *userdata)
@@ -140,8 +140,8 @@ static void s_cb_toggle_strutless_maximize(xcb_connection_t *connection,
     (void) connection;
     (void) userdata;
 
-    if (s_surface != NULL) {
-        enact_surface_toggle_strutless_maximize(s_surface);
+    if (s_stage != NULL) {
+        enact_stage_toggle_strutless_maximize(s_stage);
     }
 }
 
@@ -159,8 +159,8 @@ static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 {
     (void) userdata;
 
-    if (connection != NULL && s_surface != NULL && s_config != NULL) {
-        dialog_quit_show(connection, s_surface, s_config);
+    if (connection != NULL && s_stage != NULL && s_config != NULL) {
+        dialog_quit_show(connection, s_stage, s_config);
     }
 }
 
@@ -232,21 +232,21 @@ void rootmenu_menu_json_free(void)
 /* Display the root desktop menu; see this function's comment in
  * 'menu/context/rootmenu.h' */
 void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
-        surface_td *surface, struct position_s pos,
+        stage_td *stage, struct position_s pos,
         const config_td *config)
 {
     int n;
     int copy_count;
     int fi;
 
-    if (connection == NULL || surface == NULL || config == NULL) {
+    if (connection == NULL || stage == NULL || config == NULL) {
         return;
     }
 
     rootmenu_close();
 
-    /* Cache surface, config, and wm for use by the callbacks below */
-    s_surface = surface;
+    /* Cache stage, config, and wm for use by the callbacks below */
+    s_stage = stage;
     s_config = config;
     s_wm = wm;
 
@@ -312,7 +312,7 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
 
     s_entries[fi].type = CTXMENU_COMMAND;
     safe_strncpy(s_entries[fi].label,
-            (surface->strutless_maximize)
+            (stage->strutless_maximize)
                 ? _(STR_ROOTMENU_STRUTTED_MAXIMIZATION)
                 : _(STR_ROOTMENU_STRUTLESS_MAXIMIZATION),
             sizeof(s_entries[fi].label) - 1u);
@@ -353,7 +353,7 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
     s_root.entries = s_entries;
     s_root.entry_count = s_entry_count;
 
-    ctxmenu_show(connection, surface, &s_root, pos, config);
+    ctxmenu_show(connection, stage, &s_root, pos, config);
 }
 
 
@@ -380,7 +380,7 @@ void rootmenu_close(void)
     }
 
     s_entry_count = 0;
-    s_surface = NULL;
+    s_stage = NULL;
     s_config = NULL;
     s_wm = NULL;
 }
@@ -395,10 +395,10 @@ void rootmenu_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the root desktop menu */
 bool rootmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int y,
+        stage_td *stage, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_click_window(connection, surface,
+    return ctxmenu_tree_handle_click_window(connection, stage,
             &s_root, win, y, config);
 }
 
@@ -419,10 +419,10 @@ bool rootmenu_owns_window(xcb_window_t win)
 
 /* Handle a key-press event while the root desktop menu is open */
 bool rootmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_keypress_deepest(connection, surface,
+    return ctxmenu_tree_handle_keypress_deepest(connection, stage,
             &s_root, keysym, config);
 }
 

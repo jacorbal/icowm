@@ -256,13 +256,13 @@ xcb_window_t systray_below_window(void)
 
 
 /* Return the space the tray currently reserves for itself on
- * 'surface', or 'NULL' when 'surface' is not the one it is docked
+ * 'stage', or 'NULL' when 'stage' is not the one it is docked
  * on */
 const struct strut_partial_s *systray_get_reserved_strut(
-        const surface_td *surface)
+        const stage_td *stage)
 {
-    if (surface == NULL || !s_tray.is_window_ready ||
-            s_tray.surface != surface) {
+    if (stage == NULL || !s_tray.is_window_ready ||
+            s_tray.stage != stage) {
         return NULL;
     }
 
@@ -275,17 +275,17 @@ const struct strut_partial_s *systray_get_reserved_strut(
 }
 
 
-/* Return the tray's current on-screen rectangle on 'surface', or
+/* Return the tray's current on-screen rectangle on 'stage', or
  * 'false' when it is not currently showing there at all */
-bool systray_get_geometry(const surface_td *surface,
+bool systray_get_geometry(const stage_td *stage,
         struct geometry_s *restrict out_tray)
 {
     xcb_get_geometry_cookie_t cookie;
     xcb_get_geometry_reply_t *reply;
 
-    if (surface == NULL || out_tray == NULL ||
+    if (stage == NULL || out_tray == NULL ||
             !s_tray.is_window_ready || !s_tray.is_active ||
-            s_tray.surface != surface) {
+            s_tray.stage != stage) {
         return false;
     }
 
@@ -417,8 +417,8 @@ void systray_handle_property_notify(const wm_td *wm,
 }
 
 
-/* Reposition the tray dock window for its surface's current size */
-void systray_handle_surface_resize(wm_td *wm)
+/* Reposition the tray dock window for its stage's current size */
+void systray_handle_stage_resize(wm_td *wm)
 {
     (void) wm;
 

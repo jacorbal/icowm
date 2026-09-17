@@ -142,12 +142,12 @@ static uint32_t s_premultiply(uint32_t argb)
  * rather than stretched, and every icon ends up the same size on screen
  * regardless of whatever size the source image happened to be.
  *
- * @param connection   XCB connection
- * @param picture      Already created Picture to set the transform and
+ * @param connection XCB connection
+ * @param picture    Already created Picture to set the transform and
  *                     filter on
- * @param src_dim      Source width/height, in pixels, @p picture was
+ * @param src_dim Source width/height, in pixels, @p picture was
  *                     built from
- * @param draw_size    Side length of the box the image is scaled to fit
+ * @param draw_size Side length of the box the image is scaled to fit
  *                     within
  * @param out_dest_dim Receives the actual scaled width/height, after
  *                     fitting @p src_dim's aspect ratio within
@@ -215,9 +215,9 @@ static void s_icon_scale_apply(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param pixels     Straight-alpha @c 0xAARRGGBB pixels, @p width times
  *                   @p height of them, row-major
- * @param width      Icon width in pixels
- * @param height     Icon height in pixels
- * @param draw_size  Side length of the box the image is scaled to fit
+ * @param width     Icon width in pixels
+ * @param height    Icon height in pixels
+ * @param draw_size Side length of the box the image is scaled to fit
  *                   within
  * @param out_dest_w Receives the actual scaled width, after fitting
  *                   the source's aspect ratio within @p draw_size
@@ -500,19 +500,19 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
  * @brief Composite an already built icon Picture onto a square area of
  *        @p drawable, centered and clipped
  *
- * @param connection   XCB connection
- * @param src_picture  Already built @c Picture, from
+ * @param connection  XCB connection
+ * @param src_picture Already built @c Picture, from
  *                     @a s_build_icon_picture or a cache hit; left
  *                     untouched, still owned by whichever cache slot it
  *                     came from
  * @param mask_picture RENDER mask to composite @p src_picture through,
  *                     or @c XCB_NONE to composite it as a fully opaque
  *                     rectangle
- * @param dest_dim     Width/height @p src_picture was built to draw at
- * @param drawable     Drawable to composite onto
- * @param offset_pos   Position, within @p drawable, of the square
+ * @param dest_dim   Width/height @p src_picture was built to draw at
+ * @param drawable   Drawable to composite onto
+ * @param offset_pos Position, within @p drawable, of the square
  *                     area's top-left corner
- * @param area_size    Side length of the square area to center in and
+ * @param area_size Side length of the square area to center in and
  *                     clip to
  *
  * @see @c s_icccm_icon_td, for when @p mask_picture comes from
@@ -639,9 +639,9 @@ static xcb_gcontext_t s_get_default_icon_gc(xcb_connection_t *connection,
  * @see @a s_get_default_icon_gc, for the graphics context this draws
  *      with
  *
- * @param connection  XCB connection
- * @param drawable    Drawable to draw into
- * @param pos         Offset within @p drawable of the icon's
+ * @param connection XCB connection
+ * @param drawable   Drawable to draw into
+ * @param pos        Offset within @p drawable of the icon's
  *                    top-left corner
  * @param size        Side length, in pixels, of the (square) icon
  * @param frame_color Frame/titlebar color
@@ -726,11 +726,11 @@ static void s_draw_default_icon(xcb_connection_t *connection,
  * @a wmicon_draw_at's cache-hit path and its cache-miss path need
  * this exact same centering arithmetic.
  *
- * @param connection  XCB connection
- * @param drawable    Drawable to draw into
- * @param pos         Offset, within @p drawable, of the icon square's
+ * @param connection XCB connection
+ * @param drawable   Drawable to draw into
+ * @param pos        Offset, within @p drawable, of the icon square's
  *                    top-left corner
- * @param area_size   Side length of the square the icon is centered
+ * @param area_size Side length of the square the icon is centered
  *                    within
  * @param draw_size   Side length of the (square) icon itself
  * @param frame_color Frame/titlebar color

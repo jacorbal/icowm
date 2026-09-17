@@ -36,7 +36,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <input/mouse/bounds.h>
@@ -264,11 +264,11 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * polling as the only remaining option.
  *
  * @param connection XCB connection
- * @param surfaces   Every managed surface, to look up the client
+ * @param stages     Every managed stage, to look up the client
  *                   @p window belongs to
- * @param window     Window the crossing, motion, or poll was
+ * @param window Window the crossing, motion, or poll was
  *                   evaluated for
- * @param root_pos   Pointer position in root-window coordinates
+ * @param root_pos Pointer position in root-window coordinates
  *
  * @return The resolved client @p window belongs to, or @c NULL if it
  *         does not belong to a resizable client
@@ -276,20 +276,20 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * @note Complexity: @e O(1)
  */
 client_td *mouse_resize_cursor_update(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window,
+        list_td *stages, xcb_window_t window,
         struct position_s root_pos)
 {
     client_td *client;
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     enum s_resize_zone_e zone;
 
-    if (connection == NULL || surfaces == NULL ||
+    if (connection == NULL || stages == NULL ||
             s_resize_cursors[S_RESIZE_ZONE_NONE] == 0) {
         return NULL;
     }
 
-    client = lookup_find_client(surfaces, window, &surface, &desktop);
+    client = lookup_find_client(stages, window, &stage, &desktop);
     if (client == NULL || !client_is_resizable(client) ||
             window == client->icon_window) {
         /* 'lookup_find_client' also matches a client by its own icon

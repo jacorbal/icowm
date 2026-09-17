@@ -69,7 +69,7 @@
 #include <client.h>
 #include <config.h>
 #include <i18n.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Default includes */
 #include <defs/uistr.h>
@@ -616,10 +616,10 @@ static monitor_td s_stub_monitor;
  * @note Complexity: @e O(1)
  */
 monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
-        const surface_td *surface)
+        const stage_td *stage)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     return s_stub_monitor;
 }
 
@@ -634,11 +634,11 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void menu_dialog_center(xcb_connection_t *connection,
-        const surface_td *surface, uint16_t width, uint16_t height,
+        const stage_td *stage, uint16_t width, uint16_t height,
         int16_t *restrict out_x, int16_t *restrict out_y)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) width;
     (void) height;
 
@@ -649,12 +649,12 @@ void menu_dialog_center(xcb_connection_t *connection,
 
 /** Non-null opaque connection handle, never dereferenced by anything
  *  this file links for real (message.c only checks
- *  'surface->screen != NULL', so a real, zeroed surface_td is used
+ *  'stage->screen != NULL', so a real, zeroed stage_td is used
  *  instead of an opaque stand-in for that one field) */
 static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
-static surface_td s_surface;
+static stage_td s_stage;
 static xcb_screen_t s_screen;
 static config_td s_config;
 
@@ -699,9 +699,9 @@ static void s_reset(void)
     s_stub_monitor.w = 1000u;
     s_stub_monitor.h = 800u;
 
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
     memset(&s_screen, 0, sizeof(s_screen));
-    s_surface.screen = &s_screen;
+    s_stage.screen = &s_screen;
     memset(&s_config, 0, sizeof(s_config));
 }
 
@@ -712,7 +712,7 @@ static void s_test_show_creates_and_maps_window(void)
 {
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Hello there", MENU_MSG_LEVEL_NONE);
 
     TAP_OK(menu_message_dialog_is_open(),
@@ -736,11 +736,11 @@ static void s_test_show_while_open_is_noop(void)
 
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "First", MENU_MSG_LEVEL_INFO);
     first_window = menu_message_dialog_window();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Second", MENU_MSG_LEVEL_ERROR);
 
     TAP_EQ_INT(s_call_create_window, 1,
@@ -752,13 +752,13 @@ static void s_test_show_while_open_is_noop(void)
 }
 
 
-/* NULL connection/surface/config, or a surface with no screen, are
+/* NULL connection/stage/config, or a stage with no screen, are
  * safe no-ops that leave the dialog closed */
 static void s_test_show_null_guards(void)
 {
     s_reset();
 
-    menu_message_dialog_show(NULL, &s_surface, &s_config, "x",
+    menu_message_dialog_show(NULL, &s_stage, &s_config, "x",
             MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
             "a NULL connection is a safe no-op");
@@ -766,19 +766,19 @@ static void s_test_show_null_guards(void)
     menu_message_dialog_show(s_fake_connection, NULL, &s_config, "x",
             MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
-            "a NULL surface is a safe no-op");
+            "a NULL stage is a safe no-op");
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, NULL, "x",
+    menu_message_dialog_show(s_fake_connection, &s_stage, NULL, "x",
             MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
             "a NULL config is a safe no-op");
 
-    s_surface.screen = NULL;
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    s_stage.screen = NULL;
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "x", MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
-            "a surface with a NULL screen is a safe no-op");
-    s_surface.screen = &s_screen;
+            "a stage with a NULL screen is a safe no-op");
+    s_stage.screen = &s_screen;
 }
 
 
@@ -789,7 +789,7 @@ static void s_test_null_message_is_safe(void)
 {
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             NULL, MENU_MSG_LEVEL_WARNING);
 
     TAP_OK(menu_message_dialog_is_open(),
@@ -806,7 +806,7 @@ static void s_test_close_restores_prior_focus(void)
     s_reset();
     s_prior_focus_window = (xcb_window_t) 777u;
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Closing test", MENU_MSG_LEVEL_NONE);
     shown_window = menu_message_dialog_window();
 
@@ -838,7 +838,7 @@ static void s_test_close_with_no_prior_focus_skips_restore(void)
     s_reset();
     s_prior_focus_window = XCB_WINDOW_NONE;
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "No prior focus", MENU_MSG_LEVEL_NONE);
 
     menu_message_dialog_close(s_fake_connection);
@@ -870,7 +870,7 @@ static void s_test_close_null_connection_is_safe(void)
 {
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Still open", MENU_MSG_LEVEL_NONE);
 
     menu_message_dialog_close(NULL);
@@ -892,7 +892,7 @@ static void s_test_repaint_paths(void)
     TAP_OK(!menu_message_dialog_is_open(),
             "repainting a closed dialog does not open one");
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Repaint me\nacross two lines", MENU_MSG_LEVEL_INFO);
     menu_message_dialog_repaint(s_fake_connection, &s_config);
     TAP_OK(menu_message_dialog_is_open(),
@@ -914,7 +914,7 @@ static void s_test_requires_selection_by_level(void)
     TAP_OK(!menu_message_dialog_requires_selection(),
             "no dialog open never requires selection");
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "info", MENU_MSG_LEVEL_INFO);
     TAP_OK(!menu_message_dialog_requires_selection(),
             "an INFO-level dialog does not require selection");
@@ -922,7 +922,7 @@ static void s_test_requires_selection_by_level(void)
             "and its OK button starts already selected");
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "none", MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_requires_selection(),
             "a NONE-level dialog does not require selection");
@@ -930,7 +930,7 @@ static void s_test_requires_selection_by_level(void)
             "and its OK button starts already selected");
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "warn", MENU_MSG_LEVEL_WARNING);
     TAP_OK(menu_message_dialog_requires_selection(),
             "a WARNING-level dialog requires selection");
@@ -938,7 +938,7 @@ static void s_test_requires_selection_by_level(void)
             "and its OK button starts NOT selected");
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "err", MENU_MSG_LEVEL_ERROR);
     TAP_OK(menu_message_dialog_requires_selection(),
             "an ERROR-level dialog requires selection");
@@ -958,7 +958,7 @@ static void s_test_select_ok(void)
             "select_ok() with no dialog open does not somehow flip"
             " a would-be selection state");
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "warn", MENU_MSG_LEVEL_WARNING);
     TAP_OK(!menu_message_dialog_ok_selected(),
             "sanity: the WARNING dialog starts unselected");
@@ -980,7 +980,7 @@ static void s_test_handle_click_inside_button_defers_close(void)
 {
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "warn", MENU_MSG_LEVEL_WARNING);
     TAP_OK(!menu_message_dialog_ok_selected(),
             "sanity: starts unselected for a WARNING dialog");
@@ -1019,7 +1019,7 @@ static void s_test_click_close_via_tick(void)
 
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "click to close", MENU_MSG_LEVEL_NONE);
     shown_window = menu_message_dialog_window();
     TAP_OK(menu_message_dialog_ok_selected(),
@@ -1082,7 +1082,7 @@ static void s_test_wrap_explicit_newline_two_lines(void)
 {
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "First line\nSecond line", MENU_MSG_LEVEL_NONE);
 
     TAP_OK(menu_message_dialog_is_open(),
@@ -1096,7 +1096,7 @@ static void s_test_wrap_overlong_word_own_line(void)
 {
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "short "
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -1114,7 +1114,7 @@ static void s_test_empty_message_is_safe(void)
 {
     s_reset();
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "", MENU_MSG_LEVEL_NONE);
 
     TAP_OK(menu_message_dialog_is_open(),
@@ -1150,7 +1150,7 @@ static void s_test_scroll_clamped_and_noop_when_fits(void)
         }
     }
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             tall_message, MENU_MSG_LEVEL_NONE);
     TAP_OK(menu_message_dialog_is_open(),
             "a message tall enough to need scrolling still opens");
@@ -1206,7 +1206,7 @@ static void s_test_scroll_widens_dialog_for_footer(void)
         }
     }
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             tall_message, MENU_MSG_LEVEL_NONE);
 
     /* "99-99/99: " (10 characters) plus the translated scroll hint
@@ -1249,7 +1249,7 @@ static void s_test_scroll_noop_cases(void)
     TAP_OK(!menu_message_dialog_is_open(),
             "scrolling with no dialog open does not open one");
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "one short line", MENU_MSG_LEVEL_NONE);
 
     menu_message_dialog_scroll(s_fake_connection, &s_config, 3);
@@ -1268,7 +1268,7 @@ static void s_test_show_pairs_null_guards(void)
     pairs[0].label = "Label";
     pairs[0].value = "Value";
 
-    menu_message_dialog_show_pairs(NULL, &s_surface, &s_config, pairs,
+    menu_message_dialog_show_pairs(NULL, &s_stage, &s_config, pairs,
             1u, MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
             "a NULL connection to show_pairs() is a safe no-op");
@@ -1276,19 +1276,19 @@ static void s_test_show_pairs_null_guards(void)
     menu_message_dialog_show_pairs(s_fake_connection, NULL, &s_config,
             pairs, 1u, MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
-            "a NULL surface to show_pairs() is a safe no-op");
+            "a NULL stage to show_pairs() is a safe no-op");
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface, NULL,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage, NULL,
             pairs, 1u, MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
             "a NULL config to show_pairs() is a safe no-op");
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage,
             &s_config, NULL, 1u, MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
             "a NULL pairs array to show_pairs() is a safe no-op");
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage,
             &s_config, pairs, 0u, MENU_MSG_LEVEL_NONE);
     TAP_OK(!menu_message_dialog_is_open(),
             "a zero pair_count to show_pairs() is a safe no-op");
@@ -1319,7 +1319,7 @@ static void s_test_show_pairs_basic_rows(void)
     pairs[count].value = "2";
     count++;
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage,
             &s_config, pairs, count, MENU_MSG_LEVEL_NONE);
 
     TAP_EQ_INT((int) count, 4,
@@ -1370,7 +1370,7 @@ static void s_test_show_pairs_value_wraps(void)
     pairs[0].value = "one two three four five six seven eight nine ten"
         " eleven twelve thirteen fourteen fifteen";
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage,
             &s_config, pairs, 1u, MENU_MSG_LEVEL_NONE);
 
     TAP_OK(menu_message_dialog_is_open(),
@@ -1397,7 +1397,7 @@ static void s_test_show_pairs_mixed_row_kinds(void)
     pairs[2].label = "Key";
     pairs[2].value = "Value";
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage,
             &s_config, pairs, 3u, MENU_MSG_LEVEL_NONE);
 
     TAP_OK(menu_message_dialog_is_open(),
@@ -1417,7 +1417,7 @@ static void s_test_show_pairs_level_gates_selection(void)
     pairs[0].label = "Key";
     pairs[0].value = "Value";
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage,
             &s_config, pairs, 1u, MENU_MSG_LEVEL_ERROR);
 
     TAP_OK(menu_message_dialog_requires_selection(),
@@ -1439,11 +1439,11 @@ static void s_test_show_pairs_while_open_is_noop(void)
     pairs[0].label = "Key";
     pairs[0].value = "Value";
 
-    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+    menu_message_dialog_show(s_fake_connection, &s_stage, &s_config,
             "Already open", MENU_MSG_LEVEL_NONE);
     first_window = menu_message_dialog_window();
 
-    menu_message_dialog_show_pairs(s_fake_connection, &s_surface,
+    menu_message_dialog_show_pairs(s_fake_connection, &s_stage,
             &s_config, pairs, 1u, MENU_MSG_LEVEL_NONE);
 
     TAP_EQ_INT(s_call_create_window, 1,

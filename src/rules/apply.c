@@ -44,8 +44,8 @@
 #include <enact/desktop.h>
 #include <ipc.h>
 #include <logger.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -86,7 +86,7 @@ static void s_rules_broadcast_client_event(client_td *client,
                 (double) client->id);
         cJSON_AddNumberToObject(fields, "desktop_id",
                 (double) client->desktop_id);
-        cJSON_AddNumberToObject(fields, "surface_id",
+        cJSON_AddNumberToObject(fields, "stage_id",
                 (double) client->screen_id);
     }
     ipc_broadcast_event(type, fields);
@@ -111,10 +111,10 @@ static void s_rules_broadcast_client_event(client_td *client,
  * anything.
  *
  * @param client     Client to move
- * @param surface    Surface on which the target desktop lives
+ * @param stage      Stage on which the target desktop lives
  * @param desktop_io In/out pointer to the current desktop; updated to
  *                   point at the target on success
- * @param apply      Action descriptor; only evaluated when
+ * @param apply Action descriptor; only evaluated when
  *                   @p apply->has_desktop is @c true
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
@@ -122,24 +122,24 @@ static void s_rules_broadcast_client_event(client_td *client,
  *       @a enact_desktop_client_send's comment describes
  */
 static void s_rules_apply_desktop(client_td *client,
-        surface_td *surface, desktop_td **desktop_io,
+        stage_td *stage, desktop_td **desktop_io,
         const struct rules_apply_s *apply)
 {
     const desktop_td *cur;
     desktop_td *target;
 
-    if (!apply->has_desktop || surface == NULL || desktop_io == NULL ||
+    if (!apply->has_desktop || stage == NULL || desktop_io == NULL ||
             *desktop_io == NULL) {
         return;
     }
 
     cur = *desktop_io;
-    target = surface_desktop_get(surface, apply->desktop);
+    target = stage_desktop_get(stage, apply->desktop);
     if (target == NULL) {
         LOGGER_WARNING("Rule targets desktop %u, which does not" \
-                " exist on surface %u; falling back to desktop 0",
-                apply->desktop, surface->id);
-        target = surface_desktop_get(surface, 0u);
+                " exist on stage %u; falling back to desktop 0",
+                apply->desktop, stage->id);
+        target = stage_desktop_get(stage, 0u);
         if (target == NULL) {
             return;
         }
@@ -206,20 +206,20 @@ static void s_rules_apply_layer(client_td *client,
  * been placed at.
  *
  * When @p apply->has_monitor is set, @p apply->monitor selects
- * a monitor within @p surface's monitor list (out of range falls back
+ * a monitor within @p stage's monitor list (out of range falls back
  * to 0th-monitor, logging a warning), and every position below becomes
  * relative to that monitor's top-left corner instead of the whole
- * surface's, as explicit @c x / @c y are offset by it, and centering
- * targets that monitor instead of the whole surface.  A rule that sets
+ * stage's, as explicit @c x / @c y are offset by it, and centering
+ * targets that monitor instead of the whole stage.  A rule that sets
  * @c monitor without an explicit @c position centers on that monitor by
  * default, since otherwise @c monitor alone would have no visible
  * effect at all.
  *
- * @param surface Surface the client is on, used to compute the center
+ * @param stage Stage the client is on, used to compute the center
  *                point for @p apply->is_position_centered and to
  *                resolve @p apply->monitor
- * @param client  Client whose geometry is to be set
- * @param apply   Action descriptor
+ * @param client Client whose geometry is to be set
+ * @param apply  Action descriptor
  *
  * @note The function is a no-op when none of @p apply->has_position,
  *       @p apply->has_size, or @p apply->has_monitor is @c true
@@ -228,7 +228,7 @@ static void s_rules_apply_layer(client_td *client,
  * @note Negative Y values in @p apply are clamped to zero
  * @note Complexity: @e O(1)
  */
-static void s_rules_apply_geometry(const surface_td *surface,
+static void s_rules_apply_geometry(const stage_td *stage,
         client_td *client, const struct rules_apply_s *apply)
 {
     xcb_window_t target;
@@ -299,18 +299,18 @@ static void s_rules_apply_geometry(const surface_td *surface,
         set_size = true;
     }
 
-    if (apply->has_monitor && surface != NULL &&
-            surface->monitor_count > 0u) {
+    if (apply->has_monitor && stage != NULL &&
+            stage->monitor_count > 0u) {
         uint32_t monitor_idx = apply->monitor;
 
-        if (monitor_idx >= surface->monitor_count) {
+        if (monitor_idx >= stage->monitor_count) {
             LOGGER_WARNING("Rule targets monitor %u, which does not" \
-                    " exist on surface %u (%u monitor(s)); falling" \
-                    " back to monitor 0", apply->monitor, surface->id,
-                    surface->monitor_count);
+                    " exist on stage %u (%u monitor(s)); falling" \
+                    " back to monitor 0", apply->monitor, stage->id,
+                    stage->monitor_count);
             monitor_idx = 0u;
         }
-        monitor_rect = surface->monitors[monitor_idx];
+        monitor_rect = stage->monitors[monitor_idx];
         has_monitor = true;
     }
 
@@ -320,9 +320,9 @@ static void s_rules_apply_geometry(const surface_td *surface,
 
         if (center) {
             uint32_t area_w = (has_monitor) ? monitor_rect.w
-                : ((surface != NULL) ? surface->properties.dim.w : 0u);
+                : ((stage != NULL) ? stage->properties.dim.w : 0u);
             uint32_t area_h = (has_monitor) ? monitor_rect.h
-                : ((surface != NULL) ? surface->properties.dim.h : 0u);
+                : ((stage != NULL) ? stage->properties.dim.h : 0u);
 
             x = (area_w > width)
                 ? (int32_t) ((area_w - width) / 2u) : 0;
@@ -575,7 +575,7 @@ static void s_rules_apply_state(client_td *client,
  * its own: 'enact_desktop_client_send' itself synchronously unmaps the
  * window when it was visible on the desktop it is leaving, and every
  * 'RULES_TRIGGER_PROPERTY' call site in 'handler/focus.c' marks the
- * client, its surface, and its (now-updated) desktop outdated right
+ * client, its stage, and its (now-updated) desktop outdated right
  * after a matching rule fires, which is what maps the window back in on
  * arrival if the desktop it lands on turns out to be the one currently
  * shown ('desktop_render_one_client', in 'render/desktop.c').
@@ -595,9 +595,9 @@ static void s_rules_apply_state(client_td *client,
  * are both set, @p config is available, and @p client is focusable;
  * a no-op otherwise.
  *
- * @param wm      Window manager instance, for @a wm_surfaces
+ * @param wm      Window manager instance, for @a wm_stages
  * @param client  Client to focus
- * @param surface Surface @p client lives on
+ * @param stage   Stage @p client lives on
  * @param desktop Desktop @p client lives on
  * @param apply   Action descriptor
  * @param config  Active configuration
@@ -605,7 +605,7 @@ static void s_rules_apply_state(client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_rules_apply_focus(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         const struct rules_apply_s *apply, const config_td *config)
 {
     if (!apply->has_focus || !apply->is_focused || config == NULL ||
@@ -613,7 +613,7 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
         return;
     }
 
-    focus_apply(wm_surfaces(wm), surface, desktop, client, true,
+    focus_apply(wm_stages(wm), stage, desktop, client, true,
             config);
 }
 
@@ -628,7 +628,7 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
  *
  * @param client  Client the rule was applied to
  * @param desktop Client's desktop after every other apply step
- * @param surface Client's surface
+ * @param stage   Client's stage
  * @param apply   Action descriptor
  *
  * @return @c true when at least one field in @p apply was set, i.e.,
@@ -637,7 +637,7 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static bool s_rules_notify_change(const client_td *client,
-        const desktop_td *desktop, const surface_td *surface,
+        const desktop_td *desktop, const stage_td *stage,
         const struct rules_apply_s *apply)
 {
     bool changed = apply->has_desktop || apply->has_monitor ||
@@ -656,8 +656,8 @@ static bool s_rules_notify_change(const client_td *client,
                     (double) client->id);
             cJSON_AddNumberToObject(fields, "desktop_id",
                     (double) desktop->id);
-            cJSON_AddNumberToObject(fields, "surface_id",
-                    (double) surface->id);
+            cJSON_AddNumberToObject(fields, "stage_id",
+                    (double) stage->id);
         }
         ipc_broadcast_event(IPC_EVENT_RULE_APPLIED, fields);
     }
@@ -669,7 +669,7 @@ static bool s_rules_notify_change(const client_td *client,
 /* Evaluate all loaded rules against a client and apply the merged
  * result */
 bool rules_apply(const wm_td *wm, client_td *client,
-        surface_td **surface_io, desktop_td **desktop_io,
+        stage_td **stage_io, desktop_td **desktop_io,
         enum rules_trigger_e trigger)
 {
     struct rules_apply_s merged;
@@ -679,8 +679,8 @@ bool rules_apply(const wm_td *wm, client_td *client,
     const config_td *config = wm_config(wm);
 
     if (wm == NULL || rules == NULL || client == NULL ||
-            surface_io == NULL || desktop_io == NULL ||
-            *surface_io == NULL || *desktop_io == NULL) {
+            stage_io == NULL || desktop_io == NULL ||
+            *stage_io == NULL || *desktop_io == NULL) {
         return false;
     }
 
@@ -774,7 +774,7 @@ bool rules_apply(const wm_td *wm, client_td *client,
         return false;
     }
 
-    s_rules_apply_desktop(client, *surface_io, desktop_io, &merged);
+    s_rules_apply_desktop(client, *stage_io, desktop_io, &merged);
     s_rules_apply_layer(client, &merged);
     s_rules_apply_flags(client, &merged);
     if (trigger == RULES_TRIGGER_MAP) {
@@ -782,11 +782,11 @@ bool rules_apply(const wm_td *wm, client_td *client,
     } else {
         s_rules_apply_state(client, &merged);
     }
-    s_rules_apply_geometry(*surface_io, client, &merged);
-    s_rules_apply_focus(wm, client, *surface_io, *desktop_io, &merged,
+    s_rules_apply_geometry(*stage_io, client, &merged);
+    s_rules_apply_focus(wm, client, *stage_io, *desktop_io, &merged,
             config);
 
-    changed = s_rules_notify_change(client, *desktop_io, *surface_io,
+    changed = s_rules_notify_change(client, *desktop_io, *stage_io,
             &merged);
 
     return changed;

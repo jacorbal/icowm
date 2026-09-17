@@ -35,7 +35,7 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -47,7 +47,7 @@
 void handler_leave_notify(const wm_td *wm,
         xcb_leave_notify_event_t *event)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop = NULL;
     const config_td *config = wm_config(wm);
 
@@ -86,10 +86,10 @@ void handler_leave_notify(const wm_td *wm,
     if (focus_is_sloppy(config) &&
             event->mode == XCB_NOTIFY_MODE_NORMAL &&
             event->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
-            lookup_find_client(wm_surfaces(wm), event->event,
-                    &surface, &desktop) != NULL &&
+            lookup_find_client(wm_stages(wm), event->event,
+                    &stage, &desktop) != NULL &&
             desktop != NULL && desktop->client_active_id != 0) {
-        client_td *const active = lookup_find_client(wm_surfaces(wm),
+        client_td *const active = lookup_find_client(wm_stages(wm),
                 desktop->client_active_id, NULL, NULL);
 
         /* A 'NONLINEAR' crossing raised by one of the active client's
@@ -104,17 +104,17 @@ void handler_leave_notify(const wm_td *wm,
          * only a fresh 'QueryPointer' on the root reveals whether the
          * destination frame still belongs to 'active'. */
         if (event->detail == XCB_NOTIFY_DETAIL_NONLINEAR &&
-                active != NULL && surface != NULL &&
-                surface->screen != NULL) {
+                active != NULL && stage != NULL &&
+                stage->screen != NULL) {
             xcb_query_pointer_reply_t *const pointer_reply =
                 xcb_query_pointer_reply(wm_connection(wm),
                         xcb_query_pointer(wm_connection(wm),
-                                surface->screen->root), NULL);
+                                stage->screen->root), NULL);
 
             if (pointer_reply != NULL) {
                 const client_td *const entered =
                     (pointer_reply->child != XCB_WINDOW_NONE)
-                        ? lookup_find_client(wm_surfaces(wm),
+                        ? lookup_find_client(wm_stages(wm),
                                 pointer_reply->child, NULL, NULL)
                         : NULL;
                 const bool is_sibling_crossing = (entered == active);
@@ -139,8 +139,8 @@ void handler_leave_notify(const wm_td *wm,
         desktop->client_active_id = 0;
         desktop->is_focus_dirty = true;
         desktop->is_outdated = true;
-        if (surface != NULL) {
-            surface->is_outdated = true;
+        if (stage != NULL) {
+            stage->is_outdated = true;
         }
     }
 }

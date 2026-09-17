@@ -22,7 +22,7 @@
 #include <adt/list.h>
 
 /* Render includes */
-#include <render/surface.h>
+#include <render/stage.h>
 
 /* Menu includes */
 #include <menu/notify/desktop.h>
@@ -30,7 +30,7 @@
 
 /* Project includes */
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/ewmh.h>
 
@@ -40,29 +40,29 @@
 
 
 /**
- * @brief Re-render only the surfaces marked as outdated
+ * @brief Re-render only the stages marked as outdated
  *
  * @param ctx Main loop context
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
 static void s_loop_refresh_outdated(const loop_ctx_td *ctx)
 {
-    if (ctx == NULL || ctx->surfaces == NULL) {
+    if (ctx == NULL || ctx->stages == NULL) {
         return;
     }
 
-    for (list_item_td *node = list_head(ctx->surfaces);
+    for (list_item_td *node = list_head(ctx->stages);
             node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
-        if (surface == NULL) {
+        stage_td *const stage = (stage_td *) list_data(node);
+        if (stage == NULL) {
             continue;
         }
 
-        if (surface->is_outdated) {
-            if (surface_render_all_desktops(surface) != 0) {
-                LOGGER_ERROR("Failed to render surface %u",
-                        surface->id);
+        if (stage->is_outdated) {
+            if (stage_render_all_desktops(stage) != 0) {
+                LOGGER_ERROR("Failed to render stage %u",
+                        stage->id);
             }
         }
     }
@@ -71,27 +71,27 @@ static void s_loop_refresh_outdated(const loop_ctx_td *ctx)
 
 /**
  * @brief Close a single-instance overlay dialog and repaint whichever
- *        surface is first in the surface list
+ *        stage is first in the stage list
  *
  * Shared by the timed auto-close of the info popup and of the
  * desktop-switch notification: both close a dialog that, unlike a
- * per-client one, is not tied to any one particular surface, so any
- * surface's current-desktop repaint is enough to clear its
+ * per-client one, is not tied to any one particular stage, so any
+ * stage's current-desktop repaint is enough to clear its
  * remnants from the screen.
  *
  * @param ctx      Main loop context
  * @param close_fn The dialog's @c X_close function
  *
- * @note Complexity: @e O(1), since only the first surface is needed
+ * @note Complexity: @e O(1), since only the first stage is needed
  */
 static void s_loop_refresh_close_overlay(const loop_ctx_td *ctx,
         void (*close_fn)(xcb_connection_t *))
 {
-    surface_td *found = NULL;
+    stage_td *found = NULL;
 
-    for (list_item_td *node = list_head(ctx->surfaces); node != NULL;
+    for (list_item_td *node = list_head(ctx->stages); node != NULL;
             node = list_next(node)) {
-        surface_td *const s = (surface_td *) list_data(node);
+        stage_td *const s = (stage_td *) list_data(node);
         if (s != NULL) {
             found = s;
             break;
@@ -100,28 +100,28 @@ static void s_loop_refresh_close_overlay(const loop_ctx_td *ctx,
 
     close_fn(xcb_connection_get());
     if (found != NULL) {
-        surface_render_current_desktop_repaint(found);
+        stage_render_current_desktop_repaint(found);
     }
 }
 
 
 /**
- * @brief Whether any surface is still marked outdated
+ * @brief Whether any stage is still marked outdated
  *
  * Asked before the render pass, since rendering is what clears the
  * flag it reads.
  *
  * @param ctx Main loop context
  *
- * @return @c true when at least one surface needs re-rendering
+ * @return @c true when at least one stage needs re-rendering
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
 static bool s_loop_refresh_any_outdated(const loop_ctx_td *ctx)
 {
-    for (list_item_td *node = list_head(ctx->surfaces); node != NULL;
+    for (list_item_td *node = list_head(ctx->stages); node != NULL;
             node = list_next(node)) {
-        const surface_td *const s = (surface_td *) list_data(node);
+        const stage_td *const s = (stage_td *) list_data(node);
         if (s != NULL && s->is_outdated) {
             return true;
         }
@@ -136,7 +136,7 @@ void loop_refresh(const loop_ctx_td *ctx)
 {
     bool any_outdated;
 
-    if (ctx == NULL || ctx->surfaces == NULL) {
+    if (ctx == NULL || ctx->stages == NULL) {
         return;
     }
 
@@ -161,20 +161,20 @@ void loop_refresh(const loop_ctx_td *ctx)
 }
 
 
-/* Mark every surface outdated and render them all */
+/* Mark every stage outdated and render them all */
 void loop_refresh_full(const loop_ctx_td *ctx)
 {
-    if (ctx == NULL || ctx->surfaces == NULL) {
+    if (ctx == NULL || ctx->stages == NULL) {
         return;
     }
 
     LOGGER_TRACE("Fully updating window manager", L_NARG);
 
-    for (list_item_td *node = list_head(ctx->surfaces);
+    for (list_item_td *node = list_head(ctx->stages);
             node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
-        if (surface != NULL) {
-            surface->is_outdated = true;
+        stage_td *const stage = (stage_td *) list_data(node);
+        if (stage != NULL) {
+            stage->is_outdated = true;
         }
     }
 

@@ -35,7 +35,7 @@
 #include <render/outdate.h>
 
 /* Enact includes */
-#include <enact/surface.h>
+#include <enact/stage.h>
 
 /* Project includes */
 #include <client.h>
@@ -44,7 +44,7 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Input includes */
@@ -64,12 +64,12 @@
  *
  * @param client  Client whose titlebar the scroll landed on
  * @param desktop Desktop owning @p client; may be null
- * @param surface Surface owning @p desktop; may be null
+ * @param stage   Stage owning @p desktop; may be null
  *
  * @note Complexity: @e O(1)
  */
 static void s_scroll_titlebar_maximize(client_td *client,
-        desktop_td *desktop, surface_td *surface)
+        desktop_td *desktop, stage_td *stage)
 {
     if (client_is_maximized(client)) {
         return;
@@ -78,8 +78,8 @@ static void s_scroll_titlebar_maximize(client_td *client,
     if (desktop != NULL) {
         desktop->is_outdated = true;
     }
-    if (surface != NULL) {
-        surface->is_outdated = true;
+    if (stage != NULL) {
+        stage->is_outdated = true;
     }
 }
 
@@ -95,12 +95,12 @@ static void s_scroll_titlebar_maximize(client_td *client,
  *
  * @param client  Client whose titlebar the scroll landed on
  * @param desktop Desktop owning @p client; may be null
- * @param surface Surface owning @p desktop; may be null
+ * @param stage   Stage owning @p desktop; may be null
  *
  * @note Complexity: @e O(1)
  */
 static void s_scroll_titlebar_restore(client_td *client,
-        desktop_td *desktop, surface_td *surface)
+        desktop_td *desktop, stage_td *stage)
 {
     if (!client_is_maximized(client)) {
         return;
@@ -109,8 +109,8 @@ static void s_scroll_titlebar_restore(client_td *client,
     if (desktop != NULL) {
         desktop->is_outdated = true;
     }
-    if (surface != NULL) {
-        surface->is_outdated = true;
+    if (stage != NULL) {
+        stage->is_outdated = true;
     }
 }
 
@@ -126,13 +126,13 @@ static void s_scroll_titlebar_restore(client_td *client,
  *
  * @param client  Client whose titlebar the scroll landed on
  * @param desktop Desktop owning @p client; may be null
- * @param surface Surface owning @p desktop; may be null
+ * @param stage   Stage owning @p desktop; may be null
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
 static void s_scroll_titlebar_shade(client_td *client,
-        desktop_td *desktop, surface_td *surface)
+        desktop_td *desktop, stage_td *stage)
 {
     bool was_active;
 
@@ -167,15 +167,15 @@ static void s_scroll_titlebar_shade(client_td *client,
         focus_order_to_bottom(desktop, client);
     }
 
-    if (was_active && desktop != NULL && surface != NULL) {
-        client_focus_fallback(desktop, surface, client);
+    if (was_active && desktop != NULL && stage != NULL) {
+        client_focus_fallback(desktop, stage, client);
     }
 
     if (desktop != NULL) {
         desktop->is_outdated = true;
     }
-    if (surface != NULL) {
-        surface->is_outdated = true;
+    if (stage != NULL) {
+        stage->is_outdated = true;
     }
 }
 
@@ -188,17 +188,17 @@ static void s_scroll_titlebar_shade(client_td *client,
  * before being shaded; unshading an already-inactive client leaves
  * whichever other client currently has real focus untouched.
  *
- * @param client   Client whose titlebar the scroll landed on
- * @param desktop  Desktop owning @p client; may be null
- * @param surface  Surface owning @p desktop; may be null
- * @param surfaces Full surface list, passed through to @c focus_apply
- * @param config   Active configuration, passed through to
+ * @param client  Client whose titlebar the scroll landed on
+ * @param desktop Desktop owning @p client; may be null
+ * @param stage   Stage owning @p desktop; may be null
+ * @param stages  Full stage list, passed through to @c focus_apply
+ * @param config  Active configuration, passed through to
  *                 @c focus_apply
  *
  * @note Complexity: @e O(1)
  */
 static void s_scroll_titlebar_unshade(client_td *client,
-        desktop_td *desktop, surface_td *surface, list_td *surfaces,
+        desktop_td *desktop, stage_td *stage, list_td *stages,
         const config_td *config)
 {
     bool was_active;
@@ -212,16 +212,16 @@ static void s_scroll_titlebar_unshade(client_td *client,
 
     ccmd_client_unshade(client);
 
-    if (was_active && surface != NULL && desktop != NULL) {
-        focus_apply(surfaces, surface, desktop, client, false, config);
-        im_sync_pinned_active(surface, desktop, client);
+    if (was_active && stage != NULL && desktop != NULL) {
+        focus_apply(stages, stage, desktop, client, false, config);
+        im_sync_pinned_active(stage, desktop, client);
     }
 
     if (desktop != NULL) {
         desktop->is_outdated = true;
     }
-    if (surface != NULL) {
-        surface->is_outdated = true;
+    if (stage != NULL) {
+        stage->is_outdated = true;
     }
 }
 
@@ -268,28 +268,28 @@ static bool s_scroll_on_titlebar(const client_td *client,
 /* Handle a scroll-wheel event matched to a 'DESKTOP_NORTH' / '_SOUTH' /
  * '_EAST' / '_WEST' binding */
 void im_press_scroll_binding(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop,
         enum wm_mousebind_type_e type, const config_td *config)
 {
-    surface_td *const surface =
-        lookup_surface_for_root(surfaces, event->root);
+    stage_td *const stage =
+        lookup_stage_for_root(stages, event->root);
 
     if (client != NULL) {
         if (s_scroll_on_titlebar(client, event)) {
             switch (type) {
             case MOUSEBIND_DESKTOP_NORTH:
-                s_scroll_titlebar_maximize(client, desktop, surface);
+                s_scroll_titlebar_maximize(client, desktop, stage);
                 break;
             case MOUSEBIND_DESKTOP_SOUTH:
-                s_scroll_titlebar_restore(client, desktop, surface);
+                s_scroll_titlebar_restore(client, desktop, stage);
                 break;
             case MOUSEBIND_DESKTOP_WEST:
-                s_scroll_titlebar_shade(client, desktop, surface);
+                s_scroll_titlebar_shade(client, desktop, stage);
                 break;
             case MOUSEBIND_DESKTOP_EAST:
-                s_scroll_titlebar_unshade(client, desktop, surface,
-                        surfaces, config);
+                s_scroll_titlebar_unshade(client, desktop, stage,
+                        stages, config);
                 break;
             case MOUSEBIND_NONE:
             case MOUSEBIND_MOVE:
@@ -315,19 +315,19 @@ void im_press_scroll_binding(xcb_connection_t *connection,
     }
 
     /* No client under pointer: switch desktop right away */
-    if (surface != NULL) {
+    if (stage != NULL) {
         switch (type) {
         case MOUSEBIND_DESKTOP_NORTH:
-            enact_surface_desktop_switch_north(surface);
+            enact_stage_desktop_switch_north(stage);
             break;
         case MOUSEBIND_DESKTOP_SOUTH:
-            enact_surface_desktop_switch_south(surface);
+            enact_stage_desktop_switch_south(stage);
             break;
         case MOUSEBIND_DESKTOP_EAST:
-            enact_surface_desktop_switch_east(surface);
+            enact_stage_desktop_switch_east(stage);
             break;
         case MOUSEBIND_DESKTOP_WEST:
-            enact_surface_desktop_switch_west(surface);
+            enact_stage_desktop_switch_west(stage);
             break;
         case MOUSEBIND_NONE:
         case MOUSEBIND_MOVE:

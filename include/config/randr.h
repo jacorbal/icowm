@@ -35,10 +35,10 @@
  * @brief Per-output RandR profile configuration
  *
  * Stores the user-defined settings for a single physical output,
- * applied via @a surface_action_randr_apply_profiles at startup and
+ * applied via @a stage_action_randr_apply_profiles at startup and
  * whenever that output is (re)connected.
  *
- * @see @c surface.h
+ * @see @c stage.h
  */
 struct config_randr_output_s {
     /**
@@ -75,8 +75,8 @@ struct config_randr_output_s {
      *   a permanently-connected output (a projector for mirroring, say)
      *   that should never receive windows.
      *
-     * @see @a surface_action-apply_randr_profiles and
-     *      @a surface_monitor_refresh_all
+     * @see @a stage_action-apply_randr_profiles and
+     *      @a stage_monitor_refresh_all
      */
     bool is_enabled;
 
@@ -99,8 +99,8 @@ struct config_randr_output_s {
  * Holds a list of per-output profiles and a global on/off switch.
  *
  * @note One instance per @c config_td, shared by every managed X
- *       screen (@c surface_td), not scoped per-screen
- * @note Matching in @a surface_action_randr_apply_profiles is by
+ *       screen (@c stage_td), not scoped per-screen
+ * @note Matching in @a stage_action_randr_apply_profiles is by
  *       @a config_randr_output_s.name alone, queried independently
  *       against the RandR resources of each screen
  * @note On a multi-GPU setup with two X screens exposing an output of

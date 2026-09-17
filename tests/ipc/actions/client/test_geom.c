@@ -53,7 +53,7 @@
 #include <client.h>
 #include <client/state.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -62,23 +62,23 @@
 #include <ipc/actions/client/geom.h>
 
 
-/** Link-only stand-in for surface_desktop_get (surface.c): lookup.c
+/** Link-only stand-in for stage_desktop_get (stage.c): lookup.c
  *  as a whole references it, though the id-based fast path
  *  lookup_find_client actually takes never reaches it */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     return NULL;
 }
 
 
-/** Link-only stand-in for wm_get_surface_by_id (wm.c): ipc/resolve.c
- *  as a whole references it, from ipc_resolve_surface, which none
+/** Link-only stand-in for wm_get_stage_by_id (wm.c): ipc/resolve.c
+ *  as a whole references it, from ipc_resolve_stage, which none
  *  of these twelve actions ever calls (only ipc_resolve_client) */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
     return NULL;
 }
 
@@ -263,21 +263,21 @@ static bool s_id_match(const void *key1, const void *key2)
 /** Every fixture this file needs, wired up fresh by s_build_wm for
  *  each scenario, and torn down by s_teardown_wm right after */
 static wm_td s_wm;
-static surface_td s_surface;
+static stage_td s_stage;
 static desktop_td s_desktop;
 static xcb_screen_t s_screen;
 static client_td s_client;
 
 
-/** Build one surface/desktop/client, holding a single client whose
+/** Build one stage/desktop/client, holding a single client whose
  *  id is 17, current geometry (100,100)-(200x150), and
  *  'CLIENT_GRAVITY_NORTH_WEST' (a resize no-op, per
  *  client_gravity_adjust_pos's own contract), and hang it off
- *  s_wm.surfaces */
+ *  s_wm.stages */
 static void s_build_wm(void)
 {
     memset(&s_wm, 0, sizeof(s_wm));
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
     memset(&s_desktop, 0, sizeof(s_desktop));
     memset(&s_screen, 0, sizeof(s_screen));
     memset(&s_client, 0, sizeof(s_client));
@@ -291,11 +291,11 @@ static void s_build_wm(void)
     s_desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
     ohtbl_insert(s_desktop.clients, &s_client);
-    s_surface.screen = &s_screen;
-    s_surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(s_surface.desktops, NULL, &s_desktop);
-    s_wm.surfaces = list_init(NULL);
-    list_ins_next(s_wm.surfaces, NULL, &s_surface);
+    s_stage.screen = &s_screen;
+    s_stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(s_stage.desktops, NULL, &s_desktop);
+    s_wm.stages = list_init(NULL);
+    list_ins_next(s_wm.stages, NULL, &s_stage);
 
     s_call_center = 0;
     s_call_move_north = 0;
@@ -317,8 +317,8 @@ static void s_build_wm(void)
 
 static void s_teardown_wm(void)
 {
-    list_destroy(s_wm.surfaces);
-    cdlist_destroy(s_surface.desktops);
+    list_destroy(s_wm.stages);
+    cdlist_destroy(s_stage.desktops);
     ohtbl_destroy(s_desktop.clients);
 }
 

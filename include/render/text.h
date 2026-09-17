@@ -151,8 +151,8 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg);
  * @param drawable   Target drawable where the text will be drawn
  * @param gc         Graphics context to use, or @c XCB_NONE for
  *                   the default one
- * @param pos        Position of the text baseline
- * @param text       Null-terminated string to draw
+ * @param pos  Position of the text baseline
+ * @param text Null-terminated string to draw
  *
  * @note Strings longer than 255 bytes are truncated to fit the XCB text
  *       drawing request limit

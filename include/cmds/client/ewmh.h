@@ -4,7 +4,7 @@
  * @brief Functions writing a client's ICCCM @c WM_STATE and EWMH
  *        @c _NET_WM_STATE properties
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*

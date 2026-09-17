@@ -37,7 +37,7 @@
 #include <config.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -46,43 +46,43 @@
 #include <input/kbd/internal.h>
 
 
-/* Surface lookup */
+/* Stage lookup */
 /**
- * @brief Look up a surface associated to a root window, with fallback
+ * @brief Look up a stage associated to a root window, with fallback
  *
- * Attempts to find a @c surface_td that corresponds to the given X11
- * @c root window by searching the @c surfaces list.  If no matching
- * surface is found, but the list is non-empty, this function falls back
- * to returning the first surface in the list.
+ * Attempts to find a @c stage_td that corresponds to the given X11
+ * @c root window by searching the @c stages list.  If no matching
+ * stage is found, but the list is non-empty, this function falls back
+ * to returning the first stage in the list.
  *
- * @param surfaces List of available surfaces to search in, or @c NULL
- * @param root     X11 root window identifier used as lookup key
+ * @param stages List of available stages to search in, or @c NULL
+ * @param root   X11 root window identifier used as lookup key
  *
- * @return The matching @c surface_td, or the first surface in the
- *         list where none matches, or @c NULL where @p surfaces is
+ * @return The matching @c stage_td, or the first stage in the
+ *         list where none matches, or @c NULL where @p stages is
  *         null or empty
  *
- * @note Meant for the moments when a particular root surface may not
+ * @note Meant for the moments when a particular root stage may not
  *       exist yet, giving the caller a sensible default
  */
-static surface_td *s_lookup_surface_fallback(list_td *surfaces,
+static stage_td *s_lookup_stage_fallback(list_td *stages,
         xcb_window_t root)
 {
-    surface_td *surface;
+    stage_td *stage;
 
-    surface = lookup_surface_for_root(surfaces, root);
-    if (surface == NULL && surfaces != NULL &&
-            !list_is_empty(surfaces)) {
-        surface = (surface_td *) list_data(list_head(surfaces));
+    stage = lookup_stage_for_root(stages, root);
+    if (stage == NULL && stages != NULL &&
+            !list_is_empty(stages)) {
+        stage = (stage_td *) list_data(list_head(stages));
     }
 
-    return surface;
+    return stage;
 }
 
 
 /* Handle a key-release event to auto-confirm the cycle menu */
 void keyboard_handle_release(xcb_key_symbols_t *keysyms,
-        xcb_key_release_event_t *event, list_td *surfaces,
+        xcb_key_release_event_t *event, list_td *stages,
         const config_td *config)
 {
     xcb_keysym_t keysym;
@@ -96,10 +96,10 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
     /* Auto-confirm cycle menu when its modifier is released */
     if (cycle_is_open() && cycle_modifier() != 0 &&
             keyboard_is_modifier_for_mask(keysym, cycle_modifier())) {
-        const surface_td *const surface =
-            s_lookup_surface_fallback(surfaces, event->root);
-        if (surface != NULL) {
-            cycle_confirm(xcb_connection_get(), surfaces, config);
+        const stage_td *const stage =
+            s_lookup_stage_fallback(stages, event->root);
+        if (stage != NULL) {
+            cycle_confirm(xcb_connection_get(), stages, config);
         }
         return;
     }
@@ -108,14 +108,14 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
 
 /* Translate a key-press event into an action and dispatch it */
 void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
-        xcb_key_press_event_t *event, list_td *surfaces,
+        xcb_key_press_event_t *event, list_td *stages,
         const config_td *config)
 {
     enum wm_keybind_type_e btype;
     xcb_keysym_t keysym;
     uint16_t state;
     uint16_t modmask = 0u;
-    surface_td *surface;
+    stage_td *stage;
 
     if (keysyms == NULL || event == NULL || config == NULL) {
         LOGGER_ERROR("Received null pointer in key press handler",
@@ -131,12 +131,12 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
     LOGGER_TRACE("Key press event (keysym=0x%x, state=0x%x)",
             keysym, state);
 
-    surface = s_lookup_surface_fallback(surfaces, event->root);
+    stage = s_lookup_stage_fallback(stages, event->root);
 
     if (ik_intercept_keypress(keysym,
                 keyboard_keysym_for_state(keysyms, event->detail,
                         event->state),
-                state, surface, surfaces,
+                state, stage, stages,
                 config)) {
         return;
     }
@@ -160,6 +160,6 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         return;
     }
 
-    ik_execute_binding(wm, btype, modmask, event->detail, surface,
-            surfaces, config);
+    ik_execute_binding(wm, btype, modmask, event->detail, stage,
+            stages, config);
 }

@@ -4,7 +4,7 @@
  * @brief Functions on an already-iconified client's icon
  *        placement
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*
@@ -40,8 +40,8 @@
  * a free spot keeps it exactly where it was.
  *
  * Meant for a client whose desktop changed out from under it without
- * anyone having moved its icon (@a surface_action_desktop_remove,
- * @c surface.h, evacuating every client still on a desktop being
+ * anyone having moved its icon (@a stage_action_desktop_remove,
+ * @c stage.h, evacuating every client still on a desktop being
  * removed, foremost among the ways that happens).  The ordinary
  * "reuse the saved position unless claimed" reasoning
  * @a ccmd_client_iconify applies to a freshly iconified client has no

@@ -30,7 +30,7 @@
 /**
  * @brief Load the @c modifiers section of a bindings file
  *
- * @param json             Root object of the parsed bindings file
+ * @param json            Root object of the parsed bindings file
  * @param config_bindings Bindings the section is loaded into
  *
  * @note Complexity: @e O(n), where @e n is the number of keys the
@@ -65,7 +65,7 @@ static void s_config_bindings_load_modifiers(cJSON *json,
 /**
  * @brief Load the @c wm keyboard bindings
  *
- * @param keyboard         The @c keyboard object of the bindings file
+ * @param keyboard        The @c keyboard object of the bindings file
  * @param config_bindings Bindings the section is loaded into
  *
  * @note Complexity: @e O(n), where @e n is the number of keys the
@@ -119,7 +119,7 @@ static void s_config_bindings_load_keyboard_wm(cJSON *keyboard,
 /**
  * @brief Load the @c desktop keyboard bindings
  *
- * @param keyboard         The @c keyboard object of the bindings file
+ * @param keyboard        The @c keyboard object of the bindings file
  * @param config_bindings Bindings the section is loaded into
  *
  * @note Complexity: @e O(n), where @e n is the number of keys the
@@ -169,7 +169,7 @@ static void s_config_bindings_load_keyboard_desktop(cJSON *keyboard,
 /**
  * @brief Load the @c launch keyboard bindings
  *
- * @param keyboard         The @c keyboard object of the bindings file
+ * @param keyboard        The @c keyboard object of the bindings file
  * @param config_bindings Bindings the section is loaded into
  *
  * @note Complexity: @e O(n), where @e n is the number of keys the
@@ -202,7 +202,7 @@ static void s_config_bindings_load_keyboard_launch(cJSON *keyboard,
 /**
  * @brief Load the @c window.move keyboard bindings
  *
- * @param window          The @c window object of the keyboard
+ * @param window The @c window object of the keyboard
  *                        bindings
  * @param config_bindings Bindings the section is loaded into
  *
@@ -256,7 +256,7 @@ static void s_config_bindings_load_window_move(cJSON *window,
 /**
  * @brief Load the @c window.resize keyboard bindings
  *
- * @param window          The @c window object of the keyboard
+ * @param window The @c window object of the keyboard
  *                        bindings
  * @param config_bindings Bindings the section is loaded into
  *
@@ -287,7 +287,7 @@ static void s_config_bindings_load_window_resize(cJSON *window,
 /**
  * @brief Load the @c window.send-to keyboard bindings
  *
- * @param window          The @c window object of the keyboard
+ * @param window The @c window object of the keyboard
  *                        bindings
  * @param config_bindings Bindings the section is loaded into
  *
@@ -424,7 +424,7 @@ static void s_config_bindings_load_keyboard_window(cJSON *keyboard,
 /**
  * @brief Load the @c cycle keyboard bindings
  *
- * @param keyboard         The @c keyboard object of the bindings file
+ * @param keyboard        The @c keyboard object of the bindings file
  * @param config_bindings Bindings the section is loaded into
  *
  * @note Complexity: @e O(n), where @e n is the number of keys the
@@ -552,7 +552,7 @@ static void s_config_bindings_load_keyboard_viewport(cJSON *keyboard,
 /**
  * @brief Load the @c mouse section of a bindings file
  *
- * @param json             Root object of the parsed bindings file
+ * @param json            Root object of the parsed bindings file
  * @param config_bindings Bindings the section is loaded into
  *
  * @note Complexity: @e O(n), where @e n is the number of keys the

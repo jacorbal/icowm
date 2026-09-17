@@ -70,7 +70,7 @@ enum s_loop_event_motion_target_e {
  * visibly lag behind the pointer, worse the more expensive that
  * per-event work is.
  *
- * @param ctx   Main loop context, whose lookahead slot receives the
+ * @param ctx Main loop context, whose lookahead slot receives the
  *              first non-motion event found, if any
  * @param event Newest motion event so far, replaced in place by any
  *              newer one found; superseded events are freed here
@@ -187,9 +187,9 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
             break;
 
         case S_MOTION_TARGET_HOVER:
-            mouse_handle_motion_hover(xcb_connection_get(), ctx->surfaces,
+            mouse_handle_motion_hover(xcb_connection_get(), ctx->stages,
                     me);
-            mouse_viewport_edge_check(ctx->surfaces, me->root,
+            mouse_viewport_edge_check(ctx->stages, me->root,
                     me->root_x, me->root_y);
             break;
 

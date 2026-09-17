@@ -31,7 +31,7 @@
 
 /* Project includes */
 #include <types/handles.h>
-#include <surface.h>
+#include <stage.h>
 
 
 #ifndef RULES_TD_DECLARED
@@ -97,15 +97,15 @@ xcb_connection_t *wm_connection(const wm_td *wm);
 xcb_ewmh_connection_t *wm_ewmh(const wm_td *wm);
 
 /**
- * @brief List of managed surfaces
+ * @brief List of managed stages
  *
  * @param wm Window manager instance
  *
- * @return The surface list, or @c NULL before @a wm_start has run
+ * @return The stage list, or @c NULL before @a wm_start has run
  *
  * @note Complexity: @e O(1)
  */
-list_td *wm_surfaces(const wm_td *wm);
+list_td *wm_stages(const wm_td *wm);
 
 /**
  * @brief Key symbols table used to translate keycodes to keysyms
@@ -275,9 +275,9 @@ void wm_set_keysyms(wm_td *wm, xcb_key_symbols_t *keysyms);
 /**
  * @brief Set XRandR availability and its base event code together
  *
- * @param wm          Window manager instance
- * @param available   Whether the XRandR extension was found
- * @param base_event  The base event code; meaningless if @p available
+ * @param wm         Window manager instance
+ * @param available  Whether the XRandR extension was found
+ * @param base_event The base event code; meaningless if @p available
  *                    is @c false
  *
  * @note Complexity: @e O(1)
@@ -287,9 +287,9 @@ void wm_set_randr(wm_td *wm, bool available, uint8_t base_event);
 /**
  * @brief Set XSync availability and its base event code together
  *
- * @param wm          Window manager instance
- * @param available   Whether the XSync extension was found
- * @param base_event  The base event code; meaningless if @p available
+ * @param wm         Window manager instance
+ * @param available  Whether the XSync extension was found
+ * @param base_event The base event code; meaningless if @p available
  *                    is @c false
  *
  * @note Complexity: @e O(1)
@@ -325,18 +325,18 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  * proceeding; see @a wm_startup_acquire_selection
  * (@c wm/startup/selection.c) for the full mechanics.
  *
- * @param display_name          Name of the display, or @c NULL for
+ * @param display_name Name of the display, or @c NULL for
  *                              default
- * @param config_dir_prefix     Configuration directory, or @c NULL to
+ * @param config_dir_prefix Configuration directory, or @c NULL to
  *                              use the default value
  * @param restricted_memory_mib Restricted-memory mode's
  *                              available-memory ceiling in mebibytes,
  *                              or @c 0 to leave the mode off
- * @param ipc_disabled          When @c true, the IPC control socket is
+ * @param ipc_disabled When @c true, the IPC control socket is
  *                              never brought up at all; every other
  *                              part of IcoWM runs exactly the same
  *                              either way
- * @param replace_requested     When @c true, take over an
+ * @param replace_requested When @c true, take over an
  *                              already-running window manager's
  *                              @c WM_Sn ownership instead of refusing
  *                              to start against it (@c -r)
@@ -347,7 +347,7 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  * @retval    2 Cannot open X connection
  * @retval    3 Cannot open load configuration
  * @retval 4-10 Failed to initialize other internal data structures
- *              (surfaces, RandR, &c.)
+ *              (stages, RandR, &c.)
  * @retval   11 Restricted-memory mode's ceiling is already below
  *              available system memory; refused to start at all
  * @retval   12 Another window manager already owns a screen's
@@ -359,7 +359,7 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  * @note A @c NULL @p display_name sends the initialization to the
  *       @c DISPLAY environment variable instead, where that is set
  * @note This function follows a singleton pattern
- * @note Complexity: @e O(n * m), where @e n is the number of surfaces
+ * @note Complexity: @e O(n * m), where @e n is the number of stages
  *       to initialize and @e m the number of desktops per window, the
  *       initialization walking a list of lists
  *
@@ -390,7 +390,7 @@ int wm_start(const char *restrict display_name,
  *
  * @note A no-op if @a json_syntax_errors_count is @c 0 
  * @note Also a no-op if the singleton window manager instance is not
- *       running, or has no surface to show the dialog on
+ *       running, or has no stage to show the dialog on
  * @note Complexity: @e O(n), where @e n is the number of files
  *       recorded
  *
@@ -410,7 +410,7 @@ void wm_json_syntax_errors_warn(void);
  *
  * @note Passing a null pointer has no effect
  * @note Complexity: @e O(m * (1 + n^2)), where @e n is the number of
- *       surfaces, and @e m is the number of desktops per surface, as it
+ *       stages, and @e m is the number of desktops per stage, as it
  *       iterates through the array of windows to free each one of them
  */
 int wm_stop(void);
@@ -444,7 +444,7 @@ int wm_request_stop(void);
  * this entirely.
  *
  * @note Complexity: @e O(n), where @e n is the total number of
- *       managed clients across every surface and desktop
+ *       managed clients across every stage and desktop
  *
  * @see @c wm/shutdown.h for the full design on asking managed clients
  *      when stopping the window manager
@@ -503,7 +503,7 @@ bool wm_restart_requested(void);
  * @retval  1 Failed to perform the operation
  *
  * @note Reloads @p config->randr from @c randr.json but does not call
- *       @a surface_action_randr_apply_profiles; an edited profile
+ *       @a stage_action_randr_apply_profiles; an edited profile
  *       takes effect at the next call to that function (startup, or
  *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
  *       not from this reload alone
@@ -513,24 +513,24 @@ bool wm_restart_requested(void);
 int wm_action_config_reload(const wm_td *wm);
 
 /**
- * @brief Rearrange every visible window on the given surface's
+ * @brief Rearrange every visible window on the given stage's
  *        current desktop
  *
  * A thin wrapper around @a enact_desktop_client_rearrange_all.
  *
- * @param wm      Window manager instance
- * @param surface Surface whose current desktop to rearrange
+ * @param wm    Window manager instance
+ * @param stage Stage whose current desktop to rearrange
  *
- * @note No-op if @p surface is null or has no current desktop
+ * @note No-op if @p stage is null or has no current desktop
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients in the current desktop
  */
-void wm_action_rearrange(const wm_td *wm, surface_td *surface);
+void wm_action_rearrange(const wm_td *wm, stage_td *stage);
 
 /**
  * @brief Return the desktop that currently contains a specific client
  *
- * Searches all surfaces and desktops managed by the singleton window
+ * Searches all stages and desktops managed by the singleton window
  * manager instance.
  *
  * @param client Client whose desktop is requested
@@ -544,20 +544,20 @@ void wm_action_rearrange(const wm_td *wm, surface_td *surface);
 desktop_td *wm_get_client_desktop(const client_td *client);
 
 /**
- * @brief Return the managed surface with the given identifier
+ * @brief Return the managed stage with the given identifier
  *
- * Scans all surfaces handled by the singleton window manager instance
- * and returns the one whose @p id matches @p surface_id.
+ * Scans all stages handled by the singleton window manager instance
+ * and returns the one whose @p id matches @p stage_id.
  *
- * @param surface_id Surface identifier
+ * @param stage_id Stage identifier
  *
- * @return Pointer to the matching @c surface_td, or @c NULL when no
- *         surface matches or the window manager is not initialized
+ * @return Pointer to the matching @c stage_td, or @c NULL when no
+ *         stage matches or the window manager is not initialized
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
-surface_td *wm_get_surface_by_id(uint32_t surface_id);
+stage_td *wm_get_stage_by_id(uint32_t stage_id);
 
 /**
  * @brief Query whether the XSync extension is available on this server
@@ -578,45 +578,45 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
 bool wm_sync_is_available(void);
 
 /**
- * @brief Return the list of surfaces managed by the singleton window
+ * @brief Return the list of stages managed by the singleton window
  *        manager instance
  *
  * Used by code outside @c src/wm/ (which cannot include the private
  * @c wm/internal.h singleton pointer directly) that needs the full
- * surface list rather than a single surface by ID (e.g.,
+ * stage list rather than a single stage by ID (e.g.,
  * @a focus_apply) which needs it to look up and unfocus whichever
  * client was previously active.
  *
- * @return The managed surfaces list, or @c NULL when the window manager
+ * @return The managed stages list, or @c NULL when the window manager
  *         is not initialized
  *
  * @note Complexity: @e O(1)
  */
-list_td *wm_get_surfaces(void);
+list_td *wm_get_stages(void);
 
 /**
- * @brief Find which managed surface a given desktop belongs to
+ * @brief Find which managed stage a given desktop belongs to
  *
  * @c desktop_td itself keeps no back-pointer to its owning
- * @c surface_td (each surface's @p desktops list points one way
- * only, surface to desktop); this is the reverse lookup, used by
+ * @c stage_td (each stage's @p desktops list points one way
+ * only, stage to desktop); this is the reverse lookup, used by
  * @a desktop_action_recompute_urgent (@c desktop/dclient.c) to find the
- * surface a desktop's cross-desktop urgency notification popup
+ * stage a desktop's cross-desktop urgency notification popup
  * needs to center on and compare @p desktop_cur against, without that
- * function's signature having to grow a @c surface_td parameter
+ * function's signature having to grow a @c stage_td parameter
  * every one of its own several unrelated callers would then also have
  * to obtain and pass through.
  *
- * @param desktop Desktop to find the owning surface of
+ * @param desktop Desktop to find the owning stage of
  *
- * @return The surface @p desktop belongs to, or @c NULL when
- *         @p desktop is @c NULL, no managed surface contains it, or
+ * @return The stage @p desktop belongs to, or @c NULL when
+ *         @p desktop is @c NULL, no managed stage contains it, or
  *         the window manager is not initialized
  *
  * @note Complexity: @e O(s * d), where @e s is the number of managed
- *       surfaces and @e d the number of desktops per surface
+ *       stages and @e d the number of desktops per stage
  */
-surface_td *wm_get_desktop_surface(const desktop_td *desktop);
+stage_td *wm_get_desktop_stage(const desktop_td *desktop);
 
 /**
  * @brief Return the active configuration of the singleton window
@@ -656,26 +656,26 @@ config_td *wm_get_config(void);
 xcb_key_symbols_t *wm_get_keysyms(void);
 
 /**
- * @brief Mark the client owner desktop and surface as outdated
+ * @brief Mark the client owner desktop and stage as outdated
  *
  * Locates the desktop currently owning @p client and marks that desktop
- * and its surface for redraw on the next update cycle.
+ * and its stage for redraw on the next update cycle.
  *
  * @param client Client whose owner context should be redrawn
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces and desktops
+ *       stages and desktops
  */
 void wm_request_client_redraw(client_td *client);
 
 /**
- * @brief Mark all surfaces and desktops as outdated
+ * @brief Mark all stages and desktops as outdated
  *
  * Requests a full redraw on demand by setting the outdated flags across
- * every managed surface and desktop.
+ * every managed stage and desktop.
  *
- * @note Complexity: @e O(n * m), where @e n is the number of surfaces
- *       and @e m is the number of desktops per surface
+ * @note Complexity: @e O(n * m), where @e n is the number of stages
+ *       and @e m is the number of desktops per stage
  */
 void wm_request_full_redraw(void);
 
@@ -687,13 +687,13 @@ void wm_request_full_redraw(void);
 void wm_emergency_exit_enable(void);
 
 /**
- * @brief Macro that evaluates to the number of surfaces handled by the
+ * @brief Macro that evaluates to the number of stages handled by the
  *        window manager
  *
  * @note Complexity: @e O(1)
  */
-#define wm_surface_count(wm) \
-  (((wm) == NULL) || (((wm)->surfaces) == NULL) ? 0 : ((wm)->surfaces)->size)
+#define wm_stage_count(wm) \
+  (((wm) == NULL) || (((wm)->stages) == NULL) ? 0 : ((wm)->stages)->size)
 
 
 #endif  /* ! WM_H */

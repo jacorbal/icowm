@@ -47,17 +47,18 @@
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_apply_geometry(client_td *client, xcb_window_t window,
-        uint16_t mask, int16_t x, int16_t y, uint16_t width,
-        uint16_t height, uint32_t border_width)
+void ccmd_client_apply_geometry(client_td *client,
+        xcb_window_t target, uint16_t mask,
+        int32_t x, int32_t y, uint32_t w, uint32_t h,
+        uint32_t border_width)
 {
     (void) client;
-    (void) window;
+    (void) target;
     (void) mask;
     (void) x;
     (void) y;
-    (void) width;
-    (void) height;
+    (void) w;
+    (void) h;
     (void) border_width;
 }
 

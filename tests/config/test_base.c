@@ -764,7 +764,7 @@ static void s_test_desktop_behavior(void)
 }
 
 
-/* A representative sample of ci_config_load_systray's own fields:
+/* A representative sample of ci_config_systray_load's own fields:
  * is-enabled, margins, position, monitor (anchor/index), order,
  * layer, clock, battery (threshold/backend), and text (position) */
 static void s_test_systray_representative_fields(void)

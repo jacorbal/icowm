@@ -83,9 +83,9 @@
  *                     @p icon_w / @p icon_h the same way the
  *                     candidate's on-screen footprint is grown by
  *                     it elsewhere in this file
- * @param occ_x        Occupied rectangles' left edges
- * @param occ_y        Occupied rectangles' top edges
- * @param occ_count    Number of entries in @p occ_x / @p occ_y
+ * @param occ_x     Occupied rectangles' left edges
+ * @param occ_y     Occupied rectangles' top edges
+ * @param occ_count Number of entries in @p occ_x / @p occ_y
  *
  * @return @c true if the candidate rectangle overlaps any occupied one
  *
@@ -178,7 +178,7 @@ static void s_icon_occupied_visit(client_td *client, void *data)
  * never disagree about what a given slot index actually means on
  * screen.
  *
- * @param policy       Placement edge; @c CONFIG_ICON_PLACEMENT_SMART is
+ * @param policy Placement edge; @c CONFIG_ICON_PLACEMENT_SMART is
  *                     not valid here (handled entirely separately)
  * @param slot         Slot index to convert
  * @param max_primary  Number of slots along the primary (edge) axis

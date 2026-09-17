@@ -4,7 +4,7 @@
  * @brief Functions on a client's close, kill, restore, and focus
  *        lifecycle
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*
@@ -56,27 +56,27 @@ void ccmd_client_kill(client_td *client);
 /**
  * @brief Restore the client to its original state
  *
- * Where "original" depends on where the client currently sits.  An
- * iconified client is restored by bringing it back onto the desktop,
- * its own icon box destroyed and its saved geometry re-applied, but
- * whatever maximized or full screen bit it held before being iconified
- * is left exactly as it was; only the iconified state itself is undone.
+ * "Original" depends on where the client currently sits.  An iconified
+ * client is restored by bringing it back onto the desktop, its own
+ * icon box destroyed and its saved geometry re-applied, but whatever
+ * maximized or full screen bit it held before being iconified is left
+ * exactly as it was; only the iconified state itself is undone.
  *
  * A client already on the desktop is restored one layer at a time
  * instead, outermost first: full screen over a maximized window comes
  * back maximized, and a second restore takes that away in turn.  This
- * relies on @a ccmd_client_maximize (and @a ccmd_client_maximize_horz /
- * @a _vert) already being their own toggle, each one demoting
- * a client already holding the exact state being asked for back to
+ * relies on @a ccmd_client_maximize (and @a ccmd_client_maximize_horz
+ * / @a _vert) already being their own toggle, each one demoting a
+ * client already holding the exact state being asked for back to
  * normal instead of re-applying it; restore simply calls whichever one
  * matches the outermost state currently held, rather than needing an
  * "undo maximize" of its own.
  *
- * The client's whole transient family is brought along too: every other
- * member still iconified is restored first, and a transient sibling
- * left merely hidden, not iconified, when the family went down together
- * is unhidden the same way, before @p client's own top parent is
- * finally restored last.
+ * The client's whole transient family is brought along too: every
+ * other member still iconified is restored first, and a transient
+ * sibling left merely hidden, not iconified, when the family went down
+ * together is unhidden the same way, before @p client's own top parent
+ * is finally restored last.
  *
  * @param client Window to restore
  *
@@ -160,12 +160,12 @@ void ccmd_client_make_active(client_td *client);
  * focused on: callers that only want a fallback under that narrower
  * condition already gate the call on their own desktop's remembered
  * active client having been genuinely set (see
- * @c surface_client_show_all's two-block split,
- * @c surface/actions/client.c, for exactly this distinction).
+ * @c stage_client_show_all's two-block split,
+ * @c stage/actions/client.c, for exactly this distinction).
  *
  * @param desktop Desktop whose stacking order is searched, and whose
  *                @c client_active_id and @c is_focus_dirty are updated
- * @param surface Surface @p desktop belongs to, marked outdated
+ * @param stage   Stage @p desktop belongs to, marked outdated
  * @param exclude Client to exclude from the search (the one losing
  *                focus); may be null.  Unfocused in place when no
  *                replacement candidate is found
@@ -174,7 +174,7 @@ void ccmd_client_make_active(client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
-void client_focus_fallback(desktop_td *desktop, surface_td *surface,
+void client_focus_fallback(desktop_td *desktop, stage_td *stage,
         client_td *exclude);
 
 /**
@@ -189,7 +189,7 @@ void ccmd_client_unfocus(client_td *client);
 /**
  * @brief Transfer focus away from a client that is losing it
  *
- * Thin wrapper resolving @p client's surface and desktop before
+ * Thin wrapper resolving @p client's stage and desktop before
  * deferring to @a client_focus_fallback itself; a no-op unless
  * @p client is genuinely that desktop's current active client, since
  * some other, already-unfocused client being hidden or iconified has no

@@ -46,7 +46,7 @@
  *        shortcut
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the dialog
+ * @param stage      Stage on which to center the dialog
  * @param config     Active configuration (bindings, theme colors and
  *                   font)
  *
@@ -54,7 +54,7 @@
  *       time
  */
 void dialog_shortcuts_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config);
+        stage_td *stage, const config_td *config);
 
 
 #endif  /* ! MENU_DIALOG_SHORTCUTS_H */

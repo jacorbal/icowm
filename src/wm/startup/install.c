@@ -29,7 +29,7 @@
 /**
  * @brief Install a single POSIX signal handler
  *
- * @param signum Signal number to configure
+ * @param signum  Signal number to configure
  * @param handler Function to invoke when the signal arrives
  * @param flags   Extra @c sigaction flags for the registration
  *

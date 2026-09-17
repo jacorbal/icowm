@@ -15,7 +15,7 @@
  * linked rather than stubbed, the same way 'input/mouse/resolve.c'
  * links the real bounds/geometry helpers it depends on.  'list.c' is
  * linked for real too, since 'mouse_load' walks a genuine 'list_td' of
- * surfaces built by each scenario below.
+ * stages built by each scenario below.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -41,7 +41,7 @@
 /* Project includes */
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <utils/safe/safestr.h>
 
 /* Local includes */
@@ -216,9 +216,9 @@ static void s_test_load_null_config(void)
 }
 
 
-/* mouse_load with a real config but NULL surfaces still parses and
+/* mouse_load with a real config but NULL stages still parses and
  * registers bindings in the table, just never grabs anything */
-static void s_test_load_null_surfaces(void)
+static void s_test_load_null_stages(void)
 {
     config_td config;
 
@@ -231,9 +231,9 @@ static void s_test_load_null_surfaces(void)
     mouse_load(NULL, &config);
 
     TAP_EQ_INT(s_call_grab_button_checked, 0,
-            "NULL surfaces never reaches xcb_grab_button_checked");
+            "NULL stages never reaches xcb_grab_button_checked");
     TAP_OK(mousebind_count() >= 1,
-            "the binding table is still populated with NULL surfaces");
+            "the binding table is still populated with NULL stages");
 }
 
 
@@ -302,12 +302,12 @@ static void s_test_load_and_read_back_binding(void)
 
 
 /* mouse_load grabs each non-wheel binding's button, with every
- * lock-modifier variant (4), on every surface with a real screen */
-static void s_test_load_grabs_on_surfaces(void)
+ * lock-modifier variant (4), on every stage with a real screen */
+static void s_test_load_grabs_on_stages(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_screen_t screen;
 
     s_config_reset(&config);
@@ -315,18 +315,18 @@ static void s_test_load_grabs_on_surfaces(void)
     safe_strncpy(config.bindings.mouse.window.move, "mod1+button1",
             sizeof(config.bindings.mouse.window.move));
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    mouse_load(surfaces, &config);
+    mouse_load(stages, &config);
 
     TAP_EQ_INT(s_call_ungrab_button, 1,
-            "the surface's root is ungrabbed once before re-grabbing");
+            "the stage's root is ungrabbed once before re-grabbing");
     /* 4 lock-modifier variants (none, Lock, Mod2, Lock|Mod2) for the
      * single MOVE binding registered above */
     TAP_EQ_INT(s_grab_button_calls_for_button1, 4,
@@ -334,7 +334,7 @@ static void s_test_load_grabs_on_surfaces(void)
     TAP_EQ_INT(s_call_request_check, s_call_grab_button_checked,
             "every grab attempt is followed by its own request check");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -343,8 +343,8 @@ static void s_test_load_grabs_on_surfaces(void)
 static void s_test_load_skips_grab_for_wheel_bindings(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_screen_t screen;
     xcb_button_index_t button = 0;
     uint16_t modmask = 0;
@@ -356,15 +356,15 @@ static void s_test_load_skips_grab_for_wheel_bindings(void)
     safe_strncpy(config.bindings.mouse.cycle.desktop.north, "mod1+button4",
             sizeof(config.bindings.mouse.cycle.desktop.north));
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    mouse_load(surfaces, &config);
+    mouse_load(stages, &config);
 
     TAP_EQ_INT(s_call_grab_button_checked, 0,
             "a lone DESKTOP_NORTH wheel binding is never passively" \
@@ -381,38 +381,38 @@ static void s_test_load_skips_grab_for_wheel_bindings(void)
     TAP_OK(found,
             "the DESKTOP_NORTH binding is still registered in the table");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* A surface with a NULL screen is skipped by both the ungrab pass and
+/* A stage with a NULL screen is skipped by both the ungrab pass and
  * the grab pass, without crashing */
-static void s_test_load_skips_null_screen_surface(void)
+static void s_test_load_skips_null_screen_stage(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
 
     s_config_reset(&config);
     safe_strncpy(config.bindings.mod1, "mod1", sizeof(config.bindings.mod1));
     safe_strncpy(config.bindings.mouse.window.move, "mod1+button1",
             sizeof(config.bindings.mouse.window.move));
 
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = NULL;
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = NULL;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    mouse_load(surfaces, &config);
+    mouse_load(stages, &config);
 
     TAP_EQ_INT(s_call_ungrab_button, 0,
-            "a NULL-screen surface is skipped by the ungrab pass");
+            "a NULL-screen stage is skipped by the ungrab pass");
     TAP_EQ_INT(s_call_grab_button_checked, 0,
-            "a NULL-screen surface is skipped by the grab pass too");
+            "a NULL-screen stage is skipped by the grab pass too");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -462,12 +462,12 @@ int main(void)
 
     s_test_initial_state_empty();
     s_test_load_null_config();
-    s_test_load_null_surfaces();
+    s_test_load_null_stages();
     s_test_load_unparseable_binding();
     s_test_load_and_read_back_binding();
-    s_test_load_grabs_on_surfaces();
+    s_test_load_grabs_on_stages();
     s_test_load_skips_grab_for_wheel_bindings();
-    s_test_load_skips_null_screen_surface();
+    s_test_load_skips_null_screen_stage();
     s_test_load_reload_replaces_table();
 
     return TAP_DONE();

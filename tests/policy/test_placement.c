@@ -8,8 +8,8 @@
  * below as a controllable, call-recording stand-in: libxcb itself is
  * deliberately never linked here, so the linker resolves every one
  * of those symbols against this file's own definitions instead.
- * surface_desktop_get, surface_monitor_primary,
- * surface_monitor_for_point, and lookup_find_client (all real
+ * stage_desktop_get, stage_monitor_primary,
+ * stage_monitor_for_point, and lookup_find_client (all real
  * modules with XCB-dependent implementations elsewhere) are stubbed
  * the same way.  s_score_window_pos, s_place_apply_gravity, and
  * s_clip_to_monitor are static to placement.c itself and only
@@ -40,7 +40,7 @@
 /* Local includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 #include <config.h>
 #include <harness/tap.h>
 #include <policy/placement/window.h>
@@ -177,10 +177,10 @@ client_td *client_group_transient_anchor(const client_td *client)
 /** Link-only stand-in for systray_get_geometry (systray.c): no test
  *  here docks a systray, so placement always runs with the whole
  *  workarea free of one */
-bool systray_get_geometry(const surface_td *surface,
+bool systray_get_geometry(const stage_td *stage,
         struct geometry_s *restrict out_tray)
 {
-    (void) surface;
+    (void) stage;
     (void) out_tray;
     return false;
 }
@@ -188,9 +188,9 @@ bool systray_get_geometry(const surface_td *surface,
 
 static desktop_td *s_desktops_by_id[4];
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     if (desktop_id >= 4u) {
         return NULL;
     }
@@ -200,19 +200,19 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 
 static monitor_td s_primary_monitor;
 
-monitor_td surface_monitor_primary(const surface_td *surface)
+monitor_td stage_monitor_primary(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return s_primary_monitor;
 }
 
 
 static monitor_td s_monitor_for_point;
 
-monitor_td surface_monitor_for_point(const surface_td *surface,
+monitor_td stage_monitor_for_point(const stage_td *stage,
         struct position_s pos)
 {
-    (void) surface;
+    (void) stage;
     (void) pos;
     return s_monitor_for_point;
 }
@@ -220,13 +220,13 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
 
 static client_td *s_found_client = NULL;
 
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
     if (out_desktop != NULL) {
         *out_desktop = NULL;
@@ -252,24 +252,24 @@ static void s_reset_stubs(void)
 
 
 /**
- * @brief Build a minimal, single-monitor surface (monitor_count <= 1
+ * @brief Build a minimal, single-monitor stage (monitor_count <= 1
  *        so s_clip_to_monitor's own clipping never engages) with one
  *        desktop at index 0
  */
 static xcb_screen_t s_dummy_screen;
 
-static void s_make_surface(surface_td *surface, desktop_td *desktop,
+static void s_make_stage(stage_td *stage, desktop_td *desktop,
         uint32_t screen_w, uint32_t screen_h)
 {
-    memset(surface, 0, sizeof(*surface));
+    memset(stage, 0, sizeof(*stage));
     memset(desktop, 0, sizeof(*desktop));
     memset(&s_dummy_screen, 0, sizeof(s_dummy_screen));
-    surface->screen = &s_dummy_screen;
-    surface->properties.dim.w = screen_w;
-    surface->properties.dim.h = screen_h;
-    surface->desktop_count = 1u;
-    surface->desktop_cur = 0u;
-    surface->monitor_count = 1u;
+    stage->screen = &s_dummy_screen;
+    stage->properties.dim.w = screen_w;
+    stage->properties.dim.h = screen_h;
+    stage->desktop_count = 1u;
+    stage->desktop_cur = 0u;
+    stage->monitor_count = 1u;
     s_desktops_by_id[0] = desktop;
 }
 
@@ -309,7 +309,7 @@ static void s_test_cascade_advances_by_one_step(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     int32_t x1;
@@ -322,7 +322,7 @@ static void s_test_cascade_advances_by_one_step(void)
     s_make_wm(&wm, &config);
     /* Large workarea: max_steps stays comfortably above 1, so two
      * consecutive calls essentially never wrap in practice */
-    s_make_surface(&surface, &desktop, 2000u, 1600u);
+    s_make_stage(&stage, &desktop, 2000u, 1600u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -331,11 +331,11 @@ static void s_test_cascade_advances_by_one_step(void)
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
 
-    place_window_apply_cascade(&wm, &surface, &client);
+    place_window_apply_cascade(&wm, &stage, &client);
     x1 = s_configured_x;
     y1 = s_configured_y;
 
-    place_window_apply_cascade(&wm, &surface, &client);
+    place_window_apply_cascade(&wm, &stage, &client);
     x2 = s_configured_x;
     y2 = s_configured_y;
 
@@ -358,7 +358,7 @@ static void s_test_cascade_stays_inside_workarea(void)
     const int32_t win_h = 100;
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     int32_t prev_x = 0;
@@ -368,7 +368,7 @@ static void s_test_cascade_stays_inside_workarea(void)
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
-    s_make_surface(&surface, &desktop, (uint32_t) screen_w,
+    s_make_stage(&stage, &desktop, (uint32_t) screen_w,
             (uint32_t) screen_h);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
@@ -381,7 +381,7 @@ static void s_test_cascade_stays_inside_workarea(void)
     /* More calls than either axis has room for, so both wrap at least
      * twice whatever position the shared state carried in */
     for (int i = 0; i < 12; ++i) {
-        place_window_apply_cascade(&wm, &surface, &client);
+        place_window_apply_cascade(&wm, &stage, &client);
 
         if (s_configured_x < 0 || s_configured_y < 0 ||
                 s_configured_x + win_w > screen_w ||
@@ -413,7 +413,7 @@ static void s_test_cascade_starts_new_column(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     int32_t prev_y;
@@ -428,7 +428,7 @@ static void s_test_cascade_starts_new_column(void)
     /* Wide and short: the vertical axis has room for 3 steps
      * ((148 - 100) / 24) and the horizontal one for 25, so a vertical
      * wrap has somewhere else to go and cannot take x with it */
-    s_make_surface(&surface, &desktop, 800u, 148u);
+    s_make_stage(&stage, &desktop, 800u, 148u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -441,10 +441,10 @@ static void s_test_cascade_starts_new_column(void)
      * ran before this, so both column tops are found by watching for
      * the vertical wrap rather than assumed to fall on any given
      * call */
-    place_window_apply_cascade(&wm, &surface, &client);
+    place_window_apply_cascade(&wm, &stage, &client);
     prev_y = s_configured_y;
     for (int i = 0; i < 16 && tops < 2; ++i) {
-        place_window_apply_cascade(&wm, &surface, &client);
+        place_window_apply_cascade(&wm, &stage, &client);
 
         if (s_configured_y < prev_y) {
             if (tops == 0) {
@@ -474,22 +474,22 @@ static void s_test_cascade_guards(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
      * so a client left at zero would never reach the stub below */
     client.window = 1u;
 
-    place_window_apply_cascade(NULL, &surface, &client);
+    place_window_apply_cascade(NULL, &stage, &client);
     place_window_apply_cascade(&wm, NULL, &client);
-    place_window_apply_cascade(&wm, &surface, NULL);
+    place_window_apply_cascade(&wm, &stage, NULL);
 
     TAP_EQ_INT(s_configure_calls, 0,
             "missing required arguments never reach xcb_configure_window");
@@ -502,22 +502,22 @@ static void s_test_apply_guards(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
      * so a client left at zero would never reach the stub below */
     client.window = 1u;
 
-    place_window_apply(NULL, &surface, &client);
+    place_window_apply(NULL, &stage, &client);
     place_window_apply(&wm, NULL, &client);
-    place_window_apply(&wm, &surface, NULL);
+    place_window_apply(&wm, &stage, NULL);
 
     TAP_EQ_INT(s_configure_calls, 0,
             "missing required arguments never reach xcb_configure_window");
@@ -530,14 +530,14 @@ static void s_test_apply_centered(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_CENTERED;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -547,7 +547,7 @@ static void s_test_apply_centered(void)
     client.layout.geometry.cur.dim.h = 100u;
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     /* (1000-200)/2 = 400; (800-100)/2 = 350 */
     TAP_EQ_INT(s_configured_x, 400, "centered horizontally on the workarea");
@@ -563,7 +563,7 @@ static void s_test_apply_splash_centers_on_workarea(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
@@ -571,7 +571,7 @@ static void s_test_apply_splash_centers_on_workarea(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy =
         CONFIG_PLACEMENT_POLICY_CASCADE;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -587,7 +587,7 @@ static void s_test_apply_splash_centers_on_workarea(void)
     client.hints_icccm.size.req_pos.x = 700;
     client.hints_icccm.size.req_pos.y = 600;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     /* (1000-200)/2 = 400; (800-100)/2 = 350, with center gravity
      * deliberately not taking half the width off again */
@@ -604,7 +604,7 @@ static void s_test_apply_honors_requested_position(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
@@ -612,7 +612,7 @@ static void s_test_apply_honors_requested_position(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy =
         CONFIG_PLACEMENT_POLICY_CENTERED;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -625,7 +625,7 @@ static void s_test_apply_honors_requested_position(void)
     client.hints_icccm.size.req_pos.x = 123;
     client.hints_icccm.size.req_pos.y = 77;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     TAP_EQ_INT(s_configured_x, 123,
             "a requested x wins over the centered policy");
@@ -640,7 +640,7 @@ static void s_test_apply_ignores_junk_transient_origin(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
@@ -648,7 +648,7 @@ static void s_test_apply_ignores_junk_transient_origin(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy =
         CONFIG_PLACEMENT_POLICY_CENTERED;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -662,7 +662,7 @@ static void s_test_apply_ignores_junk_transient_origin(void)
     client.hints_icccm.size.req_pos.x = 0;
     client.hints_icccm.size.req_pos.y = 0;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     /* No parent is findable here (both stand-ins answer nothing), so
      * the transient centering below declines too and the configured
@@ -680,14 +680,14 @@ static void s_test_apply_smart_stays_inside_workarea(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -697,7 +697,7 @@ static void s_test_apply_smart_stays_inside_workarea(void)
     client.layout.geometry.cur.dim.h = 100u;
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     TAP_EQ_INT(s_configure_calls, 1,
             "the smart policy places the window exactly once");
@@ -715,7 +715,7 @@ static void s_test_apply_manual_matches_smart(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     int32_t smart_x;
@@ -723,7 +723,7 @@ static void s_test_apply_manual_matches_smart(void)
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -734,17 +734,17 @@ static void s_test_apply_manual_matches_smart(void)
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
 
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
     smart_x = s_configured_x;
     smart_y = s_configured_y;
 
-    /* The surface is rebuilt as well as the stubs: 's_reset_stubs'
-     * clears the desktop registry 'surface_desktop_get' answers from,
+    /* The stage is rebuilt as well as the stubs: 's_reset_stubs'
+     * clears the desktop registry 'stage_desktop_get' answers from,
      * and a placement running without a desktop falls back on
      * different workarea bounds, which would compare two different
      * questions rather than two policies */
     s_reset_stubs();
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     client.window = 1u;
     client.layout.geometry.cur.dim.w = 200u;
@@ -752,7 +752,7 @@ static void s_test_apply_manual_matches_smart(void)
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
     config.base.windows.placement_policy =
         CONFIG_PLACEMENT_POLICY_MANUAL;
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     TAP_EQ_INT(s_configured_x, smart_x,
             "the manual policy starts from the smart position in x");
@@ -767,7 +767,7 @@ static void s_test_apply_none_leaves_valid_position(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
@@ -775,7 +775,7 @@ static void s_test_apply_none_leaves_valid_position(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy =
         (enum config_placement_policy_e) 999; /* unrecognized */
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -786,7 +786,7 @@ static void s_test_apply_none_leaves_valid_position(void)
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     TAP_EQ_INT(s_configure_calls, 0,
             "an already on-screen position is left untouched entirely");
@@ -799,7 +799,7 @@ static void s_test_apply_none_clamps_offscreen_position(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
@@ -807,7 +807,7 @@ static void s_test_apply_none_clamps_offscreen_position(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy =
         (enum config_placement_policy_e) 999;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -819,7 +819,7 @@ static void s_test_apply_none_clamps_offscreen_position(void)
     client.layout.geometry.cur.dim.h = 100u;
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     TAP_EQ_INT(s_configure_calls, 1,
             "an off-screen starting position is corrected");
@@ -837,7 +837,7 @@ static void s_test_apply_transient_centers_over_parent(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     client_td parent;
@@ -845,7 +845,7 @@ static void s_test_apply_transient_centers_over_parent(void)
     s_reset_stubs();
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_CASCADE;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
 
     memset(&parent, 0, sizeof(parent));
     parent.layout.geometry.cur.pos.x = 100;
@@ -864,7 +864,7 @@ static void s_test_apply_transient_centers_over_parent(void)
     client.layout.geometry.cur.dim.h = 100u;
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     /* parent center: x=100+(600-200)/2=300, y=100+(400-100)/2=250 */
     TAP_EQ_INT(s_configured_x, 300, "centered horizontally over the parent");
@@ -879,14 +879,14 @@ static void s_test_apply_cascade_delegates(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_CASCADE;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -895,7 +895,7 @@ static void s_test_apply_cascade_delegates(void)
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     TAP_EQ_INT(s_configure_calls, 1,
             "cascade delegation still results in exactly one" \
@@ -909,7 +909,7 @@ static void s_test_apply_under_mouse(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     xcb_query_pointer_reply_t reply;
@@ -918,7 +918,7 @@ static void s_test_apply_under_mouse(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy =
         CONFIG_PLACEMENT_POLICY_UNDER_MOUSE;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -933,7 +933,7 @@ static void s_test_apply_under_mouse(void)
     reply.root_y = 400;
     s_pointer_reply = &reply;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     /* 500 - 200/2 = 400; 400 - 100/2 = 350 */
     TAP_EQ_INT(s_configured_x, 400, "centered horizontally on the pointer");
@@ -948,7 +948,7 @@ static void s_test_apply_under_mouse_query_fails(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
@@ -956,7 +956,7 @@ static void s_test_apply_under_mouse_query_fails(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy =
         CONFIG_PLACEMENT_POLICY_UNDER_MOUSE;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -966,7 +966,7 @@ static void s_test_apply_under_mouse_query_fails(void)
     client.layout.geometry.cur.dim.h = 100u;
     s_pointer_reply = NULL; /* query fails */
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     TAP_EQ_INT(s_configure_calls, 0,
             "a failed pointer query leaves the window untouched");
@@ -997,7 +997,7 @@ static void s_test_apply_groups_with_sibling(void)
 {
     wm_td wm;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     client_td sibling;
@@ -1006,7 +1006,7 @@ static void s_test_apply_groups_with_sibling(void)
     s_make_wm(&wm, &config);
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_CENTERED;
     config.base.windows.group_related = true;
-    s_make_surface(&surface, &desktop, 1000u, 800u);
+    s_make_stage(&stage, &desktop, 1000u, 800u);
 
     memset(&sibling, 0, sizeof(sibling));
     sibling.hints_icccm.hints.client_leader = 42u;
@@ -1029,7 +1029,7 @@ static void s_test_apply_groups_with_sibling(void)
     client.layout.geometry.cur.dim.h = 100u;
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
 
-    place_window_apply(&wm, &surface, &client);
+    place_window_apply(&wm, &stage, &client);
 
     /* One visible sibling: offset by exactly one cascade_step (24) */
     TAP_EQ_INT(s_configured_x, 324,

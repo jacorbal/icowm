@@ -25,8 +25,8 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
-#include <surface/monitor.h>
+#include <stage.h>
+#include <stage/monitor.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -38,12 +38,12 @@
 /**
  * @brief Most monitors this submenu ever lists
  *
- * Tied to @c WM_SURFACE_MAX_MONITORS itself, the one real source of
- * truth for how many a surface can ever report, rather than an
+ * Tied to @c WM_STAGE_MAX_MONITORS itself, the one real source of
+ * truth for how many a stage can ever report, rather than an
  * independent number of its own that could silently drift out of step
  * with it.
  */
-#define S_MAX_MONITORS WM_SURFACE_MAX_MONITORS
+#define S_MAX_MONITORS WM_STAGE_MAX_MONITORS
 
 
 /**
@@ -93,7 +93,7 @@ static void s_cb_send_to_monitor(xcb_connection_t *connection,
 
 
 /* Build the "Send to monitor" submenu entries for 'client' */
-int ctxmenu_submenu_monitor_build(surface_td *surface,
+int ctxmenu_submenu_monitor_build(stage_td *stage,
         desktop_td *desktop, client_td *client,
         ctxmenu_entry_td **out_entries, ctxmenu_state_td **out_state)
 {
@@ -103,8 +103,8 @@ int ctxmenu_submenu_monitor_build(surface_td *surface,
 
     (void) desktop;
 
-    if (surface == NULL || client == NULL || out_entries == NULL ||
-            out_state == NULL || surface->monitor_count <= 1u) {
+    if (stage == NULL || client == NULL || out_entries == NULL ||
+            out_state == NULL || stage->monitor_count <= 1u) {
         return 0;
     }
 
@@ -114,12 +114,12 @@ int ctxmenu_submenu_monitor_build(surface_td *surface,
         (int32_t) (client->layout.geometry.cur.dim.w / 2u);
     center_pos.y = client->layout.geometry.cur.pos.y +
         (int32_t) (client->layout.geometry.cur.dim.h / 2u);
-    cur_monitor = surface_monitor_for_point(surface, center_pos);
+    cur_monitor = stage_monitor_for_point(stage, center_pos);
 
-    for (uint32_t m_idx = 0; m_idx < surface->monitor_count &&
+    for (uint32_t m_idx = 0; m_idx < stage->monitor_count &&
             n < S_MAX_MONITORS; ++m_idx) {
         bool is_cur;
-        const monitor_td *m = &surface->monitors[m_idx];
+        const monitor_td *m = &stage->monitors[m_idx];
 
         is_cur = (m->x == cur_monitor.x && m->y == cur_monitor.y);
 
@@ -128,7 +128,7 @@ int ctxmenu_submenu_monitor_build(surface_td *surface,
                 "%s[%u] %ux%u @ %d,%d%s%s",
                 MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                 m_idx, m->w, m->h, m->x, m->y,
-                (m_idx == surface->primary_monitor_index)
+                (m_idx == stage->primary_monitor_index)
                     ? " (primary)" : "",
                 MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
 

@@ -39,7 +39,7 @@
 
 /* Project includes */
 #include <client.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
@@ -101,10 +101,10 @@ void drag_overlay_hide(xcb_connection_t *connection)
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_drag_exclude
+ * @brief Recording stand-in for @a scmd_stage_viewport_drag_exclude
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_drag_exclude(client_td *client)
+void scmd_stage_viewport_drag_exclude(client_td *client)
 {
     s_viewport_drag_exclude_calls++;
     s_viewport_drag_exclude_last_client = client;

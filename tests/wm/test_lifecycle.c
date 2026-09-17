@@ -11,7 +11,7 @@
  * (s_wm_connect), and s_wm_cleanup fans out into more than thirty
  * external calls across systray, XSETTINGS, IPC, the text and icon
  * renderers, session hooks, and the X connection itself.  Standing in
- * for that entire surface just to prove a pile of stubs got called in
+ * for that entire stage just to prove a pile of stubs got called in
  * some order would not exercise wm.c's own logic at all, so this file
  * instead covers exactly what is genuinely wm.c's own: the null-
  * singleton guard clause every public entry point begins with, the
@@ -19,17 +19,17 @@
  * wm_restart_requested make on the running flag and the module-local
  * restart flag, wm_emergency_exit_enable's own flag flip, and the
  * read-only query accessors (wm_get_client_desktop,
- * wm_get_surface_by_id, wm_sync_is_available, wm_get_surfaces,
- * wm_get_desktop_surface, wm_get_config, wm_get_keysyms) together with
+ * wm_get_stage_by_id, wm_sync_is_available, wm_get_stages,
+ * wm_get_desktop_stage, wm_get_config, wm_get_keysyms) together with
  * the two redraw-flagging functions (wm_request_client_redraw,
  * wm_request_full_redraw), all of which only ever read wm_td's fields
- * and a real surfaces/desktops list, never touch the X connection
+ * and a real stages/desktops list, never touch the X connection
  * directly.
  *
  * wm.c's own translation unit is linked for real and reaches, through
  * the functions above, exactly three external symbols:
- * lookup_find_client (lookup.c), surface_desktop_walk_all
- * (surface/desktops.c), and desktop_mark_outdated (desktop.c); each is
+ * lookup_find_client (lookup.c), stage_desktop_walk_all
+ * (stage/desktops.c), and desktop_mark_outdated (desktop.c); each is
  * a small, controllable stand-in below rather than the real
  * implementation, letting every scenario assert on wm.c's own
  * dispatch and field access directly instead of on some other
@@ -77,7 +77,7 @@
 #include <menu/dialog/message.h>
 #include <rules.h>
 #include <session.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -92,22 +92,22 @@ extern wm_td *wm;
 
 /* Recording state for the lookup_find_client stand-in */
 static client_td *s_stub_found_client;
-static surface_td *s_stub_found_surface;
+static stage_td *s_stub_found_stage;
 static desktop_td *s_stub_found_desktop;
-static list_td *s_lookup_last_surfaces;
+static list_td *s_lookup_last_stages;
 static xcb_window_t s_lookup_last_window;
 
 /** Link-only stand-in for lookup_find_client (lookup.c): hands back
  *  whatever a scenario set up beforehand, and records what it was
  *  asked to search for, rather than actually walking a real hash
  *  table */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    s_lookup_last_surfaces = surfaces;
+    s_lookup_last_stages = stages;
     s_lookup_last_window = window;
-    if (out_surface != NULL) {
-        *out_surface = s_stub_found_surface;
+    if (out_stage != NULL) {
+        *out_stage = s_stub_found_stage;
     }
     if (out_desktop != NULL) {
         *out_desktop = s_stub_found_desktop;
@@ -116,10 +116,10 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 }
 
 
-/* Recording state for the surface_desktop_walk_all stand-in */
+/* Recording state for the stage_desktop_walk_all stand-in */
 static int s_walk_call_count;
-static const surface_td *s_walk_last_surface;
-static surface_desktop_visitor_fn s_walk_last_visitor;
+static const stage_td *s_walk_last_stage;
+static stage_desktop_visitor_fn s_walk_last_visitor;
 static void *s_walk_last_data;
 
 /** Whether the stand-in below actually invokes the visitor it was
@@ -128,16 +128,16 @@ static void *s_walk_last_data;
 static desktop_td **s_walk_desktops;
 static uint32_t s_walk_desktop_count;
 
-/** Link-only stand-in for surface_desktop_walk_all (surface/desktops.c):
+/** Link-only stand-in for stage_desktop_walk_all (stage/desktops.c):
  *  records every call, and, when a scenario populated
  *  's_walk_desktops', actually invokes the visitor on each of them,
  *  exactly the real function's own contract, without requiring a real
  *  cdlist */
-void surface_desktop_walk_all(const surface_td *surface,
-        surface_desktop_visitor_fn visit, void *data)
+void stage_desktop_walk_all(const stage_td *stage,
+        stage_desktop_visitor_fn visit, void *data)
 {
     s_walk_call_count++;
-    s_walk_last_surface = surface;
+    s_walk_last_stage = stage;
     s_walk_last_visitor = visit;
     s_walk_last_data = data;
 
@@ -313,11 +313,11 @@ void memguard_init(uint32_t ceiling_mib)
 /** Link-only stand-in for menu_message_dialog_show
  *  (menu/dialog/message.c) */
 void menu_message_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config, const char *message,
+        stage_td *stage, const config_td *config, const char *message,
         menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     (void) message;
     (void) level;
@@ -409,15 +409,15 @@ void session_run_hook(const session_td *session, enum session_hook_e hook)
 }
 
 
-/** Link-only stand-in for surface_destroy (surface.c) */
-void surface_destroy(surface_td *surface)
+/** Link-only stand-in for stage_destroy (stage.c) */
+void stage_destroy(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 }
 
 
-/** Link-only stand-in for surface_init (surface.c) */
-surface_td *surface_init(xcb_connection_t *connection, uint32_t screen_num,
+/** Link-only stand-in for stage_init (stage.c) */
+stage_td *stage_init(xcb_connection_t *connection, uint32_t screen_num,
         uint32_t desktop_count, config_td *config)
 {
     (void) connection;
@@ -678,12 +678,12 @@ void xcb_window_destroy(xcb_window_t window)
 static void s_stub_reset(void)
 {
     s_stub_found_client = NULL;
-    s_stub_found_surface = NULL;
+    s_stub_found_stage = NULL;
     s_stub_found_desktop = NULL;
-    s_lookup_last_surfaces = NULL;
+    s_lookup_last_stages = NULL;
     s_lookup_last_window = XCB_NONE;
     s_walk_call_count = 0;
-    s_walk_last_surface = NULL;
+    s_walk_last_stage = NULL;
     s_walk_last_visitor = NULL;
     s_walk_last_data = NULL;
     s_walk_desktops = NULL;
@@ -723,14 +723,14 @@ static void s_test_null_singleton_guards(void)
             "wm_request_restart on a null singleton reports failure");
     TAP_OK(wm_get_client_desktop(&client) == NULL,
             "wm_get_client_desktop on a null singleton returns NULL");
-    TAP_OK(wm_get_surface_by_id(0u) == NULL,
-            "wm_get_surface_by_id on a null singleton returns NULL");
+    TAP_OK(wm_get_stage_by_id(0u) == NULL,
+            "wm_get_stage_by_id on a null singleton returns NULL");
     TAP_EQ_INT(wm_sync_is_available(), false,
             "wm_sync_is_available on a null singleton is false");
-    TAP_OK(wm_get_surfaces() == NULL,
-            "wm_get_surfaces on a null singleton returns NULL");
-    TAP_OK(wm_get_desktop_surface(&desktop) == NULL,
-            "wm_get_desktop_surface on a null singleton returns NULL");
+    TAP_OK(wm_get_stages() == NULL,
+            "wm_get_stages on a null singleton returns NULL");
+    TAP_OK(wm_get_desktop_stage(&desktop) == NULL,
+            "wm_get_desktop_stage on a null singleton returns NULL");
     TAP_OK(wm_get_config() == NULL,
             "wm_get_config on a null singleton returns NULL");
     TAP_OK(wm_get_keysyms() == NULL,
@@ -813,24 +813,24 @@ static void s_test_emergency_exit_enable_sets_flag(void)
 
 
 /* wm_get_client_desktop forwards to lookup_find_client with the
- * singleton's own surfaces list and the client's window, and returns
+ * singleton's own stages list and the client's window, and returns
  * exactly whichever desktop it reports back */
 static void s_test_get_client_desktop_forwards_lookup(void)
 {
     wm_td local_wm = s_make_wm();
-    list_td surfaces_list_storage;
+    list_td stages_list_storage;
     client_td client;
     desktop_td desktop;
     desktop_td *result;
 
-    memset(&surfaces_list_storage, 0, sizeof(surfaces_list_storage));
+    memset(&stages_list_storage, 0, sizeof(stages_list_storage));
     memset(&client, 0, sizeof(client));
     memset(&desktop, 0, sizeof(desktop));
     client.id = 0x1234u;
 
     s_stub_reset();
     s_stub_found_desktop = &desktop;
-    local_wm.surfaces = &surfaces_list_storage;
+    local_wm.stages = &stages_list_storage;
     wm = &local_wm;
 
     result = wm_get_client_desktop(&client);
@@ -838,9 +838,9 @@ static void s_test_get_client_desktop_forwards_lookup(void)
     TAP_OK(result == &desktop,
             "wm_get_client_desktop returns exactly the desktop"
             " lookup_find_client resolved");
-    TAP_OK(s_lookup_last_surfaces == &surfaces_list_storage,
+    TAP_OK(s_lookup_last_stages == &stages_list_storage,
             "wm_get_client_desktop passes the singleton's own"
-            " surfaces list through to lookup_find_client");
+            " stages list through to lookup_find_client");
     TAP_EQ_INT((long) s_lookup_last_window, (long) client.id,
             "wm_get_client_desktop passes the client's window/id"
             " through to lookup_find_client unchanged");
@@ -867,43 +867,43 @@ static void s_test_get_client_desktop_null_client(void)
 }
 
 
-/* wm_get_surface_by_id scans the singleton's surfaces and returns the
+/* wm_get_stage_by_id scans the singleton's stages and returns the
  * one whose id matches, skipping any null entries along the way, and
- * returns NULL when none matches or the surfaces list itself is
+ * returns NULL when none matches or the stages list itself is
  * NULL */
-static void s_test_get_surface_by_id(void)
+static void s_test_get_stage_by_id(void)
 {
     wm_td local_wm = s_make_wm();
-    surface_td surface_a;
-    surface_td surface_b;
-    list_td *surfaces;
+    stage_td stage_a;
+    stage_td stage_b;
+    list_td *stages;
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    memset(&surface_b, 0, sizeof(surface_b));
-    surface_a.id = 0u;
-    surface_b.id = 5u;
+    memset(&stage_a, 0, sizeof(stage_a));
+    memset(&stage_b, 0, sizeof(stage_b));
+    stage_a.id = 0u;
+    stage_b.id = 5u;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, NULL);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_a);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_b);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, NULL);
+    list_ins_next(stages, list_tail(stages), &stage_a);
+    list_ins_next(stages, list_tail(stages), &stage_b);
 
-    local_wm.surfaces = surfaces;
+    local_wm.stages = stages;
     wm = &local_wm;
 
-    TAP_OK(wm_get_surface_by_id(5u) == &surface_b,
-            "wm_get_surface_by_id finds the matching surface,"
+    TAP_OK(wm_get_stage_by_id(5u) == &stage_b,
+            "wm_get_stage_by_id finds the matching stage,"
             " skipping a null entry along the way");
-    TAP_OK(wm_get_surface_by_id(99u) == NULL,
-            "wm_get_surface_by_id returns NULL when no surface"
+    TAP_OK(wm_get_stage_by_id(99u) == NULL,
+            "wm_get_stage_by_id returns NULL when no stage"
             " matches");
 
-    local_wm.surfaces = NULL;
-    TAP_OK(wm_get_surface_by_id(0u) == NULL,
-            "wm_get_surface_by_id on a NULL surfaces list returns"
+    local_wm.stages = NULL;
+    TAP_OK(wm_get_stage_by_id(0u) == NULL,
+            "wm_get_stage_by_id on a NULL stages list returns"
             " NULL");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
     wm = NULL;
 }
 
@@ -927,25 +927,25 @@ static void s_test_sync_is_available_reflects_flag(void)
 }
 
 
-/* wm_get_surfaces/wm_get_config/wm_get_keysyms are plain field
+/* wm_get_stages/wm_get_config/wm_get_keysyms are plain field
  * accessors on the singleton, answering exactly what was stored */
 static void s_test_plain_field_accessors(void)
 {
     wm_td local_wm = s_make_wm();
-    list_td surfaces_storage;
+    list_td stages_storage;
     config_td config_storage;
     xcb_key_symbols_t *const fake_keysyms =
-        (xcb_key_symbols_t *) &surfaces_storage;
+        (xcb_key_symbols_t *) &stages_storage;
 
-    memset(&surfaces_storage, 0, sizeof(surfaces_storage));
+    memset(&stages_storage, 0, sizeof(stages_storage));
     memset(&config_storage, 0, sizeof(config_storage));
-    local_wm.surfaces = &surfaces_storage;
+    local_wm.stages = &stages_storage;
     local_wm.config = &config_storage;
     local_wm.keysyms = fake_keysyms;
     wm = &local_wm;
 
-    TAP_OK(wm_get_surfaces() == &surfaces_storage,
-            "wm_get_surfaces returns the singleton's own surfaces"
+    TAP_OK(wm_get_stages() == &stages_storage,
+            "wm_get_stages returns the singleton's own stages"
             " list");
     TAP_OK(wm_get_config() == &config_storage,
             "wm_get_config returns the singleton's own configuration");
@@ -957,91 +957,91 @@ static void s_test_plain_field_accessors(void)
 }
 
 
-/* wm_get_desktop_surface walks every surface's desktops (through the
- * surface_desktop_walk_all stand-in) and returns whichever surface's own
+/* wm_get_desktop_stage walks every stage's desktops (through the
+ * stage_desktop_walk_all stand-in) and returns whichever stage's own
  * walk actually contains the target desktop */
-static void s_test_get_desktop_surface_finds_owner(void)
+static void s_test_get_desktop_stage_finds_owner(void)
 {
     wm_td local_wm = s_make_wm();
-    surface_td surface_a;
-    surface_td surface_b;
+    stage_td stage_a;
+    stage_td stage_b;
     desktop_td desktop_on_b;
     desktop_td *desktops_of_b[1];
-    list_td *surfaces;
+    list_td *stages;
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    memset(&surface_b, 0, sizeof(surface_b));
+    memset(&stage_a, 0, sizeof(stage_a));
+    memset(&stage_b, 0, sizeof(stage_b));
     memset(&desktop_on_b, 0, sizeof(desktop_on_b));
-    surface_a.id = 0u;
-    surface_b.id = 1u;
+    stage_a.id = 0u;
+    stage_b.id = 1u;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface_a);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_b);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage_a);
+    list_ins_next(stages, list_tail(stages), &stage_b);
 
-    local_wm.surfaces = surfaces;
+    local_wm.stages = stages;
     wm = &local_wm;
 
-    /* surface_a's own walk (invoked while wm_get_desktop_surface
+    /* stage_a's own walk (invoked while wm_get_desktop_stage
      * checks it first) finds nothing, since 's_walk_desktops' is
      * still empty for that call; only once the loop reaches
-     * surface_b does the stand-in below get told about
+     * stage_b does the stand-in below get told about
      * 'desktop_on_b' */
     s_stub_reset();
     desktops_of_b[0] = &desktop_on_b;
 
-    /* The stand-in below cannot tell which surface is being walked
+    /* The stand-in below cannot tell which stage is being walked
      * apart from another on its own, so this scenario instead proves
      * the overall contract end to end: with 's_walk_desktops' set for
-     * every call, the desktop is found on whichever surface the walk
+     * every call, the desktop is found on whichever stage the walk
      * reports it on, here the very first one reached */
     s_walk_desktops = desktops_of_b;
     s_walk_desktop_count = 1u;
 
-    TAP_OK(wm_get_desktop_surface(&desktop_on_b) == &surface_a,
-            "wm_get_desktop_surface returns the first surface whose"
+    TAP_OK(wm_get_desktop_stage(&desktop_on_b) == &stage_a,
+            "wm_get_desktop_stage returns the first stage whose"
             " own walk reports the target desktop");
-    TAP_OK(wm_get_desktop_surface(NULL) == NULL,
-            "wm_get_desktop_surface on a null desktop returns NULL");
+    TAP_OK(wm_get_desktop_stage(NULL) == NULL,
+            "wm_get_desktop_stage on a null desktop returns NULL");
 
-    local_wm.surfaces = NULL;
-    TAP_OK(wm_get_desktop_surface(&desktop_on_b) == NULL,
-            "wm_get_desktop_surface on a NULL surfaces list returns"
+    local_wm.stages = NULL;
+    TAP_OK(wm_get_desktop_stage(&desktop_on_b) == NULL,
+            "wm_get_desktop_stage on a NULL stages list returns"
             " NULL");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
     wm = NULL;
 }
 
 
 /* wm_request_client_redraw marks the client itself outdated, marks
  * the desktop lookup_find_client resolves for it outdated, and marks
- * whichever surface's id matches the client's screen_id outdated too,
- * leaving every other surface untouched */
+ * whichever stage's id matches the client's screen_id outdated too,
+ * leaving every other stage untouched */
 static void s_test_request_client_redraw_marks_owner_chain(void)
 {
     wm_td local_wm = s_make_wm();
-    surface_td surface_a;
-    surface_td surface_b;
+    stage_td stage_a;
+    stage_td stage_b;
     desktop_td desktop;
     client_td client;
-    list_td *surfaces;
+    list_td *stages;
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    memset(&surface_b, 0, sizeof(surface_b));
+    memset(&stage_a, 0, sizeof(stage_a));
+    memset(&stage_b, 0, sizeof(stage_b));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
-    surface_a.id = 0u;
-    surface_b.id = 1u;
+    stage_a.id = 0u;
+    stage_b.id = 1u;
     client.screen_id = 1u;
     client.is_outdated = false;
     desktop.is_outdated = false;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface_a);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_b);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage_a);
+    list_ins_next(stages, list_tail(stages), &stage_b);
 
-    local_wm.surfaces = surfaces;
+    local_wm.stages = stages;
     wm = &local_wm;
 
     s_stub_reset();
@@ -1055,41 +1055,41 @@ static void s_test_request_client_redraw_marks_owner_chain(void)
     TAP_OK(desktop.is_outdated,
             "wm_request_client_redraw marks the client's own desktop"
             " outdated");
-    TAP_OK(surface_b.is_outdated,
-            "wm_request_client_redraw marks the surface whose id"
+    TAP_OK(stage_b.is_outdated,
+            "wm_request_client_redraw marks the stage whose id"
             " matches the client's screen_id outdated");
-    TAP_OK(!surface_a.is_outdated,
-            "wm_request_client_redraw leaves an unrelated surface"
+    TAP_OK(!stage_a.is_outdated,
+            "wm_request_client_redraw leaves an unrelated stage"
             " untouched");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
     wm = NULL;
 }
 
 
-/* wm_request_full_redraw marks every surface, and every desktop of
- * every surface (through the surface_desktop_walk_all stand-in actually
+/* wm_request_full_redraw marks every stage, and every desktop of
+ * every stage (through the stage_desktop_walk_all stand-in actually
  * invoking desktop_mark_outdated), outdated */
 static void s_test_request_full_redraw_marks_everything(void)
 {
     wm_td local_wm = s_make_wm();
-    surface_td surface_a;
-    surface_td surface_b;
+    stage_td stage_a;
+    stage_td stage_b;
     desktop_td desktop_a;
     desktop_td desktop_b;
     desktop_td *desktops[2];
-    list_td *surfaces;
+    list_td *stages;
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    memset(&surface_b, 0, sizeof(surface_b));
+    memset(&stage_a, 0, sizeof(stage_a));
+    memset(&stage_b, 0, sizeof(stage_b));
     memset(&desktop_a, 0, sizeof(desktop_a));
     memset(&desktop_b, 0, sizeof(desktop_b));
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface_a);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_b);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage_a);
+    list_ins_next(stages, list_tail(stages), &stage_b);
 
-    local_wm.surfaces = surfaces;
+    local_wm.stages = stages;
     wm = &local_wm;
 
     s_stub_reset();
@@ -1100,16 +1100,16 @@ static void s_test_request_full_redraw_marks_everything(void)
 
     wm_request_full_redraw();
 
-    TAP_OK(surface_a.is_outdated && surface_b.is_outdated,
-            "wm_request_full_redraw marks every surface outdated");
+    TAP_OK(stage_a.is_outdated && stage_b.is_outdated,
+            "wm_request_full_redraw marks every stage outdated");
     TAP_OK(desktop_a.is_outdated && desktop_b.is_outdated,
-            "wm_request_full_redraw's per-surface walk marks every"
+            "wm_request_full_redraw's per-stage walk marks every"
             " desktop outdated through desktop_mark_outdated");
     TAP_EQ_INT(s_walk_call_count, 2,
-            "surface_desktop_walk_all is invoked exactly once per"
-            " surface");
+            "stage_desktop_walk_all is invoked exactly once per"
+            " stage");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
     wm = NULL;
 }
 
@@ -1124,10 +1124,10 @@ int main(void)
     s_test_emergency_exit_enable_sets_flag();
     s_test_get_client_desktop_forwards_lookup();
     s_test_get_client_desktop_null_client();
-    s_test_get_surface_by_id();
+    s_test_get_stage_by_id();
     s_test_sync_is_available_reflects_flag();
     s_test_plain_field_accessors();
-    s_test_get_desktop_surface_finds_owner();
+    s_test_get_desktop_stage_finds_owner();
     s_test_request_client_redraw_marks_owner_chain();
     s_test_request_full_redraw_marks_everything();
 

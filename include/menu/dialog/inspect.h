@@ -15,7 +15,7 @@
  *
  * Example usage:
  * @code{.c}
- * dialog_inspect_show(connection, surface, config, client);
+ * dialog_inspect_show(connection, stage, config, client);
  * @endcode
  *
  * @ingroup menu_dialog
@@ -31,14 +31,14 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /**
  * @brief Show the inspector for one client
  *
  * @param connection XCB connection
- * @param surface    Surface to show the dialog on
+ * @param stage      Stage to show the dialog on
  * @param config     Active configuration
  * @param client     Client to describe; nothing is shown for @c NULL
  *
@@ -48,7 +48,7 @@
  *       transient children, every other field being a direct read
  */
 void dialog_inspect_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const client_td *client);
 
 

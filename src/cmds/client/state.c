@@ -924,13 +924,13 @@ void ccmd_client_fullscreen(client_td *client)
 
     /* ICCCM §4.2.3: applications that render via GL/Vulkan (e.g.,
      * 'mplayer', 'mpv') generally wait for a 'ConfigureNotify' before
-     * resizing their rendering surface/viewport, and it must carry the
+     * resizing their rendering stage/viewport, and it must carry the
      * true screen-relative geometry.
      *
      * The real 'ConfigureNotify' the X server sends for the
      * frame/window configure above already carries that geometry
      * (including the monitor's origin, not necessarily (0,0), on
-     * a surface made of more than one monitor), so this was not
+     * a stage made of more than one monitor), so this was not
      * strictly required for the client's OWN 'ConfigureNotify'; but the
      * frame reparenting above still delivers one relative to the
      * *frame*, and without an explicit synthetic one afterward some

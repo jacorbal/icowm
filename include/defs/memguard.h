@@ -49,7 +49,7 @@
  *
  * A ceiling entirely divided up among clients with nothing held back
  * would let @c memguard_max_clients compute a number that leaves no
- * headroom at all for IcoWM's connection, surface and desktop state,
+ * headroom at all for IcoWM's connection, stage and desktop state,
  * and every other piece of it that exists regardless of how many
  * windows are open.
  *

@@ -19,7 +19,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -33,9 +33,9 @@
  * @note Complexity: @e O(1)
  */
 static void s_raise(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_raise(client);
 }
 
@@ -47,9 +47,9 @@ static void s_raise(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_lower(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_lower(client);
 }
 
@@ -61,9 +61,9 @@ static void s_lower(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_layer_above(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_layer_above(client);
 }
 
@@ -75,9 +75,9 @@ static void s_layer_above(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_layer_normal(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_layer_normal(client);
 }
 
@@ -89,9 +89,9 @@ static void s_layer_normal(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_layer_below(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_layer_below(client);
 }
 
@@ -103,9 +103,9 @@ static void s_layer_below(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_cycle_layer(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_cycle_layer(client);
 }
 

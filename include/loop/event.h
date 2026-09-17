@@ -47,8 +47,8 @@
  * @param event Raw event, a @c xcb_key_press_event_t
  *
  * @note Complexity: @e O(k + s * d * c), where @e k is the number of
- *       configured bindings, @e s the number of surfaces, @e d the
- *       desktops per surface, and @e c the per-desktop lookup cost
+ *       configured bindings, @e s the number of stages, @e d the
+ *       desktops per stage, and @e c the per-desktop lookup cost
  */
 void loop_event_key_press(loop_ctx_td *ctx,
         xcb_generic_event_t **event);
@@ -75,8 +75,8 @@ void loop_event_key_release(loop_ctx_td *ctx,
  * @param event Raw event, a @c xcb_button_press_event_t
  *
  * @note Complexity: @e O(b + s * d * c), where @e b is the number of
- *       configured button bindings, @e s the number of surfaces,
- *       @e d the desktops per surface, and @e c the per-desktop
+ *       configured button bindings, @e s the number of stages,
+ *       @e d the desktops per stage, and @e c the per-desktop
  *       lookup cost
  */
 void loop_event_button_press(loop_ctx_td *ctx,

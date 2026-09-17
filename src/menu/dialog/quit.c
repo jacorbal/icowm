@@ -23,7 +23,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Defs includes */
@@ -53,14 +53,14 @@ static void s_on_quit_confirm(xcb_connection_t *connection)
 
 /* Open the quit-confirmation dialog */
 void dialog_quit_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *cfg)
+        stage_td *stage, const config_td *cfg)
 {
     char prompt[DIALOG_QUIT_PROMPT_MAX_LENGTH];
 
     (void) snprintf(prompt, sizeof(prompt),
             _(STR_DIALOG_QUIT_PROMPT_FMT), WM_EWMH_NAME);
 
-    menu_confirm_dialog_show(connection, surface, cfg,
+    menu_confirm_dialog_show(connection, stage, cfg,
             prompt, _(STR_DIALOG_QUIT_CANCEL), _(STR_DIALOG_QUIT_EXIT),
             s_on_quit_confirm, NULL, 0u);
 

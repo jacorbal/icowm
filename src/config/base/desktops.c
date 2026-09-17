@@ -7,8 +7,8 @@
  * topology.screens (screen count, and each screen's desktop
  * count/inaugural desktop/desktop entries, in either the flat or nested
  * on-disk shape) and @c desktops (desktop-navigation and reserved-space
- * behavior) from parsed @c config.json.  @c ci_config_load_screens and
- * @c ci_config_load_desktop_behavior are the only two entry points
+ * behavior) from parsed @c config.json.  @c ci_config_screens_load and
+ * @c ci_config_desktop_behavior_load are the only two entry points
  * @c config/base/load.c's @c config_load_base calls from here;
  * everything else stays static to this file.
  */
@@ -171,9 +171,9 @@ static void s_config_desktop_layout_fallback(
  *                     describing screen @p screen_idx; this screen's
  *                     @c desktop_count must already be finalized in
  *                     @p config_base before this call
- * @param screen_idx   Index of the screen this entry describes
- * @param config_base  Destination structure
- * @param filename     Path the JSON was read from, for log messages
+ * @param screen_idx  Index of the screen this entry describes
+ * @param config_base Destination structure
+ * @param filename    Path the JSON was read from, for log messages
  *                     only
  *
  * @note Complexity: @e O(1)
@@ -295,9 +295,9 @@ static void s_config_viewport_fallback(
  *
  * @param desktop_item One entry of @c topology.screens.desktops,
  *                     describing screen @p screen_idx
- * @param screen_idx   Index of the screen this entry describes
- * @param config_base  Destination structure
- * @param filename     Path the JSON was read from, for log messages
+ * @param screen_idx  Index of the screen this entry describes
+ * @param config_base Destination structure
+ * @param filename    Path the JSON was read from, for log messages
  *                     only
  *
  * @note Complexity: @e O(1)
@@ -378,8 +378,8 @@ static bool s_config_screens_uses_nested_layout(cJSON *desktops_array)
  * @param desktops_array The @c topology.screens.desktops array itself
  * @param desktop_count  Number of entries in @p desktops_array,
  *                       already clamped to @c CONFIG_MAX_DESKTOPS
- * @param config_base    Destination structure
- * @param filename       Path the JSON was read from, for log messages
+ * @param config_base Destination structure
+ * @param filename    Path the JSON was read from, for log messages
  *                       only
  *
  * @note Complexity: @e O(d), where @e d is @p desktop_count
@@ -417,9 +417,9 @@ static void s_config_load_screens_flat(cJSON *desktops_array,
  *
  * @param desktop_item One entry of 'topology.screens.desktops',
  *                     describing screen @p screen_idx
- * @param screen_idx   Index of the screen this entry describes
- * @param config_base  Destination structure
- * @param filename     Path the JSON was read from, for log messages
+ * @param screen_idx  Index of the screen this entry describes
+ * @param config_base Destination structure
+ * @param filename    Path the JSON was read from, for log messages
  *                     only
  *
  * @note Complexity: @e O(d), where @e d is the number of entries in
@@ -444,7 +444,7 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
      * already arrives pre-clamped from its caller), this one reads
      * "count" fresh from this one screen's JSON entry, with nothing
      * else clamping it before every later consumer (starting with
-     * 'surface_init' at startup, wm.c) takes it as a trusted upper
+     * 'stage_init' at startup, wm.c) takes it as a trusted upper
      * bound for iterating or indexing that same array. */
     if (config_base->screens[screen_idx].desktop_count >
             (uint32_t) CONFIG_MAX_DESKTOPS) {
@@ -510,8 +510,8 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
  *                       against @c CONFIG_MAX_SCREENS instead, since
  *                       each entry is a screen in this shape, not
  *                       a desktop (see the note below)
- * @param config_base    Destination structure
- * @param filename       Path the JSON was read from, for log messages
+ * @param config_base Destination structure
+ * @param filename    Path the JSON was read from, for log messages
  *                       only
  *
  * @note Complexity: @e O(s * d), where @e s is the number of screens
@@ -540,7 +540,7 @@ static void s_config_load_screens_nested(cJSON *desktops_array,
 
 /* Load 'topology.screens' (screen count, and each screen's desktop
  * count/inaugural desktop/desktop entries) from parsed 'config.json' */
-void ci_config_load_screens(cJSON *json,
+void ci_config_screens_load(cJSON *json,
         struct config_base_s *config_base, const char *filename)
 {
     cJSON *topology;
@@ -597,7 +597,7 @@ void ci_config_load_screens(cJSON *json,
 
 /* Load 'desktops' (desktop-navigation and reserved-space behavior) from
  * parsed 'config.json' */
-void ci_config_load_desktop_behavior(cJSON *json,
+void ci_config_desktop_behavior_load(cJSON *json,
         struct config_desktop_s *config_desktop, const char *filename)
 {
     cJSON *desktop_settings;

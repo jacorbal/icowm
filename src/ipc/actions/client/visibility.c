@@ -20,7 +20,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -35,9 +35,9 @@
  * @note Complexity: @e O(1)
  */
 static void s_iconify(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_iconify(client);
 }
 
@@ -48,9 +48,9 @@ static void s_iconify(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_hide(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_hide(client);
 }
 
@@ -62,9 +62,9 @@ static void s_hide(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_unhide(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_unhide(client);
 }
 

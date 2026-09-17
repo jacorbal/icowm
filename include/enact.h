@@ -6,9 +6,9 @@
  *
  * Holds only the @a enact_wm_* actions, the handful that act on the
  * window manager itself rather than on any one client, desktop, or
- * surface.  Everything else that acts on one of those is split into
+ * stage.  Everything else that acts on one of those is split into
  * its own header instead, @c enact/client.h, @c enact/desktop.h, and
- * @c enact/surface.h, so a file that only needs one of those does not
+ * @c enact/stage.h, so a file that only needs one of those does not
  * also pull in, and rebuild against, every other one declared
  * alongside it.
  *
@@ -17,12 +17,12 @@
  * actually happens.  A caller anywhere else (a keybinding handler,
  * a menu callback, an EWMH message handler, a rule) calls the matching
  * @a enact_* function directly, with its typed parameters, instead of
- * reaching into one of the @c cmds/client/ headers or @c cmds/surface.h
+ * reaching into one of the @c cmds/client/ headers or @c cmds/stage.h
  * itself.  Searching for an action's enum name always leads back to
  * exactly one function here or in one of these sibling headers.
  *
  * @see @c action.h
- * @see @c enact/client.h, @c enact/desktop.h, @c enact/surface.h
+ * @see @c enact/client.h, @c enact/desktop.h, @c enact/stage.h
  *
  * @defgroup enact Action execution
  */

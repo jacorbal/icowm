@@ -6,15 +6,15 @@
  *
  * loop_refresh, loop_refresh_full, and the three file-local helpers
  * they share are all real, testable list-walking and flag-checking
- * logic against a real cdlist of real 'struct surface_s' values built
- * on the stack: which surfaces are outdated, whether an overlay's
+ * logic against a real cdlist of real 'struct stage_s' values built
+ * on the stack: which stages are outdated, whether an overlay's
  * timeout has actually elapsed, and whether an EWMH resync is called
  * at all afterward.  None of that needs a live X connection itself;
- * only surface_render_all_desktops/surface_render_current_desktop_
+ * only stage_render_all_desktops/stage_render_current_desktop_
  * repaint (the actual per-desktop XCB drawing), popup_close/notify_
  * desktop_close (each overlay's own dismissal logic), and wm_ewmh_sync
  * (a real EWMH property write) are link-only stand-ins below, each
- * simply recording that it was reached and with which surface, rather
+ * simply recording that it was reached and with which stage, rather
  * than genuinely drawing anything or writing to a real root window.
  */
 /*
@@ -36,7 +36,7 @@
 #include <adt/list.h>
 
 /* Project includes */
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -70,10 +70,10 @@ static int s_notify_desktop_close_calls;
 
 /* Recording for the render/sync stand-ins */
 static int s_render_all_desktops_calls;
-static const surface_td *s_render_all_desktops_last_surface;
+static const stage_td *s_render_all_desktops_last_stage;
 static int s_render_all_desktops_return_value;
 static int s_render_current_desktop_repaint_calls;
-static const surface_td *s_render_current_desktop_repaint_last_surface;
+static const stage_td *s_render_current_desktop_repaint_last_stage;
 static int s_wm_ewmh_sync_calls;
 
 
@@ -86,10 +86,10 @@ static void s_reset(void)
     s_notify_desktop_ms_remaining = -1;
     s_notify_desktop_close_calls = 0;
     s_render_all_desktops_calls = 0;
-    s_render_all_desktops_last_surface = NULL;
+    s_render_all_desktops_last_stage = NULL;
     s_render_all_desktops_return_value = 0;
     s_render_current_desktop_repaint_calls = 0;
-    s_render_current_desktop_repaint_last_surface = NULL;
+    s_render_current_desktop_repaint_last_stage = NULL;
     s_wm_ewmh_sync_calls = 0;
 }
 
@@ -148,22 +148,22 @@ void notify_desktop_close(xcb_connection_t *connection)
 }
 
 
-/** Link-only stand-in for surface_render_all_desktops
- *  (render/surface.c) */
-int surface_render_all_desktops(surface_td *surface)
+/** Link-only stand-in for stage_render_all_desktops
+ *  (render/stage.c) */
+int stage_render_all_desktops(stage_td *stage)
 {
     s_render_all_desktops_calls++;
-    s_render_all_desktops_last_surface = surface;
+    s_render_all_desktops_last_stage = stage;
     return s_render_all_desktops_return_value;
 }
 
 
-/** Link-only stand-in for surface_render_current_desktop_repaint
- *  (render/surface.c) */
-void surface_render_current_desktop_repaint(surface_td *surface)
+/** Link-only stand-in for stage_render_current_desktop_repaint
+ *  (render/stage.c) */
+void stage_render_current_desktop_repaint(stage_td *stage)
 {
     s_render_current_desktop_repaint_calls++;
-    s_render_current_desktop_repaint_last_surface = surface;
+    s_render_current_desktop_repaint_last_stage = stage;
 }
 
 
@@ -176,39 +176,39 @@ void wm_ewmh_sync(wm_td *wm)
 
 
 /**
- * @brief Build a loop context around a real, caller-owned surfaces
+ * @brief Build a loop context around a real, caller-owned stages
  *        list
  */
-static loop_ctx_td s_make_ctx(list_td *surfaces)
+static loop_ctx_td s_make_ctx(list_td *stages)
 {
     loop_ctx_td ctx;
 
     memset(&ctx, 0, sizeof(ctx));
-    ctx.surfaces = surfaces;
+    ctx.stages = stages;
     return ctx;
 }
 
 
-/* loop_refresh on a null ctx, or a ctx with a NULL surfaces list, is a
+/* loop_refresh on a null ctx, or a ctx with a NULL stages list, is a
  * safe no-op that reaches none of the stand-ins above */
 static void s_test_refresh_null_guards(void)
 {
-    loop_ctx_td ctx_no_surfaces = s_make_ctx(NULL);
+    loop_ctx_td ctx_no_stages = s_make_ctx(NULL);
 
     s_reset();
     loop_refresh(NULL);
     TAP_EQ_INT(s_render_all_desktops_calls, 0,
-            "loop_refresh on a null ctx renders no surface");
+            "loop_refresh on a null ctx renders no stage");
     TAP_EQ_INT(s_wm_ewmh_sync_calls, 0,
             "loop_refresh on a null ctx never resyncs EWMH");
 
     s_reset();
-    loop_refresh(&ctx_no_surfaces);
+    loop_refresh(&ctx_no_stages);
     TAP_EQ_INT(s_render_all_desktops_calls, 0,
-            "loop_refresh with a NULL surfaces list renders no"
-            " surface");
+            "loop_refresh with a NULL stages list renders no"
+            " stage");
     TAP_EQ_INT(s_wm_ewmh_sync_calls, 0,
-            "loop_refresh with a NULL surfaces list never resyncs"
+            "loop_refresh with a NULL stages list never resyncs"
             " EWMH");
 }
 
@@ -217,58 +217,58 @@ static void s_test_refresh_null_guards(void)
  * nothing and never resyncs EWMH */
 static void s_test_refresh_nothing_outdated(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_a;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_a;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    surface_a.is_outdated = false;
-    list_ins_next(surfaces, NULL, &surface_a);
+    memset(&stage_a, 0, sizeof(stage_a));
+    stage_a.is_outdated = false;
+    list_ins_next(stages, NULL, &stage_a);
 
     s_reset();
     loop_refresh(&ctx);
 
     TAP_EQ_INT(s_render_all_desktops_calls, 0,
-            "loop_refresh renders nothing when no surface is"
+            "loop_refresh renders nothing when no stage is"
             " outdated");
     TAP_EQ_INT(s_wm_ewmh_sync_calls, 0,
             "loop_refresh never resyncs EWMH when nothing was"
             " outdated");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* An outdated surface is rendered, and, since something was outdated,
- * an EWMH resync follows; an up-to-date surface alongside it is left
+/* An outdated stage is rendered, and, since something was outdated,
+ * an EWMH resync follows; an up-to-date stage alongside it is left
  * alone */
 static void s_test_refresh_renders_outdated_and_resyncs(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_outdated;
-    surface_td surface_clean;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_outdated;
+    stage_td stage_clean;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_outdated, 0, sizeof(surface_outdated));
-    memset(&surface_clean, 0, sizeof(surface_clean));
-    surface_outdated.is_outdated = true;
-    surface_clean.is_outdated = false;
-    list_ins_next(surfaces, NULL, &surface_outdated);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_clean);
+    memset(&stage_outdated, 0, sizeof(stage_outdated));
+    memset(&stage_clean, 0, sizeof(stage_clean));
+    stage_outdated.is_outdated = true;
+    stage_clean.is_outdated = false;
+    list_ins_next(stages, NULL, &stage_outdated);
+    list_ins_next(stages, list_tail(stages), &stage_clean);
 
     s_reset();
     loop_refresh(&ctx);
 
     TAP_EQ_INT(s_render_all_desktops_calls, 1,
-            "loop_refresh renders exactly the one outdated surface");
-    TAP_OK(s_render_all_desktops_last_surface == &surface_outdated,
-            "loop_refresh renders the outdated surface itself, not"
+            "loop_refresh renders exactly the one outdated stage");
+    TAP_OK(s_render_all_desktops_last_stage == &stage_outdated,
+            "loop_refresh renders the outdated stage itself, not"
             " the clean one");
     TAP_EQ_INT(s_wm_ewmh_sync_calls, 1,
             "loop_refresh resyncs EWMH exactly once when something"
             " was outdated");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -276,12 +276,12 @@ static void s_test_refresh_renders_outdated_and_resyncs(void)
  * neither closed nor repainted for */
 static void s_test_refresh_popup_open_not_expired(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_a;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_a;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    list_ins_next(surfaces, NULL, &surface_a);
+    memset(&stage_a, 0, sizeof(stage_a));
+    list_ins_next(stages, NULL, &stage_a);
 
     s_reset();
     s_popup_is_open = true;
@@ -295,23 +295,23 @@ static void s_test_refresh_popup_open_not_expired(void)
             "an open popup with time still remaining triggers no"
             " overlay repaint");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
 /* An open popup whose countdown has reached exactly 0 is closed, and
- * the first surface in the list is repainted to clear its remnants */
+ * the first stage in the list is repainted to clear its remnants */
 static void s_test_refresh_popup_expired_closes_and_repaints(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_first;
-    surface_td surface_second;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_first;
+    stage_td stage_second;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_first, 0, sizeof(surface_first));
-    memset(&surface_second, 0, sizeof(surface_second));
-    list_ins_next(surfaces, NULL, &surface_first);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_second);
+    memset(&stage_first, 0, sizeof(stage_first));
+    memset(&stage_second, 0, sizeof(stage_second));
+    list_ins_next(stages, NULL, &stage_first);
+    list_ins_next(stages, list_tail(stages), &stage_second);
 
     s_reset();
     s_popup_is_open = true;
@@ -324,12 +324,12 @@ static void s_test_refresh_popup_expired_closes_and_repaints(void)
     TAP_EQ_INT(s_render_current_desktop_repaint_calls, 1,
             "closing an expired popup triggers exactly one overlay"
             " repaint");
-    TAP_OK(s_render_current_desktop_repaint_last_surface ==
-                &surface_first,
-            "the overlay repaint targets the first surface in the"
+    TAP_OK(s_render_current_desktop_repaint_last_stage ==
+                &stage_first,
+            "the overlay repaint targets the first stage in the"
             " list, not any other");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -337,12 +337,12 @@ static void s_test_refresh_popup_expired_closes_and_repaints(void)
  * independently of the popup, following the exact same expiry rule */
 static void s_test_refresh_notify_desktop_expired(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_a;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_a;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    list_ins_next(surfaces, NULL, &surface_a);
+    memset(&stage_a, 0, sizeof(stage_a));
+    list_ins_next(stages, NULL, &stage_a);
 
     s_reset();
     s_notify_desktop_is_open = true;
@@ -360,56 +360,56 @@ static void s_test_refresh_notify_desktop_expired(void)
             "closing the expired notification triggers exactly one"
             " overlay repaint");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* loop_refresh_full on a null ctx, or a ctx with a NULL surfaces list,
+/* loop_refresh_full on a null ctx, or a ctx with a NULL stages list,
  * is a safe no-op */
 static void s_test_refresh_full_null_guards(void)
 {
-    loop_ctx_td ctx_no_surfaces = s_make_ctx(NULL);
+    loop_ctx_td ctx_no_stages = s_make_ctx(NULL);
 
     s_reset();
     loop_refresh_full(NULL);
     TAP_EQ_INT(s_render_all_desktops_calls, 0,
-            "loop_refresh_full on a null ctx renders no surface");
+            "loop_refresh_full on a null ctx renders no stage");
 
     s_reset();
-    loop_refresh_full(&ctx_no_surfaces);
+    loop_refresh_full(&ctx_no_stages);
     TAP_EQ_INT(s_render_all_desktops_calls, 0,
-            "loop_refresh_full with a NULL surfaces list renders no"
-            " surface");
+            "loop_refresh_full with a NULL stages list renders no"
+            " stage");
 }
 
 
-/* loop_refresh_full marks every surface outdated first, then renders
+/* loop_refresh_full marks every stage outdated first, then renders
  * every one of them, including one that started out already up to
  * date */
-static void s_test_refresh_full_marks_and_renders_every_surface(void)
+static void s_test_refresh_full_marks_and_renders_every_stage(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_a;
-    surface_td surface_b;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_a;
+    stage_td stage_b;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    memset(&surface_b, 0, sizeof(surface_b));
-    surface_a.is_outdated = false;
-    surface_b.is_outdated = false;
-    list_ins_next(surfaces, NULL, &surface_a);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_b);
+    memset(&stage_a, 0, sizeof(stage_a));
+    memset(&stage_b, 0, sizeof(stage_b));
+    stage_a.is_outdated = false;
+    stage_b.is_outdated = false;
+    list_ins_next(stages, NULL, &stage_a);
+    list_ins_next(stages, list_tail(stages), &stage_b);
 
     s_reset();
     loop_refresh_full(&ctx);
 
-    TAP_OK(surface_a.is_outdated && surface_b.is_outdated,
-            "loop_refresh_full marks every surface outdated,"
+    TAP_OK(stage_a.is_outdated && stage_b.is_outdated,
+            "loop_refresh_full marks every stage outdated,"
             " including ones that started out clean");
     TAP_EQ_INT(s_render_all_desktops_calls, 2,
-            "loop_refresh_full renders every surface exactly once");
+            "loop_refresh_full renders every stage exactly once");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -418,12 +418,12 @@ static void s_test_refresh_full_marks_and_renders_every_surface(void)
  * job */
 static void s_test_refresh_full_never_resyncs_ewmh(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_a;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_a;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    list_ins_next(surfaces, NULL, &surface_a);
+    memset(&stage_a, 0, sizeof(stage_a));
+    list_ins_next(stages, NULL, &stage_a);
 
     s_reset();
     loop_refresh_full(&ctx);
@@ -431,33 +431,33 @@ static void s_test_refresh_full_never_resyncs_ewmh(void)
     TAP_EQ_INT(s_wm_ewmh_sync_calls, 0,
             "loop_refresh_full never calls wm_ewmh_sync itself");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* A NULL entry in the middle of the surfaces list is skipped cleanly
+/* A NULL entry in the middle of the stages list is skipped cleanly
  * by loop_refresh_full's own marking pass, without crashing */
 static void s_test_refresh_full_skips_null_entries(void)
 {
-    list_td *surfaces = list_init(NULL);
-    surface_td surface_a;
-    loop_ctx_td ctx = s_make_ctx(surfaces);
+    list_td *stages = list_init(NULL);
+    stage_td stage_a;
+    loop_ctx_td ctx = s_make_ctx(stages);
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    list_ins_next(surfaces, NULL, NULL);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_a);
+    memset(&stage_a, 0, sizeof(stage_a));
+    list_ins_next(stages, NULL, NULL);
+    list_ins_next(stages, list_tail(stages), &stage_a);
 
     s_reset();
     loop_refresh_full(&ctx);
 
-    TAP_OK(surface_a.is_outdated,
-            "loop_refresh_full still marks the real surface outdated"
+    TAP_OK(stage_a.is_outdated,
+            "loop_refresh_full still marks the real stage outdated"
             " past a NULL entry ahead of it in the list");
     TAP_EQ_INT(s_render_all_desktops_calls, 1,
-            "loop_refresh_full renders exactly the one real surface,"
+            "loop_refresh_full renders exactly the one real stage,"
             " skipping the NULL entry without crashing");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -472,7 +472,7 @@ int main(void)
     s_test_refresh_popup_expired_closes_and_repaints();
     s_test_refresh_notify_desktop_expired();
     s_test_refresh_full_null_guards();
-    s_test_refresh_full_marks_and_renders_every_surface();
+    s_test_refresh_full_marks_and_renders_every_stage();
     s_test_refresh_full_never_resyncs_ewmh();
     s_test_refresh_full_skips_null_entries();
 

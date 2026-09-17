@@ -55,7 +55,7 @@
 #include <client.h>
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <policy/placement/manual.h>
@@ -75,7 +75,7 @@
  */
 struct s_place_manual_entry_s {
     const wm_td *wm;            /**< Window manager it belongs to */
-    surface_td *surface;        /**< Surface it will appear on */
+    stage_td *stage;        /**< Stage it will appear on */
     desktop_td *desktop;        /**< Desktop it belongs to */
     client_td *client;          /**< The window itself */
     place_manual_done_fn done;  /**< What finishes its map */
@@ -129,7 +129,7 @@ static struct position_s s_place_manual_pointer = { 0, 0 };
 /**
  * @brief Workarea the outline is kept inside, resolved once per window
  *
- * Surface-wide rather than clipped to one monitor.  On a surface made
+ * Stage-wide rather than clipped to one monitor.  On a stage made
  * of several the user points at whichever one they mean, and a clamp
  * against the monitor resolved when the question opened would fight
  * them for the whole of it.
@@ -352,14 +352,14 @@ static void s_place_manual_head_start(xcb_connection_t *connection)
     }
 
     entry = &s_place_manual_queue[0];
-    s_place_manual_root = (entry->surface->screen != NULL)
-        ? entry->surface->screen->root
+    s_place_manual_root = (entry->stage->screen != NULL)
+        ? entry->stage->screen->root
         : XCB_WINDOW_NONE;
     if (s_place_manual_root == XCB_WINDOW_NONE) {
         return;
     }
 
-    placement_workarea(entry->wm, entry->surface, entry->client,
+    placement_workarea(entry->wm, entry->stage, entry->client,
             &s_place_manual_wa, &mon_wa, &mon_sz);
 
     /* Wherever the smart policy already put it, when the pointer
@@ -463,8 +463,8 @@ static void s_place_manual_pop(void)
 /**
  * @brief Settle the window being asked about, and go on to the next
  *
- * @param connection    XCB connection
- * @param is_confirmed  @c true to put the window where the outline
+ * @param connection   XCB connection
+ * @param is_confirmed @c true to put the window where the outline
  *                      stands, @c false to leave it where the smart
  *                      policy already had it
  *
@@ -509,18 +509,18 @@ static void s_place_manual_settle(xcb_connection_t *connection,
         entry.client->layout.geometry.cur.pos = geom.pos;
     }
 
-    entry.done(entry.wm, entry.surface, entry.desktop, entry.client);
+    entry.done(entry.wm, entry.stage, entry.desktop, entry.client);
 
     s_place_manual_head_start(connection);
 }
 
 
 /* Pick where a window goes, asking the user to point at it */
-bool place_window_manual(const wm_td *wm, surface_td *surface,
+bool place_window_manual(const wm_td *wm, stage_td *stage,
         client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y)
 {
-    if (wm == NULL || surface == NULL || client == NULL ||
+    if (wm == NULL || stage == NULL || client == NULL ||
             out_x == NULL || out_y == NULL) {
         return false;
     }
@@ -532,13 +532,13 @@ bool place_window_manual(const wm_td *wm, surface_td *surface,
      * a spot. */
     s_place_manual_candidate = client;
 
-    return place_window_smart(wm, surface, client, out_x, out_y);
+    return place_window_smart(wm, stage, client, out_x, out_y);
 }
 
 
 /* Take a window that must be placed by hand, and hold it */
 bool place_manual_enqueue(xcb_connection_t *connection, const wm_td *wm,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         xcb_cursor_t cursor, place_manual_done_fn done)
 {
     struct s_place_manual_entry_s *entry;
@@ -550,7 +550,7 @@ bool place_manual_enqueue(xcb_connection_t *connection, const wm_td *wm,
      * dispatcher) is never answered to by some later window */
     s_place_manual_candidate = NULL;
 
-    if (connection == NULL || wm == NULL || surface == NULL ||
+    if (connection == NULL || wm == NULL || stage == NULL ||
             desktop == NULL || client == NULL || done == NULL ||
             candidate != client) {
         return false;
@@ -565,7 +565,7 @@ bool place_manual_enqueue(xcb_connection_t *connection, const wm_td *wm,
 
     entry = &s_place_manual_queue[s_place_manual_queued];
     entry->wm = wm;
-    entry->surface = surface;
+    entry->stage = stage;
     entry->desktop = desktop;
     entry->client = client;
     entry->done = done;

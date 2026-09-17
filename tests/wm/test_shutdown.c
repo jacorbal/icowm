@@ -161,17 +161,17 @@ void ccmd_client_close(client_td *client)
 /** Link-only stand-ins for the two desktop lookups the gathering
  *  step makes; @c NULL leaves it with nothing to move between
  * @note Complexity: O(1) */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
 
     return NULL;
 }
 
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
     return NULL;
@@ -211,10 +211,10 @@ void enact_desktop_client_send(const desktop_td *desktop,
 }
 
 
-void enact_client_send_to_page(surface_td *surface, client_td *client,
+void enact_client_send_to_page(stage_td *stage, client_td *client,
         uint32_t col, uint32_t row)
 {
-    (void) surface;
+    (void) stage;
     (void) client;
     (void) col;
     (void) row;
@@ -222,10 +222,10 @@ void enact_client_send_to_page(surface_td *surface, client_td *client,
 }
 
 
-bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+bool scmd_stage_viewport_desktop_page(const stage_td *stage,
         const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) col_out;
     (void) row_out;

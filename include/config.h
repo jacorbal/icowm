@@ -7,7 +7,7 @@
  * the default configuration base directory.  This directory depends on
  * the environment variables: @c XDG_CONFIG_HOME/PROJECT_NAME_PROG if
  * the variable @c XDG_CONFIG_HOME is set, otherwise it will default to
- * the classic @c HOME/.PROJECT_NAME_PROG.
+ * the classic @c ($HOME/.PROJECT_NAME_PROG).
  *
  * @defgroup config Configuration loading
  * @ingroup wm
@@ -251,8 +251,8 @@ void config_set_default_base_values(struct config_base_s *config_base,
  * since both live in @c config.json.
  *
  * @param filename       The path to the configuration file
- * @param config_base    Pointer to the base configuration structure
- *                       to populate
+ * @param config_base    Pointer to the base configuration structure to
+ *                       populate
  * @param config_desktop Pointer to the desktop-behavior structure to
  *                       populate
  *
@@ -422,11 +422,11 @@ int config_load_a11y(const char *filename,
  *   @c ("name": "<theme_name>")'s own @c name becomes
  *   "<that name> (<theme_file_name>)".
  *
- * @param theme           Theme structure whose @c name this
- *                        settles; its @c name field, as passed in, must
- *                        already reflect whichever of the above it
- *                        actually is (empty for the first two cases,
- *                        whatever the file itself set for the third)
+ * @param theme           Theme structure whose @c name this settles;
+ *                        its @c name field, as passed in, must already
+ *                        reflect whichever of the above it actually is
+ *                        (empty for the first two cases, whatever the
+ *                        file itself set for the third)
  * @param theme_file_name The short name a theme was loaded under (e.g.,
  *                        "default", the same string
  *                        @c ("theme": "<this>") names in

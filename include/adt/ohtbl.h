@@ -205,14 +205,14 @@ struct ohtbl_s {
 /**
  * @brief Initialize a new open-addressed hash table with double hashing
  *
- * @param positions     Number of positions to allocate in the hash
+ * @param positions Number of positions to allocate in the hash
  *                      table
  * @param min_positions Minimum number of positions the table will have
  * @param h1            Pointer to an auxiliary hashing function
  * @param h2            Pointer to another auxiliary hashing function
  * @param match         Pointer to a function to test if two keys are
  *                      equal
- * @param destroy       Pointer to a function to free the memory
+ * @param destroy Pointer to a function to free the memory
  *
  * @return Pointer to new allocated open-addressed hash table, or
  *         @c NULL otherwise

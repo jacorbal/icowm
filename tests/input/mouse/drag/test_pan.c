@@ -3,11 +3,11 @@
  *
  * @brief Test battery for the screen-edge viewport pan during a drag
  *
- * pan.c reaches deep into the running window manager: the surface and
- * desktop it pans across (@a wm_get_surface_by_id,
+ * pan.c reaches deep into the running window manager: the stage and
+ * desktop it pans across (@a wm_get_stage_by_id,
  * @a lookup_current_desktop), the actual pan commands
- * (@c cmds/surface.c's @a scmd_surface_viewport_pan_north and its
- * three siblings, plus @a scmd_surface_viewport_pan_available), and
+ * (@c cmds/stage.c's @a scmd_stage_viewport_pan_north and its
+ * three siblings, plus @a scmd_stage_viewport_pan_available), and
  * the raw X requests moving an icon window or outline
  * (@c xcb_configure_window, @a drag_outline_move, @a drag_overlay_show).
  * None of that is needed to exercise this file's real target: the
@@ -47,11 +47,11 @@
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/drag/outline.h>
 #include <input/mouse/drag/overlay.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Command includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -64,15 +64,15 @@
  *  file never links, so it is defined here instead */
 drag_state_td s_drag;
 
-/** Surface @a wm_get_surface_by_id hands back, @c NULL to make the
+/** Stage @a wm_get_stage_by_id hands back, @c NULL to make the
  *  lookup itself fail */
-static surface_td *s_stub_surface;
+static stage_td *s_stub_stage;
 
 /** Desktop @a lookup_current_desktop hands back, @c NULL to make the
  *  lookup itself fail */
 static desktop_td *s_stub_desktop;
 
-/** Value @a scmd_surface_viewport_pan_available hands back, reset to
+/** Value @a scmd_stage_viewport_pan_available hands back, reset to
  *  @c false (the sensible "no room to pan" default) by @a s_reset
  *  before each scenario */
 static bool s_stub_pan_available;
@@ -88,7 +88,7 @@ static int s_call_pan_west;
  *  desktop's @c viewport_origin straight to @a s_stub_origin_override
  *  instead of doing its own unconditional whole-screen shift,
  *  standing in for whatever a real, possibly boundary-clamped
- *  'scmd_surface_viewport_pan_*' call (cmds/surface.c) would have
+ *  'scmd_stage_viewport_pan_*' call (cmds/stage.c) would have
  *  actually left it at; reset to @c false by @a s_reset before each
  *  scenario */
 static bool s_stub_origin_override_active;
@@ -121,14 +121,14 @@ static int16_t s_warp_pointer_last_y;
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_surface_by_id
+ * @brief Link-only stand-in for @a wm_get_stage_by_id
  *
  * @note Complexity: @e O(1)
  */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_stub_surface;
+    (void) stage_id;
+    return s_stub_stage;
 }
 
 
@@ -137,29 +137,29 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return s_stub_desktop;
 }
 
 
 /**
- * @brief Controllable stand-in for @a scmd_surface_viewport_pan_available
+ * @brief Controllable stand-in for @a scmd_stage_viewport_pan_available
  *
  * @note Complexity: @e O(1)
  */
-bool scmd_surface_viewport_pan_available(surface_td *surface,
+bool scmd_stage_viewport_pan_available(stage_td *stage,
         enum compass_direction_e direction)
 {
-    (void) surface;
+    (void) stage;
     (void) direction;
     return s_stub_pan_available;
 }
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_north
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_north
  *
  * Also shifts the stub desktop's own @c viewport_origin exactly the
  * way the real function would, since @a drag_pan_tick now reads that
@@ -169,9 +169,9 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_north(surface_td *surface)
+void scmd_stage_viewport_pan_north(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_north++;
     if (s_stub_origin_override_active) {
         s_stub_desktop->viewport_origin = s_stub_origin_override;
@@ -183,13 +183,13 @@ void scmd_surface_viewport_pan_north(surface_td *surface)
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_south
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_south
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_south(surface_td *surface)
+void scmd_stage_viewport_pan_south(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_south++;
     if (s_stub_origin_override_active) {
         s_stub_desktop->viewport_origin = s_stub_origin_override;
@@ -201,13 +201,13 @@ void scmd_surface_viewport_pan_south(surface_td *surface)
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_east
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_east
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_east(surface_td *surface)
+void scmd_stage_viewport_pan_east(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_east++;
     if (s_stub_origin_override_active) {
         s_stub_desktop->viewport_origin = s_stub_origin_override;
@@ -219,13 +219,13 @@ void scmd_surface_viewport_pan_east(surface_td *surface)
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_pan_west
+ * @brief Recording stand-in for @a scmd_stage_viewport_pan_west
  *
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_west(surface_td *surface)
+void scmd_stage_viewport_pan_west(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_call_pan_west++;
     if (s_stub_origin_override_active) {
         s_stub_desktop->viewport_origin = s_stub_origin_override;
@@ -336,14 +336,14 @@ xcb_void_cookie_t xcb_warp_pointer(xcb_connection_t *c,
 static void s_reset(void)
 {
     static client_td dragged;
-    static surface_td surface;
+    static stage_td stage;
     static config_td config;
     static desktop_td desktop;
     static xcb_screen_t screen;
 
     memset(&s_drag, 0, sizeof(s_drag));
     memset(&dragged, 0, sizeof(dragged));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
@@ -357,8 +357,8 @@ static void s_reset(void)
 
     config.base.viewport.pan_on_edge_drag = true;
 
-    surface.config = &config;
-    surface.screen = &screen;
+    stage.config = &config;
+    stage.screen = &screen;
 
     desktop.geometry.dim.w = 1920u;
     desktop.geometry.dim.h = 1080u;
@@ -370,7 +370,7 @@ static void s_reset(void)
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.is_solid_drag = true;
 
-    s_stub_surface = &surface;
+    s_stub_stage = &stage;
     s_stub_desktop = &desktop;
     s_stub_pan_available = true;
 
@@ -406,16 +406,16 @@ static void s_test_edge_check_no_client_clears_pending(void)
 }
 
 
-/* wm_get_surface_by_id fails to resolve a surface: no-op */
-static void s_test_edge_check_no_surface_is_noop(void)
+/* wm_get_stage_by_id fails to resolve a stage: no-op */
+static void s_test_edge_check_no_stage_is_noop(void)
 {
     s_reset();
-    s_stub_surface = NULL;
+    s_stub_stage = NULL;
 
     drag_pan_edge_check(0, 500);
 
     TAP_OK(!s_drag.is_pan_pending,
-            "surface lookup failing clears any pending pan");
+            "stage lookup failing clears any pending pan");
 }
 
 
@@ -423,7 +423,7 @@ static void s_test_edge_check_no_surface_is_noop(void)
 static void s_test_edge_check_disabled_in_config_is_noop(void)
 {
     s_reset();
-    s_stub_surface->config->base.viewport.pan_on_edge_drag = false;
+    s_stub_stage->config->base.viewport.pan_on_edge_drag = false;
 
     drag_pan_edge_check(0, 500);
 
@@ -752,7 +752,7 @@ static void s_test_tick_due_config_disabled_stops_early(void)
     s_drag.pan_direction = COMPASS_WEST;
     (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due);
     s_drag.pan_due.tv_sec -= 1;
-    s_stub_surface->config->base.viewport.pan_on_edge_drag = false;
+    s_stub_stage->config->base.viewport.pan_on_edge_drag = false;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
@@ -781,28 +781,28 @@ static void s_test_tick_due_pan_unavailable_stops_early(void)
 }
 
 
-/* drag_pan_tick: due, moving, surface itself no longer resolvable:
+/* drag_pan_tick: due, moving, stage itself no longer resolvable:
  * stops before the pan */
-static void s_test_tick_due_no_surface_stops_early(void)
+static void s_test_tick_due_no_stage_stops_early(void)
 {
     s_reset();
     s_drag.is_pan_pending = true;
     s_drag.pan_direction = COMPASS_WEST;
     (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due);
     s_drag.pan_due.tv_sec -= 1;
-    s_stub_surface = NULL;
+    s_stub_stage = NULL;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
     TAP_EQ_INT(s_call_pan_west, 0,
-            "the surface lookup failing stops the tick before the"
+            "the stage lookup failing stops the tick before the"
             " pan itself");
 }
 
 
-/* drag_pan_tick: due, moving, surface resolves but has no attached
+/* drag_pan_tick: due, moving, stage resolves but has no attached
  * XCB screen: stops before the pan, since the pointer warp below now
- * needs 'surface->screen->root' */
+ * needs 'stage->screen->root' */
 static void s_test_tick_due_no_screen_stops_early(void)
 {
     s_reset();
@@ -810,17 +810,17 @@ static void s_test_tick_due_no_screen_stops_early(void)
     s_drag.pan_direction = COMPASS_WEST;
     (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due);
     s_drag.pan_due.tv_sec -= 1;
-    s_stub_surface->screen = NULL;
+    s_stub_stage->screen = NULL;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
     TAP_EQ_INT(s_call_pan_west, 0,
-            "a surface with no attached XCB screen stops the tick"
+            "a stage with no attached XCB screen stops the tick"
             " before the pan itself");
 }
 
 
-/* drag_pan_tick: due, moving, surface resolves but the current
+/* drag_pan_tick: due, moving, stage resolves but the current
  * desktop does not: stops before the pan */
 static void s_test_tick_due_no_desktop_stops_early(void)
 {
@@ -1018,7 +1018,7 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
  * e.g. left over from a background-drag pan
  * ('input/mouse/drag/background.c') or an EWMH
  * '_NET_DESKTOP_VIEWPORT' request, a west pan can be clamped by
- * 's_viewport_apply_origin' (cmds/surface.c) to less than a full
+ * 's_viewport_apply_origin' (cmds/stage.c) to less than a full
  * screen width. The dragged client must follow that same, real,
  * possibly-partial delta rather than a blindly assumed full step,
  * otherwise it drifts away from the pointer and every other window
@@ -1209,7 +1209,7 @@ int main(void)
     TAP_PLAN(95);
 
     s_test_edge_check_no_client_clears_pending();
-    s_test_edge_check_no_surface_is_noop();
+    s_test_edge_check_no_stage_is_noop();
     s_test_edge_check_disabled_in_config_is_noop();
     s_test_edge_check_middle_of_screen_is_noop();
     s_test_edge_check_pan_unavailable_is_noop();
@@ -1233,7 +1233,7 @@ int main(void)
     s_test_tick_due_stale_drag_window_stops_early();
     s_test_tick_due_config_disabled_stops_early();
     s_test_tick_due_pan_unavailable_stops_early();
-    s_test_tick_due_no_surface_stops_early();
+    s_test_tick_due_no_stage_stops_early();
     s_test_tick_due_no_screen_stops_early();
     s_test_tick_due_no_desktop_stops_early();
     s_test_tick_due_solid_west_pan_shifts_state();

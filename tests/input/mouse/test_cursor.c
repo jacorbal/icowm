@@ -17,7 +17,7 @@
  * are replaced by link-only or recording stand-ins; this test never
  * links against libxcb itself; only its headers, for the type
  * declarations.  'lookup_find_client' (lookup.c) is a genuinely
- * cross-module dependency (client/desktop/surface lookup across the
+ * cross-module dependency (client/desktop/stage lookup across the
  * whole managed window tree), so it is replaced by a controlled
  * stand-in that hands back a client fixture built by each scenario.
  */
@@ -57,9 +57,9 @@ static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
         (xcb_connection_t *) &s_fake_connection_storage;
 
-/** Non-null opaque handle standing in for a real list_td of surfaces */
-static int s_fake_surfaces_storage;
-static list_td *const s_fake_surfaces = (list_td *) &s_fake_surfaces_storage;
+/** Non-null opaque handle standing in for a real list_td of stages */
+static int s_fake_stages_storage;
+static list_td *const s_fake_stages = (list_td *) &s_fake_stages_storage;
 
 /** Non-null opaque handle standing in for a real util_cursor_ctx_td */
 static int s_fake_ctx_storage;
@@ -246,14 +246,14 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
  *
  * @note Complexity: @e O(1)
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
     s_call_lookup_find_client++;
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
 
     if (out_desktop != NULL) {
@@ -374,7 +374,7 @@ static void s_test_destroy(void)
 
 
 /* mouse_resize_cursor_update returns NULL, without touching the
- * cursor attribute, for a NULL connection, NULL surfaces, or before
+ * cursor attribute, for a NULL connection, NULL stages, or before
  * mouse_resize_cursors_init has ever run */
 static void s_test_update_guard_clauses(void)
 {
@@ -386,7 +386,7 @@ static void s_test_update_guard_clauses(void)
     mouse_resize_cursors_init(s_fake_connection);
 
     s_reset();
-    result = mouse_resize_cursor_update(NULL, s_fake_surfaces,
+    result = mouse_resize_cursor_update(NULL, s_fake_stages,
             (xcb_window_t) 1, (struct position_s) { 0, 0 });
     TAP_NULL(result, "a NULL connection returns NULL");
     TAP_EQ_INT(s_call_lookup_find_client, 0,
@@ -395,9 +395,9 @@ static void s_test_update_guard_clauses(void)
     s_reset();
     result = mouse_resize_cursor_update(s_fake_connection, NULL,
             (xcb_window_t) 1, (struct position_s) { 0, 0 });
-    TAP_NULL(result, "NULL surfaces returns NULL");
+    TAP_NULL(result, "NULL stages returns NULL");
     TAP_EQ_INT(s_call_lookup_find_client, 0,
-            "NULL surfaces never reaches lookup_find_client either");
+            "NULL stages never reaches lookup_find_client either");
 }
 
 
@@ -410,7 +410,7 @@ static void s_test_update_no_client(void)
     s_reset();
     s_lookup_result = NULL;
 
-    result = mouse_resize_cursor_update(s_fake_connection, s_fake_surfaces,
+    result = mouse_resize_cursor_update(s_fake_connection, s_fake_stages,
             (xcb_window_t) 5, (struct position_s) { 10, 10 });
 
     TAP_NULL(result, "no owning client at all returns NULL");
@@ -433,7 +433,7 @@ static void s_test_update_not_resizable(void)
     s_reset();
     s_lookup_result = &client;
 
-    result = mouse_resize_cursor_update(s_fake_connection, s_fake_surfaces,
+    result = mouse_resize_cursor_update(s_fake_connection, s_fake_stages,
             (xcb_window_t) 6, (struct position_s) { 10, 10 });
 
     TAP_NULL(result, "a non-resizable client returns NULL");
@@ -461,7 +461,7 @@ static void s_test_update_resizable_zone_none(void)
     s_lookup_result = &client;
 
     /* Dead center: far from every border, so S_RESIZE_ZONE_NONE */
-    result = mouse_resize_cursor_update(s_fake_connection, s_fake_surfaces,
+    result = mouse_resize_cursor_update(s_fake_connection, s_fake_stages,
             (xcb_window_t) 7, (struct position_s) { 100, 100 });
 
     TAP_OK(result == &client,
@@ -500,7 +500,7 @@ static void s_test_update_resizable_zone_west(void)
      * bottom; 'near_left' requires 'root_pos.x < b.left + margin_left'
      * (strictly less), so x=0 itself would miss and fall through to
      * S_RESIZE_ZONE_NONE instead */
-    result = mouse_resize_cursor_update(s_fake_connection, s_fake_surfaces,
+    result = mouse_resize_cursor_update(s_fake_connection, s_fake_stages,
             (xcb_window_t) 8, (struct position_s) { -1, 100 });
 
     TAP_OK(result == &client, "a border hit still returns the client");

@@ -33,8 +33,8 @@
 #include <client.h>
 #include <cmds/client/ewmh.h>
 #include <desktop.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Local includes */
 #include <policy/ping.h>
@@ -95,29 +95,29 @@ static void s_ping_supported_visit(desktop_td *desktop, void *data)
  * single @a ping_tick (i.e., every main-loop iteration, not just at
  * the actual @c WM_EWMH_PING_INTERVAL_SECONDS cadence).
  *
- * @param surfaces All managed surfaces
+ * @param stages All managed stages
  *
  * @return @c true when at least one such client was found
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients
  */
-static bool s_ping_any_supported(list_td *surfaces)
+static bool s_ping_any_supported(list_td *stages)
 {
-    if (surfaces == NULL) {
+    if (stages == NULL) {
         return false;
     }
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        const surface_td *const surface = (surface_td *) list_data(snode);
+        const stage_td *const stage = (stage_td *) list_data(snode);
         bool has_supported = false;
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
 
-        surface_desktop_walk_all(surface, s_ping_supported_visit,
+        stage_desktop_walk_all(stage, s_ping_supported_visit,
                 &has_supported);
         if (has_supported) {
             return true;
@@ -181,37 +181,37 @@ static void s_ping_probe_visit(desktop_td *desktop, void *data)
 
 /**
  * @brief Send this round's probe to every ping-capable client, across
- *        every surface and desktop
+ *        every stage and desktop
  *
- * @param surfaces All managed surfaces
+ * @param stages All managed stages
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients
  */
-static void s_ping_probe_round(list_td *surfaces)
+static void s_ping_probe_round(list_td *stages)
 {
-    if (surfaces == NULL) {
+    if (stages == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        const surface_td *const surface =
-            (surface_td *) list_data(snode);
+        const stage_td *const stage =
+            (stage_td *) list_data(snode);
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
 
-        surface_desktop_walk_all(surface, s_ping_probe_visit, NULL);
+        stage_desktop_walk_all(stage, s_ping_probe_visit, NULL);
     } /* ! for (snode) */
 }
 
 
 /* Probe every ping-capable client and age out unanswered ones */
-void ping_tick(list_td *surfaces)
+void ping_tick(list_td *stages)
 {
-    s_has_supported = s_ping_any_supported(surfaces);
+    s_has_supported = s_ping_any_supported(stages);
 
     if (!s_has_supported) {
         return;
@@ -225,7 +225,7 @@ void ping_tick(list_td *surfaces)
     if (clock_ms_since(&s_last_probe) >=
             (long) WM_EWMH_PING_INTERVAL_SECONDS * 1000L) {
         (void) clock_gettime(CLOCK_MONOTONIC, &s_last_probe);
-        s_ping_probe_round(surfaces);
+        s_ping_probe_round(stages);
     }
 }
 

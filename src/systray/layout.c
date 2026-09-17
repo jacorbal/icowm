@@ -43,9 +43,9 @@
 
 /* Project includes */
 #include <client.h>
-#include <surface/desktop.h>
-#include <surface/monitor.h>
-#include <surface/workarea.h>
+#include <stage/desktop.h>
+#include <stage/monitor.h>
+#include <stage/workarea.h>
 #include <desktop.h>
 #include <logger.h>
 #include <render/text.h>
@@ -81,32 +81,32 @@ static uint16_t s_systray_content_width(void)
  * @brief Find the currently fullscreen client the tray's layer should
  *        duck behind, if any
  *
- * Scoped to @p s_tray.surface's currently displayed desktop only, the
- * one surface the tray itself actually belongs to and the only desktop
+ * Scoped to @p s_tray.stage's currently displayed desktop only, the
+ * one stage the tray itself actually belongs to and the only desktop
  * whose content can actually be on screen at the same time as the tray.
- * A client fullscreen on some other surface (a different physical
- * monitor's root window) or on a desktop of @p s_tray.surface that is
+ * A client fullscreen on some other stage (a different physical
+ * monitor's root window) or on a desktop of @p s_tray.stage that is
  * not the one currently shown is not visible right now, so it has no
  * bearing on where this one tray should stack.
  *
  * @return The fullscreen client's frame (or plain window, if
  *         undecorated), or @c XCB_WINDOW_NONE if none is fullscreen on
- *         @p s_tray.surface's current desktop
+ *         @p s_tray.stage's current desktop
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p s_tray.surface's current desktop
+ *       @p s_tray.stage's current desktop
  */
 static xcb_window_t s_systray_fullscreen_target_find(void)
 {
     desktop_td *desktop;
     void *elem;
 
-    if (s_tray.surface == NULL) {
+    if (s_tray.stage == NULL) {
         return XCB_WINDOW_NONE;
     }
 
-    desktop = surface_desktop_get(s_tray.surface,
-            s_tray.surface->desktop_cur);
+    desktop = stage_desktop_get(s_tray.stage,
+            s_tray.stage->desktop_cur);
     if (desktop == NULL || desktop->clients == NULL) {
         return XCB_WINDOW_NONE;
     }
@@ -142,29 +142,29 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
  * opposite ordering.
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients across every desktop and surface
+ *       clients across every desktop and stage
  *
  * @see @a systray_below_window
  */
 static void s_systray_icon_push_below_all(void)
 {
-    list_td *surfaces;
+    list_td *stages;
 
-    surfaces = wm_get_surfaces();
-    if (surfaces == NULL) {
+    stages = wm_get_stages();
+    if (stages == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
-        if (surface == NULL || surface->desktops == NULL) {
+        if (stage == NULL || stage->desktops == NULL) {
             continue;
         }
-        dnode = cdlist_head(surface->desktops);
+        dnode = cdlist_head(stage->desktops);
         if (dnode == NULL) {
             continue;
         }
@@ -210,7 +210,7 @@ static void s_systray_icon_push_below_all(void)
  * @p config.systray.reserve-space is @c false, for anyone who would
  * rather windows stayed free to maximize over or under the tray.
  *
- * @param geom    Tray's current rectangle (root coordinates); a zero
+ * @param geom Tray's current rectangle (root coordinates); a zero
  *                dimension clears the strut (the tray itself is
  *                unmapped)
  * @param bborder Total border thickness, both sides combined
@@ -235,7 +235,7 @@ static bool s_systray_strut_update(struct geometry_s geom,
      * way it would for a real client with no strut of its own, not
      * a stale value left over from whenever reservation was last
      * enabled. */
-    if (s_tray.reserve_space && s_tray.surface != NULL &&
+    if (s_tray.reserve_space && s_tray.stage != NULL &&
             geom.dim.w > 0u && geom.dim.h > 0u) {
         switch (s_tray.position) {
             case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
@@ -250,7 +250,7 @@ static bool s_systray_strut_update(struct geometry_s geom,
             case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
             case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT: {
                 uint32_t y_u = (uint32_t) geom.pos.y;
-                uint32_t screen_h = s_tray.surface->properties.dim.h;
+                uint32_t screen_h = s_tray.stage->properties.dim.h;
 
                 partial.bottom = (screen_h > y_u)
                     ? screen_h - y_u : 0u;
@@ -308,10 +308,10 @@ static bool s_systray_strut_update(struct geometry_s geom,
 /**
  * @brief Resolve the rectangle the tray dock's corner is anchored to
  *
- * - Under @c CONFIG_SYSTRAY_MONITOR_SURFACE (the default), returns
- *   @p s_tray.surface's combined dimensions, exactly the previous,
- *   always-whole-surface behavior, treated as one virtual monitor
- *   spanning it (the same fallback @a s_surface_monitor_fallback uses
+ * - Under @c CONFIG_SYSTRAY_MONITOR_STAGE (the default), returns
+ *   @p s_tray.stage's combined dimensions, exactly the previous,
+ *   always-whole-stage behavior, treated as one virtual monitor
+ *   spanning it (the same fallback @a s_stage_monitor_fallback uses
  *   when RandR itself cannot supply a real monitor list).
  * 
  * - Under @c CONFIG_SYSTRAY_MONITOR_PRIMARY, returns whichever monitor
@@ -326,27 +326,27 @@ static bool s_systray_strut_update(struct geometry_s geom,
 static monitor_td s_systray_anchor_rect(void)
 {
     monitor_td rect = {.x = 0, .y = 0,
-        .w = s_tray.surface->properties.dim.w,
-        .h = s_tray.surface->properties.dim.h};
+        .w = s_tray.stage->properties.dim.w,
+        .h = s_tray.stage->properties.dim.h};
 
     if (s_tray.monitor.anchor == CONFIG_SYSTRAY_MONITOR_PRIMARY) {
-        return surface_monitor_primary(s_tray.surface);
+        return stage_monitor_primary(s_tray.stage);
     }
 
     if (s_tray.monitor.anchor == CONFIG_SYSTRAY_MONITOR_INDEX) {
         uint32_t idx = s_tray.monitor.index;
 
-        if (s_tray.surface->monitor_count == 0u) {
+        if (s_tray.stage->monitor_count == 0u) {
             return rect;
         }
-        if (idx >= s_tray.surface->monitor_count) {
+        if (idx >= s_tray.stage->monitor_count) {
             LOGGER_WARNING("Systray targets monitor %u, which does" \
-                    " not exist on surface %u (%u monitor(s));" \
+                    " not exist on stage %u (%u monitor(s));" \
                     " falling back to monitor 0", s_tray.monitor.index,
-                    s_tray.surface->id, s_tray.surface->monitor_count);
+                    s_tray.stage->id, s_tray.stage->monitor_count);
             idx = 0u;
         }
-        return s_tray.surface->monitors[idx];
+        return s_tray.stage->monitors[idx];
     }
 
     return rect;
@@ -423,7 +423,7 @@ void systray_layout_reflow(void)
     int32_t bborder;
     monitor_td anchor;
 
-    if (!s_tray.is_window_ready || s_tray.surface == NULL) {
+    if (!s_tray.is_window_ready || s_tray.stage == NULL) {
         return;
     }
 
@@ -531,9 +531,9 @@ void systray_layout_reflow(void)
         xcb_drawable_t target;
         xcb_gcontext_t gc;
 
-        buffer = (s_tray.surface != NULL)
+        buffer = (s_tray.stage != NULL)
             ? xcb_offscreen_buffer_create(xcb_connection_get(),
-                    s_tray.surface->screen->root_depth, s_tray.window,
+                    s_tray.stage->screen->root_depth, s_tray.window,
                     text_w, h)
             : XCB_NONE;
         target = (buffer != XCB_NONE) ? buffer : s_tray.window;
@@ -626,7 +626,7 @@ void systray_layout_reflow(void)
     systray_layout_restack();
 
     /* Only when the strut actually changed does what every desktop on
-     * this same surface considers its available 'workarea' change with
+     * this same stage considers its available 'workarea' change with
      * it.  A reflow that republished the same strut, as every repaint
      * of the tray does, has nothing to recompute.  An icon dragged
      * across the tray exposes it hundreds of times a second, and each
@@ -638,6 +638,6 @@ void systray_layout_reflow(void)
      * reasoning 'wm_action_config_reload' already applies to a changed
      * 'desktops.margins' (see its comment in 'wm/actions.c'). */
     if (is_strut_changed) {
-        surface_workarea_refresh_all(s_tray.surface);
+        stage_workarea_refresh_all(s_tray.stage);
     }
 }

@@ -42,7 +42,7 @@
 #include <client.h>
 #include <defs/icon.h>
 #include <render/icon.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /* Controllable stand-in state */
@@ -57,7 +57,7 @@ static client_td *s_cycle_selected_client = NULL;
 static bool s_drag_is_icon_drag = false;
 static client_td *s_drag_client = NULL;
 static client_td *s_iconmenu_target = NULL;
-static surface_td *s_surface_for_screen = NULL;
+static stage_td *s_stage_for_screen = NULL;
 
 static int s_change_window_attributes_calls = 0;
 static uint32_t s_last_bg_pixel = 0u;
@@ -141,10 +141,10 @@ bool iconmenu_target_is(const client_td *client)
     return client != NULL && client == s_iconmenu_target;
 }
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_for_screen;
+    (void) stage_id;
+    return s_stage_for_screen;
 }
 
 xcb_pixmap_t xcb_offscreen_buffer_create(xcb_connection_t *connection,
@@ -453,7 +453,7 @@ static void s_reset_fixture(void)
     s_drag_is_icon_drag = false;
     s_drag_client = NULL;
     s_iconmenu_target = NULL;
-    s_surface_for_screen = NULL;
+    s_stage_for_screen = NULL;
     s_change_window_attributes_calls = 0;
     s_last_bg_pixel = 0u;
     s_last_border_pixel = 0u;
@@ -796,19 +796,19 @@ static void s_test_render_client_icon_blink_off_no_swap(void)
  * ri_render_client_icon: icon_h and offscreen-buffer fallback           *
  * ==================================================================== */
 
-/* No surface resolvable for client->screen_id: no offscreen buffer is
+/* No stage resolvable for client->screen_id: no offscreen buffer is
  * ever requested, and the icon window itself becomes the drawable
  * everything else draws onto (via xcb_clear_area instead of a
  * poly-fill into a buffer) */
-static void s_test_render_client_icon_no_surface_draws_direct(void)
+static void s_test_render_client_icon_no_stage_draws_direct(void)
 {
     s_reset_fixture();
-    s_surface_for_screen = NULL;
+    s_stage_for_screen = NULL;
 
     ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_offscreen_buffer_create_calls, 0,
-            "no surface resolvable for this screen_id: no offscreen"
+            "no stage resolvable for this screen_id: no offscreen"
             " buffer is ever requested");
     TAP_EQ_INT(s_clear_area_calls, 1,
             "...falls back to clearing the icon window directly"
@@ -817,26 +817,26 @@ static void s_test_render_client_icon_no_surface_draws_direct(void)
             "...and never copies a buffer over, since none was built");
 }
 
-/* A resolvable surface but a buffer creation failure (XCB_NONE)
+/* A resolvable stage but a buffer creation failure (XCB_NONE)
  * behaves the same way: falls back to drawing directly on the icon
  * window */
 static void s_test_render_client_icon_buffer_creation_failure_direct(void)
 {
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
 
     s_reset_fixture();
-    s_surface_for_screen = &surface;
+    s_stage_for_screen = &stage;
     s_offscreen_buffer_result = XCB_NONE;
 
     ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_offscreen_buffer_create_calls, 1,
-            "a resolvable surface does request an offscreen buffer");
+            "a resolvable stage does request an offscreen buffer");
     TAP_EQ_INT(s_clear_area_calls, 1,
             "...but a creation failure (XCB_NONE) falls back to"
             " clearing the icon window directly");
@@ -847,15 +847,15 @@ static void s_test_render_client_icon_buffer_creation_failure_direct(void)
  * window directly */
 static void s_test_render_client_icon_buffer_success_copies_and_frees(void)
 {
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
 
     s_reset_fixture();
-    s_surface_for_screen = &surface;
+    s_stage_for_screen = &stage;
     s_offscreen_buffer_result = 999u;
     s_client_fixture.config->theme.icon.is_captioned
         ? (void) 0 : (void) 0; /* silence unused-field-path warnings */
@@ -878,15 +878,15 @@ static void s_test_render_client_icon_buffer_success_copies_and_frees(void)
  * icons, and stays at just WM_ICON_SQUARE_SIZE when it does not */
 static void s_test_render_client_icon_h_grows_when_captioned(void)
 {
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
 
     s_reset_fixture();
-    s_surface_for_screen = &surface;
+    s_stage_for_screen = &stage;
     s_offscreen_buffer_result = 999u;
     s_config_fixture.theme.icon.is_captioned = true;
 
@@ -900,15 +900,15 @@ static void s_test_render_client_icon_h_grows_when_captioned(void)
 
 static void s_test_render_client_icon_h_stays_square_uncaptioned(void)
 {
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
 
     s_reset_fixture();
-    s_surface_for_screen = &surface;
+    s_stage_for_screen = &stage;
     s_offscreen_buffer_result = 999u;
     s_config_fixture.theme.icon.is_captioned = false;
 
@@ -1473,7 +1473,7 @@ int main(void)
     s_test_render_client_icon_blink_on_swaps_display_active();
     s_test_render_client_icon_blink_off_no_swap();
 
-    s_test_render_client_icon_no_surface_draws_direct();
+    s_test_render_client_icon_no_stage_draws_direct();
     s_test_render_client_icon_buffer_creation_failure_direct();
     s_test_render_client_icon_buffer_success_copies_and_frees();
     s_test_render_client_icon_h_grows_when_captioned();

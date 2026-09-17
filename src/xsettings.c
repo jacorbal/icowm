@@ -34,7 +34,7 @@
 /* Project includes */
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -45,10 +45,10 @@
  * @brief Module-level built-in XSETTINGS manager state
  *
  * A single instance for the whole window manager, matching
- * @c config.xsettings being a single global (not per-surface) setting.
+ * @c config.xsettings being a single global (not per-stage) setting.
  */
 static struct {
-    surface_td *surface;
+    stage_td *stage;
     xcb_window_t window;            /**< Settings-holder window */
     xcb_atom_t selection_atom;      /**< @c _XSETTINGS_Sn */
     xcb_atom_t settings_atom;       /**< @c _XSETTINGS_SETTINGS */
@@ -374,30 +374,30 @@ static bool s_xs_config_changed(const wm_td *wm)
  */
 static bool s_xs_ensure_window(const wm_td *wm)
 {
-    surface_td *surface;
+    stage_td *stage;
     char selection_name[24];
     uint32_t mask;
     uint32_t values[1];
     xcb_connection_t *connection = wm_connection(wm);
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
 
     if (s_xs.is_window_ready) {
         return true;
     }
 
-    if (wm == NULL || connection == NULL || surfaces == NULL) {
+    if (wm == NULL || connection == NULL || stages == NULL) {
         return false;
     }
 
-    surface = (surface_td *) list_data(list_head(surfaces));
-    if (surface == NULL || surface->screen == NULL) {
+    stage = (stage_td *) list_data(list_head(stages));
+    if (stage == NULL || stage->screen == NULL) {
         return false;
     }
 
-    s_xs.surface = surface;
+    s_xs.stage = stage;
 
     (void) snprintf(selection_name, sizeof(selection_name),
-            "_XSETTINGS_S%u", (unsigned int) surface->id);
+            "_XSETTINGS_S%u", (unsigned int) stage->id);
     s_xs.selection_atom = atom_intern(connection, selection_name,
             false);
     s_xs.settings_atom = atom_intern(connection,
@@ -416,7 +416,7 @@ static bool s_xs_ensure_window(const wm_td *wm)
     values[0] = 1;   /* override_redirect: never managed as a client */
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT,
-            s_xs.window, surface->screen->root,
+            s_xs.window, stage->screen->root,
             -1, -1, 1, 1, 0,
             XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
             mask, values);
@@ -445,7 +445,7 @@ static bool s_xs_acquire_selection(void)
 
     if (!util_xcb_acquire_manager_selection(xcb_connection_get(),
                 s_xs.window, s_xs.selection_atom, s_xs.manager_atom,
-                s_xs.surface->screen->root)) {
+                s_xs.stage->screen->root)) {
         LOGGER_NOTICE("Another XSETTINGS manager already owns the" \
                 " settings selection; built-in one stays disabled",
                 L_NARG);
@@ -454,8 +454,8 @@ static bool s_xs_acquire_selection(void)
 
     s_xs.is_selection_owned = true;
 
-    LOGGER_INFO("XSETTINGS manager active on surface %u (selection" \
-            " atom 0x%x)", s_xs.surface->id,
+    LOGGER_INFO("XSETTINGS manager active on stage %u (selection" \
+            " atom 0x%x)", s_xs.stage->id,
             (unsigned int) s_xs.selection_atom);
 
     return true;

@@ -7,8 +7,8 @@
  * Both public entry points, wm_ewmh_init and wm_ewmh_sync, are
  * exercised through the real source file, linked directly, together
  * with the real src/wm/instance.c narrow accessors it calls through
- * (wm_connection, wm_ewmh, wm_surfaces, wm_ewmh_support_win,
- * wm_sync_available) and the real src/adt/list.c the surfaces list
+ * (wm_connection, wm_ewmh, wm_stages, wm_ewmh_support_win,
+ * wm_sync_available) and the real src/adt/list.c the stages list
  * itself is built from.  Every genuine libxcb/libxcb-ewmh call
  * reached from wm/ewmh.c (xcb_change_property, xcb_flush,
  * xcb_ewmh_set_wm_name, xcb_ewmh_set_supported,
@@ -29,7 +29,7 @@
  * respectively.  'atom_intern' is a recording stand-in answering a
  * fixed, recognizable, distinct atom per name so a test can tell
  * exactly which of the several one-off atoms wm_ewmh_init interns
- * ended up in the supported-atoms list.  'surface_desktop_walk_all',
+ * ended up in the supported-atoms list.  'stage_desktop_walk_all',
  * 'stacking_walk', and 'stacking_count' are test-controlled stand-ins
  * that actually walk a plain array of desktop_td/client_td pointers a
  * test registers beforehand (rather than the real cdlist/ohtbl
@@ -38,7 +38,7 @@
  * logic and its consumption of what the walk it are given, not the
  * container walk itself, already covered elsewhere (e.g.,
  * tests/wm/test_clients.c for wm_for_each_client's own cdlist/ohtbl
- * walk).  'surface_desktop_get' is a test-controlled stand-in
+ * walk).  'stage_desktop_get' is a test-controlled stand-in
  * answering whichever desktop_td a test registers for a given id.
  * 'lookup_find_client' is a test-controlled stand-in answering
  * whichever client_td a test registers, mirroring the same pattern
@@ -73,7 +73,7 @@
 #include <desktop.h>
 #include <lookup.h>
 #include <policy/stacking.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/ewmh.h>
 #include <wm/internal.h>
@@ -607,30 +607,30 @@ xcb_void_cookie_t xcb_ewmh_set_client_list_stacking(
 
 
 /** Fixed array of desktops a test registers, and how many are valid,
- *  for @a surface_desktop_walk_all and @a surface_desktop_get to walk
+ *  for @a stage_desktop_walk_all and @a stage_desktop_get to walk
  *  or search through */
 static desktop_td *s_walk_desktops[8];
 static int s_walk_desktop_count;
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_desktop_walk_all
+ * @brief Test-controlled stand-in for @a stage_desktop_walk_all
  *
  * Actually invokes @p visit once per desktop a test registered
  * through @a s_set_walk_desktops, exactly as the real
- * surface_desktop_walk_all (surface.c) does over its own cdlist, so that
+ * stage_desktop_walk_all (stage.c) does over its own cdlist, so that
  * wm/ewmh.c's own per-desktop visitor functions are genuinely
  * exercised rather than merely proven reachable
  *
  * @note Complexity: @e O(n), where @e n is the number of registered
  *       desktops
  */
-void surface_desktop_walk_all(const surface_td *surface,
+void stage_desktop_walk_all(const stage_td *stage,
         void (*visit)(desktop_td *desktop, void *data), void *data)
 {
     int i;
 
-    (void) surface;
+    (void) stage;
 
     if (visit == NULL) {
         return;
@@ -654,7 +654,7 @@ static void s_set_walk_desktops(desktop_td **desktops, int count)
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_desktop_get
+ * @brief Test-controlled stand-in for @a stage_desktop_get
  *
  * Answers whichever registered desktop's own id matches @p desktop_id,
  * or NULL if none does
@@ -662,11 +662,11 @@ static void s_set_walk_desktops(desktop_td **desktops, int count)
  * @note Complexity: @e O(n), where @e n is the number of registered
  *       desktops
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
     int i;
 
-    (void) surface;
+    (void) stage;
 
     for (i = 0; i < s_walk_desktop_count; i++) {
         if (s_walk_desktops[i] != NULL &&
@@ -743,12 +743,12 @@ static client_td *s_lookup_client;
  * @brief Test-controlled stand-in for @a lookup_find_client
  * @note Complexity: @e O(1)
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
-    (void) out_surface;
+    (void) out_stage;
     (void) out_desktop;
 
     return s_lookup_client;
@@ -981,27 +981,27 @@ static void s_test_init_null_guards(void)
 }
 
 
-/* With no managed surfaces at all, wm_ewmh_init still publishes the
+/* With no managed stages at all, wm_ewmh_init still publishes the
  * WM name and interns every one-off atom, but never touches a
- * per-surface property */
-static void s_test_init_no_surfaces_still_publishes_wm_name(void)
+ * per-stage property */
+static void s_test_init_no_stages_still_publishes_wm_name(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
+    list_td *stages;
     int result;
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
     wm_instance.ewmh_support_win = (xcb_window_t) 77u;
 
     result = wm_ewmh_init(&wm_instance);
 
-    TAP_EQ_INT(result, 0, "wm_ewmh_init succeeds with zero surfaces");
+    TAP_EQ_INT(result, 0, "wm_ewmh_init succeeds with zero stages");
     TAP_EQ_INT(s_wmname_count, 1,
             "the WM name is published exactly once regardless");
     TAP_EQ_STR(s_wmname_value, "IcoWM",
@@ -1009,49 +1009,49 @@ static void s_test_init_no_surfaces_still_publishes_wm_name(void)
     TAP_EQ_INT((long) s_wmname_window, 77,
             "published on the supporting-check window itself");
     TAP_EQ_INT(s_supported_count, 0,
-            "with no surfaces, _NET_SUPPORTED is never published");
+            "with no stages, _NET_SUPPORTED is never published");
     TAP_EQ_INT(s_flush_count, 1,
             "the connection is flushed exactly once on the way out");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* One managed surface receives both _NET_SUPPORTING_WM_CHECK and a
+/* One managed stage receives both _NET_SUPPORTING_WM_CHECK and a
  * full _NET_SUPPORTED atom list, the latter including every one-off
  * atom wm_ewmh_init interns itself rather than reading off the
  * EWMH connection struct */
-static void s_test_init_one_surface_publishes_supported(void)
+static void s_test_init_one_stage_publishes_supported(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_screen_t screen;
     int result;
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&screen, 0, sizeof(screen));
     screen.root = (xcb_window_t) 500u;
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = &screen;
-    surface.id = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = &screen;
+    stage.id = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
     wm_instance.ewmh_support_win = (xcb_window_t) 77u;
     wm_instance.is_sync_available = false;
 
     result = wm_ewmh_init(&wm_instance);
 
-    TAP_EQ_INT(result, 0, "wm_ewmh_init succeeds with one surface");
+    TAP_EQ_INT(result, 0, "wm_ewmh_init succeeds with one stage");
     TAP_EQ_INT(s_swc_count, 1,
             "_NET_SUPPORTING_WM_CHECK is published exactly once");
     TAP_EQ_INT((long) s_swc_parent, 500,
-            "targeting the surface's own root window");
+            "targeting the stage's own root window");
     TAP_EQ_INT((long) s_swc_child, 77,
             "and naming the support window itself");
     TAP_EQ_INT(s_supported_count, 1,
@@ -1069,7 +1069,7 @@ static void s_test_init_one_surface_publishes_supported(void)
     TAP_OK(!s_supported_has(s_ewmh._NET_WM_SYNC_REQUEST),
             "with XSync unavailable, _NET_WM_SYNC_REQUEST is left out"
             " of the list entirely");
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1079,24 +1079,24 @@ static void s_test_init_one_surface_publishes_supported(void)
 static void s_test_init_sync_available_adds_two_atoms(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_screen_t screen;
     uint32_t len_without_sync;
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&screen, 0, sizeof(screen));
     screen.root = (xcb_window_t) 500u;
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = &screen;
-    surface.id = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = &screen;
+    stage.id = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
     wm_instance.ewmh_support_win = (xcb_window_t) 77u;
     wm_instance.is_sync_available = false;
     wm_ewmh_init(&wm_instance);
@@ -1115,79 +1115,79 @@ static void s_test_init_sync_available_adds_two_atoms(void)
             "_NET_WM_SYNC_REQUEST itself is one of the two");
     TAP_OK(s_supported_has(s_ewmh._NET_WM_SYNC_REQUEST_COUNTER),
             "and _NET_WM_SYNC_REQUEST_COUNTER is the other");
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* A surface with a null screen pointer is skipped entirely: neither
+/* A stage with a null screen pointer is skipped entirely: neither
  * _NET_SUPPORTING_WM_CHECK nor _NET_SUPPORTED is published for it,
- * and it does not stop a later, valid surface from receiving both */
-static void s_test_init_skips_surface_with_null_screen(void)
+ * and it does not stop a later, valid stage from receiving both */
+static void s_test_init_skips_stage_with_null_screen(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td bad_surface;
-    surface_td good_surface;
+    list_td *stages;
+    stage_td bad_stage;
+    stage_td good_stage;
     xcb_screen_t screen;
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
-    memset(&bad_surface, 0, sizeof(bad_surface));
-    bad_surface.screen = NULL;
-    bad_surface.id = 0u;
+    stages = list_init(NULL);
+    memset(&bad_stage, 0, sizeof(bad_stage));
+    bad_stage.screen = NULL;
+    bad_stage.id = 0u;
     memset(&screen, 0, sizeof(screen));
     screen.root = (xcb_window_t) 900u;
-    memset(&good_surface, 0, sizeof(good_surface));
-    good_surface.screen = &screen;
-    good_surface.id = 1u;
-    list_ins_next(surfaces, list_tail(surfaces), &bad_surface);
-    list_ins_next(surfaces, list_tail(surfaces), &good_surface);
+    memset(&good_stage, 0, sizeof(good_stage));
+    good_stage.screen = &screen;
+    good_stage.id = 1u;
+    list_ins_next(stages, list_tail(stages), &bad_stage);
+    list_ins_next(stages, list_tail(stages), &good_stage);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
     wm_instance.ewmh_support_win = (xcb_window_t) 77u;
 
     wm_ewmh_init(&wm_instance);
 
     TAP_EQ_INT(s_swc_count, 1,
-            "only the good surface, not the null-screen one, ever"
+            "only the good stage, not the null-screen one, ever"
             " receives _NET_SUPPORTING_WM_CHECK");
     TAP_EQ_INT((long) s_swc_parent, 900,
-            "specifically the good surface's own root window");
+            "specifically the good stage's own root window");
     TAP_EQ_INT(s_supported_count, 1,
             "and only one _NET_SUPPORTED publication happens in"
-            " total, for the surface the null-screen one did not"
+            " total, for the stage the null-screen one did not"
             " prevent from being reached");
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* wm_ewmh_sync on a null wm, or a singleton with a null surfaces list
+/* wm_ewmh_sync on a null wm, or a singleton with a null stages list
  * or a null EWMH connection, is a pure guard clause: not one
- * per-surface stand-in is ever touched */
+ * per-stage stand-in is ever touched */
 static void s_test_sync_null_guards(void)
 {
-    wm_td wm_null_surfaces;
+    wm_td wm_null_stages;
     wm_td wm_null_ewmh;
-    list_td *surfaces;
+    list_td *stages;
 
     s_reset();
     s_set_ewmh_present(true);
-    memset(&wm_null_surfaces, 0, sizeof(wm_null_surfaces));
-    wm_null_surfaces.connection = (xcb_connection_t *) (uintptr_t) 1;
-    wm_null_surfaces.ewmh = &s_ewmh;
-    wm_null_surfaces.surfaces = NULL;
+    memset(&wm_null_stages, 0, sizeof(wm_null_stages));
+    wm_null_stages.connection = (xcb_connection_t *) (uintptr_t) 1;
+    wm_null_stages.ewmh = &s_ewmh;
+    wm_null_stages.stages = NULL;
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&wm_null_ewmh, 0, sizeof(wm_null_ewmh));
     wm_null_ewmh.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_null_ewmh.ewmh = NULL;
-    wm_null_ewmh.surfaces = surfaces;
+    wm_null_ewmh.stages = stages;
 
     wm_ewmh_sync(NULL);
-    wm_ewmh_sync(&wm_null_surfaces);
+    wm_ewmh_sync(&wm_null_stages);
     wm_ewmh_sync(&wm_null_ewmh);
 
     TAP_EQ_INT(s_nod_count, 0,
@@ -1197,62 +1197,62 @@ static void s_test_sync_null_guards(void)
             "and none of them flushes the connection either, since"
             " every one returns before the loop that would");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* A plain, single-desktop surface with no active client publishes
+/* A plain, single-desktop stage with no active client publishes
  * its own desktop count, current desktop, and geometry, an
  * XCB_NONE active window, and a false showing-desktop flag */
-static void s_test_sync_plain_surface_publishes_geometry(void)
+static void s_test_sync_plain_stage_publishes_geometry(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     desktop_td *desktops[1];
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&desktop, 0, sizeof(desktop));
     desktop.id = 0u;
     desktop.client_active_id = XCB_NONE;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 3u;
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
-    surface.properties.dim.w = 1920u;
-    surface.properties.dim.h = 1080u;
-    surface.is_showing_desktop = false;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 3u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
+    stage.properties.dim.w = 1920u;
+    stage.properties.dim.h = 1080u;
+    stage.is_showing_desktop = false;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &desktop;
     s_set_walk_desktops(desktops, 1);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
     TAP_EQ_INT((long) s_nod_value, 1,
-            "the surface's own desktop count is published verbatim");
+            "the stage's own desktop count is published verbatim");
     TAP_EQ_INT((long) s_cd_value, 0,
             "as is its current desktop index");
     TAP_EQ_INT((long) s_dg_width, 1920,
-            "the desktop geometry's width comes from the surface's"
+            "the desktop geometry's width comes from the stage's"
             " own dimensions");
     TAP_EQ_INT((long) s_dg_height, 1080, "and so does its height");
     TAP_EQ_INT((long) s_aw_value, (long) XCB_NONE,
             "with no active client on the current desktop, the"
             " active window published is XCB_NONE");
     TAP_EQ_INT((long) s_sd_value, 0,
-            "a surface not showing the desktop publishes a false"
+            "a stage not showing the desktop publishes a false"
             " showing-desktop flag");
     TAP_EQ_INT(s_flush_count, 1,
             "the connection is flushed exactly once at the end");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1262,32 +1262,32 @@ static void s_test_sync_plain_surface_publishes_geometry(void)
 static void s_test_sync_active_client_resolves_window(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     desktop_td *desktops[1];
     client_td client;
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&client, 0, sizeof(client));
     client.window = (xcb_window_t) 4242u;
     s_lookup_client = &client;
     memset(&desktop, 0, sizeof(desktop));
     desktop.id = 0u;
     desktop.client_active_id = (xcb_window_t) 99u;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &desktop;
     s_set_walk_desktops(desktops, 1);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1295,7 +1295,7 @@ static void s_test_sync_active_client_resolves_window(void)
             "the active window published is the resolved client's"
             " own X window, not its internal id");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1305,29 +1305,29 @@ static void s_test_sync_active_client_resolves_window(void)
 static void s_test_sync_active_client_missing_falls_back(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     desktop_td *desktops[1];
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     s_lookup_client = NULL;
     memset(&desktop, 0, sizeof(desktop));
     desktop.id = 0u;
     desktop.client_active_id = (xcb_window_t) 99u;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &desktop;
     s_set_walk_desktops(desktops, 1);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1335,7 +1335,7 @@ static void s_test_sync_active_client_missing_falls_back(void)
             "an active client id that fails to resolve at all falls"
             " back to publishing XCB_NONE, never a stale window");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1345,32 +1345,32 @@ static void s_test_sync_active_client_missing_falls_back(void)
 static void s_test_sync_publishes_desktop_names_with_fallback(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td named;
     desktop_td unnamed;
     desktop_td *desktops[2];
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&named, 0, sizeof(named));
     named.id = 0u;
     strncpy(named.name, "Work", sizeof(named.name) - 1);
     memset(&unnamed, 0, sizeof(unnamed));
     unnamed.id = 1u;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 2u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 2u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &named;
     desktops[1] = &unnamed;
     s_set_walk_desktops(desktops, 2);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1380,7 +1380,7 @@ static void s_test_sync_publishes_desktop_names_with_fallback(void)
             "and the buffer holds the real name first, followed by"
             " the generated fallback for the unnamed second desktop");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1389,15 +1389,15 @@ static void s_test_sync_publishes_desktop_names_with_fallback(void)
 static void s_test_sync_publishes_one_workarea_per_desktop(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td first;
     desktop_td second;
     desktop_td *desktops[2];
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&first, 0, sizeof(first));
     first.id = 0u;
     first.workarea.pos.x = 0;
@@ -1410,18 +1410,18 @@ static void s_test_sync_publishes_one_workarea_per_desktop(void)
     second.workarea.pos.y = 20;
     second.workarea.dim.w = 400u;
     second.workarea.dim.h = 300u;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 2u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 2u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &first;
     desktops[1] = &second;
     s_set_walk_desktops(desktops, 2);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1435,7 +1435,7 @@ static void s_test_sync_publishes_one_workarea_per_desktop(void)
             "the second desktop's x offset comes through too");
     TAP_EQ_INT((long) s_wa_list[1].y, 20, "and its y offset");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1445,29 +1445,29 @@ static void s_test_sync_publishes_one_workarea_per_desktop(void)
 static void s_test_sync_workarea_clamps_negative_position(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     desktop_td *desktops[1];
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&desktop, 0, sizeof(desktop));
     desktop.id = 0u;
     desktop.workarea.pos.x = -5;
     desktop.workarea.pos.y = -5;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &desktop;
     s_set_walk_desktops(desktops, 1);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1477,7 +1477,7 @@ static void s_test_sync_workarea_clamps_negative_position(void)
     TAP_EQ_INT((long) s_wa_list[0].y, 0,
             "and so does a negative y position");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1487,28 +1487,28 @@ static void s_test_sync_workarea_clamps_negative_position(void)
 static void s_test_sync_no_clients_publishes_empty_lists(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     desktop_td *desktops[1];
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&desktop, 0, sizeof(desktop));
     desktop.id = 0u;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &desktop;
     s_set_walk_desktops(desktops, 1);
     s_set_stack_clients(NULL, 0);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1520,7 +1520,7 @@ static void s_test_sync_no_clients_publishes_empty_lists(void)
             "and so is _NET_CLIENT_LIST_STACKING");
     TAP_EQ_INT((long) s_cls_len, 0, "also empty");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1530,8 +1530,8 @@ static void s_test_sync_no_clients_publishes_empty_lists(void)
 static void s_test_sync_publishes_client_list_and_desktop_property(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     desktop_td *desktops[1];
     client_td client_a;
@@ -1540,14 +1540,14 @@ static void s_test_sync_publishes_client_list_and_desktop_property(void)
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&desktop, 0, sizeof(desktop));
     desktop.id = 7u;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &desktop;
     s_set_walk_desktops(desktops, 1);
     memset(&client_a, 0, sizeof(client_a));
@@ -1560,7 +1560,7 @@ static void s_test_sync_publishes_client_list_and_desktop_property(void)
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1578,7 +1578,7 @@ static void s_test_sync_publishes_client_list_and_desktop_property(void)
     TAP_EQ_INT((long) s_cp_data[0], 7,
             "and names the desktop the client actually walked off of");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1588,8 +1588,8 @@ static void s_test_sync_publishes_client_list_and_desktop_property(void)
 static void s_test_sync_pinned_client_publishes_all_desktops(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td desktop;
     desktop_td *desktops[1];
     client_td client;
@@ -1597,14 +1597,14 @@ static void s_test_sync_pinned_client_publishes_all_desktops(void)
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&desktop, 0, sizeof(desktop));
     desktop.id = 3u;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &desktop;
     s_set_walk_desktops(desktops, 1);
     memset(&client, 0, sizeof(client));
@@ -1615,7 +1615,7 @@ static void s_test_sync_pinned_client_publishes_all_desktops(void)
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1624,7 +1624,7 @@ static void s_test_sync_pinned_client_publishes_all_desktops(void)
             " desktops\" sentinel for its own _NET_WM_DESKTOP,"
             " ignoring which desktop the walk actually found it on");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1633,15 +1633,15 @@ static void s_test_sync_pinned_client_publishes_all_desktops(void)
 static void s_test_sync_publishes_real_viewport_origins(void)
 {
     wm_td wm_instance;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     desktop_td first;
     desktop_td second;
     desktop_td *desktops[2];
 
     s_reset();
     s_set_ewmh_present(true);
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     memset(&first, 0, sizeof(first));
     first.id = 0u;
     first.viewport_origin.x = 1024;
@@ -1650,18 +1650,18 @@ static void s_test_sync_publishes_real_viewport_origins(void)
     second.id = 1u;
     second.viewport_origin.x = 0;
     second.viewport_origin.y = 768;
-    memset(&surface, 0, sizeof(surface));
-    surface.id = 0u;
-    surface.desktop_count = 2u;
-    surface.desktop_cur = 0u;
-    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.id = 0u;
+    stage.desktop_count = 2u;
+    stage.desktop_cur = 0u;
+    list_ins_next(stages, list_tail(stages), &stage);
     desktops[0] = &first;
     desktops[1] = &second;
     s_set_walk_desktops(desktops, 2);
     memset(&wm_instance, 0, sizeof(wm_instance));
     wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
     wm_instance.ewmh = &s_ewmh;
-    wm_instance.surfaces = surfaces;
+    wm_instance.stages = stages;
 
     wm_ewmh_sync(&wm_instance);
 
@@ -1675,7 +1675,7 @@ static void s_test_sync_publishes_real_viewport_origins(void)
             "the second desktop's real viewport Y origin is" \
             " published rather than left at zero");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -1684,12 +1684,12 @@ int main(void)
     TAP_PLAN(59);
 
     s_test_init_null_guards();
-    s_test_init_no_surfaces_still_publishes_wm_name();
-    s_test_init_one_surface_publishes_supported();
+    s_test_init_no_stages_still_publishes_wm_name();
+    s_test_init_one_stage_publishes_supported();
     s_test_init_sync_available_adds_two_atoms();
-    s_test_init_skips_surface_with_null_screen();
+    s_test_init_skips_stage_with_null_screen();
     s_test_sync_null_guards();
-    s_test_sync_plain_surface_publishes_geometry();
+    s_test_sync_plain_stage_publishes_geometry();
     s_test_sync_active_client_resolves_window();
     s_test_sync_active_client_missing_falls_back();
     s_test_sync_publishes_desktop_names_with_fallback();

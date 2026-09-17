@@ -3,7 +3,7 @@
  *
  * @brief Functions on a client's passive button grab
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*

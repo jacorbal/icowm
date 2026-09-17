@@ -44,7 +44,7 @@
 #include <policy/stacking.h>
 
 /* Commands includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Project includes */
 #include <client.h>
@@ -52,12 +52,12 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <enact/surface.h>
+#include <enact/stage.h>
 #include <i18n.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/desktop.h>
-#include <surface/viewport.h>
+#include <stage.h>
+#include <stage/desktop.h>
+#include <stage/viewport.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -87,7 +87,7 @@ typedef struct {
 
 /** Private widget state singleton */
 static struct {
-    surface_td *surface;
+    stage_td *stage;
     size_t query_len;
     const config_td *config;
 
@@ -279,15 +279,15 @@ static void s_search_candidate_visit(client_td *client, void *data)
 
 /**
  * @brief Collect every focusable, non-skip-taskbar client across every
- *        desktop of @c s_search.surface into @c s_search.candidates
+ *        desktop of @c s_search.stage into @c s_search.candidates
  *
  * Same eligibility filter @a cycle_init uses for its own window list;
  * unrelated to the currently active desktop, so a client on a desktop
  * other than the one showing right now is still collected.
  *
  * @note Complexity: @e O(n), where @e n is the total number of clients
- *       across every desktop of @c s_search.surface (a single walk of
- *       the surface's own circular desktop list, not one lookup per
+ *       across every desktop of @c s_search.stage (a single walk of
+ *       the stage's own circular desktop list, not one lookup per
  *       index, plus one walk of each desktop's own stacking list)
  */
 static void s_search_collect_candidates(void)
@@ -296,7 +296,7 @@ static void s_search_collect_candidates(void)
 
     s_search.candidate_count = 0;
 
-    cdlist_foreach(s_search.surface->desktops, dnode) {
+    cdlist_foreach(s_search.stage->desktops, dnode) {
         desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
         if (s_search.candidate_count >= WM_SEARCH_MAX_ENTRIES) {
@@ -379,14 +379,14 @@ static void s_search_refilter(void)
  *        count from the current result count
  *
  * Caps visible height at @c WM_SEARCH_MAX_HEIGHT_PERCENT of the
- * surface's own height, the same reasoning @a cycle_init uses for its
+ * stage's own height, the same reasoning @a cycle_init uses for its
  * own menu.
  *
  * @note Complexity: @e O(1)
  */
 static void s_search_compute_geometry(void)
 {
-    uint32_t screen_h_pct = s_search.surface->properties.dim.h *
+    uint32_t screen_h_pct = s_search.stage->properties.dim.h *
         (uint32_t) WM_SEARCH_MAX_HEIGHT_PERCENT / 100u;
     uint32_t avail = (screen_h_pct > (uint32_t) WM_SEARCH_BAR_HEIGHT)
         ? screen_h_pct - (uint32_t) WM_SEARCH_BAR_HEIGHT : 0u;
@@ -471,17 +471,17 @@ static int s_search_row_at_y(int16_t y)
  *        restore it if needed, and focus and raise it
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces, passed through to
+ * @param stages     All managed stages, passed through to
  *                   @a focus_apply
  *
  * @note Complexity: @e O(1)
  */
 static void s_search_confirm(xcb_connection_t *connection,
-        list_td *surfaces)
+        list_td *stages)
 {
     client_td *client;
     desktop_td *desktop;
-    surface_td *surface;
+    stage_td *stage;
 
     if (s_search.selected < 0 ||
             s_search.selected >= s_search.result_count) {
@@ -491,11 +491,11 @@ static void s_search_confirm(xcb_connection_t *connection,
 
     client = s_search.results[s_search.selected].client;
     desktop = s_search.results[s_search.selected].desktop;
-    surface = s_search.surface;
+    stage = s_search.stage;
 
     search_destroy(connection);
 
-    if (client == NULL || desktop == NULL || surface == NULL) {
+    if (client == NULL || desktop == NULL || stage == NULL) {
         return;
     }
 
@@ -534,18 +534,18 @@ static void s_search_confirm(xcb_connection_t *connection,
          * sitting in front of them; 'focus_apply' itself already
          * correctly brings any of its own un-pinned transient
          * descendants onto this same current desktop via its own
-         * 'ccmd_client_bring_family' call, using 'surface->desktop_cur'
+         * 'ccmd_client_bring_family' call, using 'stage->desktop_cur'
          * exactly as this does. */
-        desktop = surface_desktop_get(surface, surface->desktop_cur);
+        desktop = stage_desktop_get(stage, stage->desktop_cur);
         if (desktop == NULL) {
             return;
         }
-    } else if (desktop->id != surface->desktop_cur) {
-        enact_surface_desktop_switch(surface, desktop->id);
+    } else if (desktop->id != stage->desktop_cur) {
+        enact_stage_desktop_switch(stage, desktop->id);
     }
 
 
-    focus_apply(surfaces, surface, desktop, client, true,
+    focus_apply(stages, stage, desktop, client, true,
             s_search.config);
 }
 
@@ -584,7 +584,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
             (uint16_t) WM_SEARCH_WIDTH);
 
     if (cfg->theme.menu.show_pixmaps && r->client != NULL &&
-            s_search.surface != NULL) {
+            s_search.stage != NULL) {
         uint16_t icon_size = (uint16_t) (WM_SEARCH_ROW_HEIGHT - 4);
         struct position_s icon_pos;
 
@@ -619,15 +619,15 @@ static void s_search_draw_row(xcb_connection_t *connection,
      * That is also why the label leaves out the desktop's own name
      * here: what identifies an entry in a list of windows is the
      * window's own title, and the name would take width from it. */
-    if (s_search.surface != NULL &&
-            s_search.surface->desktop_count > 1u && r->desktop != NULL) {
+    if (s_search.stage != NULL &&
+            s_search.stage->desktop_count > 1u && r->desktop != NULL) {
         char desk_buf[WM_SEARCH_ENTRY_LENGTH];
         uint32_t vp_col;
         uint32_t vp_row;
 
         desk_buf[0] = '\0';
 
-        /* Only what there is to say: the desktop once the surface has
+        /* Only what there is to say: the desktop once the stage has
          * more than one, the page once the grid has more than one, and
          * nothing at all when neither, rather than a bare '[0]'
          * repeated down every row that says the same thing */
@@ -640,7 +640,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
              * pages in several of the languages this ships with. */
             (void) safe_strncat(desk_buf, "[*]", sizeof(desk_buf));
         } else {
-            surface_desktop_label(s_search.surface, r->desktop->id,
+            stage_desktop_label(s_search.stage, r->desktop->id,
                     r->desktop->name, false, false, desk_buf,
                     sizeof(desk_buf));
         }
@@ -650,12 +650,12 @@ static void s_search_draw_row(xcb_connection_t *connection,
          * on, so it gets its own bracket pair rather than being
          * folded into the desktop label's own '(row, col)' */
         if (r->client != NULL && client_is_sticky(r->client) &&
-                surface_viewport_has_room(s_search.surface)) {
+                stage_viewport_has_room(s_search.stage)) {
             (void) safe_strncat(desk_buf,
                     (desk_buf[0] != '\0') ? " {*}" : "{*}",
                     sizeof(desk_buf));
         } else if (r->client != NULL &&
-                scmd_surface_viewport_client_page(s_search.surface,
+                scmd_stage_viewport_client_page(s_search.stage,
                     r->desktop, r->client, &vp_col, &vp_row)) {
             char vp_buf[32];
             const char *vp_text = vp_buf;
@@ -769,8 +769,8 @@ xcb_window_t search_window(void)
 
 
 /* Initialize the window-search widget */
-void search_init(list_td *surfaces, xcb_connection_t *connection,
-        surface_td *surface, const config_td *cfg)
+void search_init(list_td *stages, xcb_connection_t *connection,
+        stage_td *stage, const config_td *cfg)
 {
     xcb_get_input_focus_cookie_t foc_cookie;
     xcb_get_input_focus_reply_t *foc_reply;
@@ -779,9 +779,9 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
     int16_t widget_x;
     int16_t widget_y;
 
-    (void) surfaces;
+    (void) stages;
 
-    if (connection == NULL || surface == NULL || cfg == NULL) {
+    if (connection == NULL || stage == NULL || cfg == NULL) {
         return;
     }
 
@@ -791,7 +791,7 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
 
     memset(&s_search, 0, sizeof(s_search));
     s_search.window = XCB_WINDOW_NONE;
-    s_search.surface = surface;
+    s_search.stage = stage;
     s_search.config = cfg;
 
     foc_cookie = xcb_get_input_focus(connection);
@@ -814,7 +814,7 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
          * 's_search.window' is still 'XCB_WINDOW_NONE' here (set right
          * after the 'memset' above), so 'search_is_open' already
          * correctly reports the widget as never having opened. */
-        dialog_info_show(connection, surface, cfg,
+        dialog_info_show(connection, stage, cfg,
                 _(STR_SEARCH_NO_WINDOWS), MENU_MSG_LEVEL_INFO);
         return;
     }
@@ -822,9 +822,9 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
     s_search_refilter();
     s_search_compute_geometry();
 
-    widget_x = (int16_t) (((int32_t) surface->properties.dim.w -
+    widget_x = (int16_t) (((int32_t) stage->properties.dim.w -
                 (int32_t) WM_SEARCH_WIDTH) / 2);
-    widget_y = (int16_t) (((int32_t) surface->properties.dim.h -
+    widget_y = (int16_t) (((int32_t) stage->properties.dim.h -
                 (int32_t) s_search.height) / 3);
     if (widget_x < 0) { widget_x = 0; }
     if (widget_y < 0) { widget_y = 0; }
@@ -845,7 +845,7 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             s_search.window,
-            surface->screen->root,
+            stage->screen->root,
             widget_x, widget_y,
             (uint16_t) WM_SEARCH_WIDTH, s_search.height,
             (uint16_t) cfg->theme.search.border.width,
@@ -866,7 +866,7 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
     xcb_map_window(connection, s_search.window);
     xcb_grab_keyboard(connection,
             0,
-            surface->screen->root,
+            stage->screen->root,
             XCB_CURRENT_TIME,
             XCB_GRAB_MODE_ASYNC,
             XCB_GRAB_MODE_ASYNC);
@@ -904,7 +904,7 @@ void search_destroy(xcb_connection_t *connection)
 
 
     s_search.window = XCB_WINDOW_NONE;
-    s_search.surface = NULL;
+    s_search.stage = NULL;
     s_search.config = NULL;
     s_search.candidate_count = 0;
     s_search.result_count = 0;
@@ -914,7 +914,7 @@ void search_destroy(xcb_connection_t *connection)
 
 /* Handle a key press while the search widget is open */
 void search_handle_keypress(xcb_connection_t *connection,
-        list_td *surfaces, xcb_keysym_t keysym, uint16_t state,
+        list_td *stages, xcb_keysym_t keysym, uint16_t state,
         const config_td *cfg)
 {
     /* X sends a keysym of its own for a shifted 'Tab' rather than 'Tab'
@@ -939,7 +939,7 @@ void search_handle_keypress(xcb_connection_t *connection,
 
     /* Return or KP_Enter */
     if (keysym == 0xff0du || keysym == 0xff8du) {
-        s_search_confirm(connection, surfaces);
+        s_search_confirm(connection, stages);
         return;
     }
 
@@ -988,7 +988,7 @@ void search_handle_keypress(xcb_connection_t *connection,
 
 /* Handle a button-press event inside the search widget */
 void search_handle_click(xcb_connection_t *connection,
-        list_td *surfaces, int16_t x, int16_t y, const config_td *cfg)
+        list_td *stages, int16_t x, int16_t y, const config_td *cfg)
 {
     int idx;
 
@@ -1005,7 +1005,7 @@ void search_handle_click(xcb_connection_t *connection,
     }
 
     s_search.selected = idx;
-    s_search_confirm(connection, surfaces);
+    s_search_confirm(connection, stages);
 }
 
 
@@ -1027,7 +1027,7 @@ void search_handle_motion(int16_t x, int16_t y)
 
     s_search.selected = idx;
 
-    if (s_search.surface != NULL) {
+    if (s_search.stage != NULL) {
         search_draw(xcb_connection_get(), s_search.config);
     }
 }

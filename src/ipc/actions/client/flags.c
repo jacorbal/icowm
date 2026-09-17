@@ -19,7 +19,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -33,9 +33,9 @@
  * @note Complexity: @e O(1)
  */
 static void s_pin(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_pin(client);
 }
 
@@ -46,9 +46,9 @@ static void s_pin(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_unpin(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_unpin(client);
 }
 
@@ -60,9 +60,9 @@ static void s_unpin(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_toggle_pin(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_toggle_pin(client);
 }
 
@@ -74,9 +74,9 @@ static void s_toggle_pin(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_set_urgent(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_urge(client);
 }
 
@@ -88,9 +88,9 @@ static void s_set_urgent(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_clear_urgent(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_unurge(client);
 }
 

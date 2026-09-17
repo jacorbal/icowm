@@ -4,7 +4,7 @@
  * @brief Functions on a client's pin, sticky, opacity, border, urgency,
  *        and allowed-actions flags
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*
@@ -50,7 +50,7 @@ void ccmd_client_unpin(client_td *client);
  *
  * @param client Window to toggle pin state
  *
- * @note No-op on a surface with only one desktop
+ * @note No-op on a stage with only one desktop
  * @note Nothing to actually toggle when there is only the one desktop:
  *       "visible on every desktop" and "visible on this one desktop"
  *       are the exact same thing then
@@ -88,7 +88,7 @@ void ccmd_client_unstick(client_td *client);
  * @param client Window to toggle sticky state
  *
  * @note No-op on a locked client
- * @note No-op on a surface whose configured viewport is a single screen
+ * @note No-op on a stage whose configured viewport is a single screen
  * @note Nothing to actually toggle on a viewport that can never pan:
  *       the flag holds a client still while everything else moves, and
  *       nothing moves there

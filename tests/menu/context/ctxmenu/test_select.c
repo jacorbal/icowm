@@ -40,7 +40,7 @@
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/redraw.h>
 #include <menu/context/ctxmenu/select.h>
-#include <surface.h>
+#include <stage.h>
 #include <utils/xcb/connection.h>
 
 
@@ -90,17 +90,17 @@ void ctxmenu_redraw(ctxmenu_state_td *state)
 /** Number of times 'cctl_launch_dispatch' has been called, and the
  *  arguments of the last call */
 static int s_dispatch_calls;
-static surface_td *s_dispatch_surface;
+static stage_td *s_dispatch_stage;
 static const char *s_dispatch_prog;
 static const char *s_dispatch_class_name;
 
 /** Recording stand-in for @a cctl_launch_dispatch
  * @note Complexity: @e O(1) */
-void cctl_launch_dispatch(surface_td *surface, const char *restrict prog,
+void cctl_launch_dispatch(stage_td *stage, const char *restrict prog,
         const char *restrict class_name)
 {
     s_dispatch_calls++;
-    s_dispatch_surface = surface;
+    s_dispatch_stage = stage;
     s_dispatch_prog = prog;
     s_dispatch_class_name = class_name;
 }
@@ -128,7 +128,7 @@ static void s_reset(void)
     s_redraw_entries_idx_a = 0;
     s_redraw_entries_idx_b = 0;
     s_dispatch_calls = 0;
-    s_dispatch_surface = NULL;
+    s_dispatch_stage = NULL;
     s_dispatch_prog = NULL;
     s_dispatch_class_name = NULL;
     s_on_activate_calls = 0;
@@ -241,14 +241,14 @@ static void s_test_activate_callback(void)
 /**
  * @brief Verify a command entry with no callback but a command string
  *        falls through to @a cctl_launch_dispatch with the entry's
- *        command, class name, and the root menu's surface
+ *        command, class name, and the root menu's stage
  */
 static void s_test_activate_dispatch(void)
 {
     ctxmenu_entry_td entries[1];
     ctxmenu_state_td child;
     ctxmenu_state_td parent;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(entries, 0, sizeof(entries));
@@ -256,10 +256,10 @@ static void s_test_activate_dispatch(void)
     entries[0].command = (char *) "xterm";
     entries[0].class_name = (char *) "XTerm";
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&parent, 0, sizeof(parent));
     memset(&child, 0, sizeof(child));
-    parent.surface = &surface;
+    parent.stage = &stage;
     child.parent = &parent;
     child.entries = entries;
     child.entry_count = 1;
@@ -271,8 +271,8 @@ static void s_test_activate_dispatch(void)
             "activation closes the root of the chain, not the child");
     TAP_EQ_INT(s_dispatch_calls, 1,
             "activation dispatches the command exactly once");
-    TAP_OK(s_dispatch_surface == &surface,
-            "dispatch receives the root menu's surface");
+    TAP_OK(s_dispatch_stage == &stage,
+            "dispatch receives the root menu's stage");
     TAP_EQ_STR(s_dispatch_prog, "xterm",
             "dispatch receives the entry's command string");
     TAP_EQ_STR(s_dispatch_class_name, "XTerm",

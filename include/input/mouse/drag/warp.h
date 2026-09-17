@@ -36,7 +36,7 @@
  * @param root_x Pointer X position in root-window coordinates
  * @param root_y Pointer Y position in root-window coordinates
  *
- * @note A no-op, clearing any pending warp, unless the surface the drag
+ * @note A no-op, clearing any pending warp, unless the stage the drag
  *       is on actually has @c desktops.warp_on_edge_drag enabled and
  *       more than one desktop to warp between
  * @note Also a no-op, deferring instead to @a drag_pan_edge_check
@@ -75,7 +75,7 @@ int drag_warp_ms_remaining(void);
  *
  * Moves the dragged client to the adjacent desktop without unmapping it
  * at any point (it must stay visible throughout), switches the
- * surface's current desktop to match, and repositions the pointer to
+ * stage's current desktop to match, and repositions the pointer to
  * the opposite edge.  Adjusting the drag's internal state so that jump
  * does not make the dragged window visually snap on the next
  * @c MotionNotify.
@@ -91,8 +91,8 @@ int drag_warp_ms_remaining(void);
  *       @a drag_warp_edge_check's own note), if the viewport gained
  *       room to pan the held edge after the warp was armed
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       either desktop involved (from @a surface_client_hide_all /
- *       @a surface_client_show_all)
+ *       either desktop involved (from @a stage_client_hide_all /
+ *       @a stage_client_show_all)
  */
 void drag_warp_tick(xcb_connection_t *connection);
 

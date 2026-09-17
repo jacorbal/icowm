@@ -31,7 +31,7 @@
 /* Project includes */
 #include <config.h>
 #include <render/text.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <menu/draw.h>
@@ -94,7 +94,7 @@ int notify_popup_ms_remaining(const struct notify_popup_state_s *state,
 
 /* Create and show a notification popup centered on the screen */
 void notify_popup_show_centered(xcb_connection_t *connection,
-        surface_td *surface, struct notify_popup_state_s *state,
+        stage_td *stage, struct notify_popup_state_s *state,
         const char *text, const config_td *cfg)
 {
     int16_t width;
@@ -105,8 +105,8 @@ void notify_popup_show_centered(xcb_connection_t *connection,
     uint32_t values[4];
     uint16_t text_w;
 
-    if (connection == NULL || surface == NULL || state == NULL ||
-            text == NULL || cfg == NULL || surface->screen == NULL) {
+    if (connection == NULL || stage == NULL || state == NULL ||
+            text == NULL || cfg == NULL || stage->screen == NULL) {
         return;
     }
 
@@ -120,8 +120,8 @@ void notify_popup_show_centered(xcb_connection_t *connection,
 
     width = (int16_t) ((text_w > 40u) ? (text_w + 32u) : 72u);
     height = 36;
-    x = (int16_t) (((int32_t) surface->properties.dim.w - width) / 2);
-    y = (int16_t) (((int32_t) surface->properties.dim.h - height) / 2);
+    x = (int16_t) (((int32_t) stage->properties.dim.w - width) / 2);
+    y = (int16_t) (((int32_t) stage->properties.dim.h - height) / 2);
     if (x < 0) { x = 0; }
     if (y < 0) { y = 0; }
 
@@ -136,7 +136,7 @@ void notify_popup_show_centered(xcb_connection_t *connection,
     values[3] = XCB_EVENT_MASK_EXPOSURE;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, state->window,
-            surface->screen->root,
+            stage->screen->root,
             x, y, (uint16_t) width, (uint16_t) height,
             (uint16_t) cfg->theme.overlay.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,

@@ -38,7 +38,7 @@
  *        strip windows
  *
  * @param connection X connection
- * @param geom Initial rectangle, in root coordinates
+ * @param geom       Initial rectangle, in root coordinates
  *
  * @note No-op if @p connection is null
  * @note Complexity: @e O(1)
@@ -51,7 +51,7 @@ void drag_outline_start(xcb_connection_t *connection,
  *        rectangle
  *
  * @param connection X connection
- * @param geom New rectangle, in root coordinates
+ * @param geom       New rectangle, in root coordinates
  *
  * @note No-op if @p connection is null
  * @note Complexity: @e O(1)

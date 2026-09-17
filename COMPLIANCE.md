@@ -42,7 +42,7 @@ EWMH Compliance
     One pair per desktop, each the pixel origin that desktop's viewport
     is currently panned to, non-zero once it has actually panned away
     from its top-left page. A pager's request to move it is honored,
-    (@a scmd_surface_viewport_set, @c cmds/surface.c), translating every
+    (@a scmd_stage_viewport_set, @c cmds/stage.c), translating every
     non-sticky client on the current desktop by the resulting delta and
     clamping the requested origin to the pannable area.
 

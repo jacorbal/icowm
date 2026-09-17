@@ -34,8 +34,8 @@
 
 /* Project includes */
 #include <logger.h>
-#include <surface.h>
-#include <surface/action.h>
+#include <stage.h>
+#include <stage/action.h>
 #include <wm.h>
 
 /* Local includes */
@@ -50,7 +50,7 @@ int wm_startup_randr_init(wm_td *wm)
     xcb_generic_error_t *ver_error = NULL;
     xcb_randr_query_version_cookie_t ver_cookie;
     xcb_connection_t *connection = wm_connection(wm);
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
 
     if (wm == NULL || connection == NULL) {
         return -1;
@@ -82,29 +82,29 @@ int wm_startup_randr_init(wm_td *wm)
             (unsigned int) ext->first_event);
     free(ver_reply);
 
-    /* Query initial CRTC/output state for each managed surface so that
-     * 'surface->randr' fields are populated before the first RandR
+    /* Query initial CRTC/output state for each managed stage so that
+     * 'stage->randr' fields are populated before the first RandR
      * event arrives (needed by set_orientation/set_resolution) */
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(stages);
             node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
+        stage_td *const stage = (stage_td *) list_data(node);
         xcb_randr_get_screen_resources_current_cookie_t res_cookie;
         xcb_randr_get_screen_resources_current_reply_t *res_reply;
         xcb_generic_error_t *res_error = NULL;
         xcb_randr_crtc_t *crtcs;
         int crtc_count;
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
         res_cookie = xcb_randr_get_screen_resources_current(
-                connection, surface->screen->root);
+                connection, stage->screen->root);
         res_reply = xcb_randr_get_screen_resources_current_reply(
                 connection, res_cookie, &res_error);
         if (res_reply == NULL) {
             xcb_reply_log_error(res_error,
-                    "a surface's XRandR screen resources");
+                    "a stage's XRandR screen resources");
             continue;
         }
 
@@ -134,19 +134,19 @@ int wm_startup_randr_init(wm_td *wm)
                 const xcb_randr_output_t *out_ids =
                     xcb_randr_get_crtc_info_outputs(crtc_info);
 
-                surface->randr.is_known = true;
-                surface->randr.crtc_id = (uint32_t) crtcs[ci];
-                surface->randr.mode_id = (uint32_t) crtc_info->mode;
-                surface->randr.rotation = crtc_info->rotation;
-                surface->randr.output_id = (uint32_t) out_ids[0];
+                stage->randr.is_known = true;
+                stage->randr.crtc_id = (uint32_t) crtcs[ci];
+                stage->randr.mode_id = (uint32_t) crtc_info->mode;
+                stage->randr.rotation = crtc_info->rotation;
+                stage->randr.output_id = (uint32_t) out_ids[0];
 
-                LOGGER_DEBUG("Surface %u: initial CRTC %u, mode %u,"
+                LOGGER_DEBUG("Stage %u: initial CRTC %u, mode %u,"
                         " output %u, rotation %u",
-                        surface->id,
-                        surface->randr.crtc_id,
-                        surface->randr.mode_id,
-                        surface->randr.output_id,
-                        (unsigned int) surface->randr.rotation);
+                        stage->id,
+                        stage->randr.crtc_id,
+                        stage->randr.mode_id,
+                        stage->randr.output_id,
+                        (unsigned int) stage->randr.rotation);
 
                 free(crtc_info);
                 break;  /* Take the first active CRTC */
@@ -160,7 +160,7 @@ int wm_startup_randr_init(wm_td *wm)
          * matching an output already connected at startup; a profile
          * for one that connects later is instead applied when
          * 'handler_randr_event' sees its 'OUTPUT_CHANGE' */
-        (void) surface_action_randr_apply_profiles(surface, false);
+        (void) stage_action_randr_apply_profiles(stage, false);
     }
 
     return 0;

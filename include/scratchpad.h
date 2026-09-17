@@ -41,7 +41,7 @@
  *
  * Does nothing at all when @p config->base.scratchpad.is_enabled is
  * @c false.  With no scratchpad client currently alive, launches
- * @p config->base.scratchpad.command on @p desktop's surface and
+ * @p config->base.scratchpad.command on @p desktop's stage and
  * returns immediately; the launched client is recognized and claimed as
  * the scratchpad once it maps, not by this call itself.  With one
  * already alive, shows it (raised above whatever else is on that layer,
@@ -77,7 +77,7 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop);
  * decoration, and has its @p rule_position_locked set so the ordinary
  * map-time @a place_window_apply never touches its geometry.  That
  * geometry is applied separately, by @a scratchpad_position, once
- * @p client's desktop and surface are known (client_init runs before
+ * @p client's desktop and stage are known (client_init runs before
  * either is assigned).
  *
  * @param client Newly created client, not yet added to any desktop
@@ -93,7 +93,7 @@ void scratchpad_notice_client_created(client_td *client);
  * Called once, at map time, right after @p client's @p desktop_id and
  * @p screen_id are assigned, since @a scratchpad_notice_client_created
  * runs too early for either to be available yet; called again later by
- * @a scratchpad_reposition, whenever @p surface's work areas are
+ * @a scratchpad_reposition, whenever @p stage's work areas are
  * recomputed for any other reason.
  *
  * An axis configured @c "max" is maximized, not merely resized to the
@@ -107,7 +107,7 @@ void scratchpad_notice_client_created(client_td *client);
  *
  * @param client  Client to position
  * @param desktop Desktop @p client was just added to
- * @param surface Surface @p desktop belongs to
+ * @param stage   Stage @p desktop belongs to
  *
  * @note A no-op for any client other than the current scratchpad one
  * @note Complexity: @e O(1)
@@ -115,15 +115,15 @@ void scratchpad_notice_client_created(client_td *client);
  * @see @a scratchpad_is_client
  */
 void scratchpad_position(client_td *client,
-        const desktop_td *desktop, surface_td *surface);
+        const desktop_td *desktop, stage_td *stage);
 
 /**
  * @brief Reposition the current scratchpad client, if its desktop
- *        belongs to the given surface
+ *        belongs to the given stage
  *
- * Called from @a surface_workarea_refresh_all (@c surface/workareas.c)
+ * Called from @a stage_workarea_refresh_all (@c stage/workareas.c)
  * itself, right after that function recomputes every desktop's work
- * area on @p surface, so every path already reaching that function (an
+ * area on @p stage, so every path already reaching that function (an
  * XRandR resolution change, a dock or panel appearing or disappearing,
  * and every other one) reaches this too, without each needing its
  * separate call.  Without this, a scratchpad already positioned against
@@ -133,15 +133,15 @@ void scratchpad_position(client_td *client,
  * to exit on its own and a fresh one was relaunched against the work
  * area current then.
  *
- * @param surface Surface whose work areas were just recomputed
+ * @param stage Stage whose work areas were just recomputed
  *
  * @note A no-op if there is no current scratchpad client, or if its own
- *       desktop does not belong to @p surface
+ *       desktop does not belong to @p stage
  * @note Complexity: @e O(1)
  *
  * @see @a scratchpad_position, which this calls
  */
-void scratchpad_reposition(surface_td *surface);
+void scratchpad_reposition(stage_td *stage);
 
 /**
  * @brief Release the scratchpad client reference, if @p client was it
@@ -161,7 +161,7 @@ void scratchpad_notice_client_destroyed(const client_td *client);
  * @brief Hide the current scratchpad client if @p desktop, its own,
  *        just had its viewport panned
  *
- * Called from @a s_viewport_apply_origin (@c cmds/surface.c) right
+ * Called from @a s_viewport_apply_origin (@c cmds/stage.c) right
  * after it actually shifts @p desktop's viewport origin, i.e., only
  * when a real pan happened, never on a no-op request that resolved
  * back to the same origin already in place.  A visible scratchpad is

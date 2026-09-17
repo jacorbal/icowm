@@ -245,18 +245,18 @@ xcb_window_t systray_below_window(void)
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_surface_by_id
+ * @brief Test-controlled stand-in for @a wm_get_stage_by_id
  *
- * Answers a test-controlled surface, or @c NULL by default.
+ * Answers a test-controlled stage, or @c NULL by default.
  *
  * @note Complexity: @e O(1)
  */
-static surface_td *s_owner_surface;
+static stage_td *s_owner_stage;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_owner_surface;
+    (void) stage_id;
+    return s_owner_stage;
 }
 
 
@@ -436,7 +436,7 @@ static void s_reset(void)
     s_top_parent_override = NULL;
     s_wm_state_last = 0u;
     s_set_wm_state_calls = 0;
-    s_owner_surface = NULL;
+    s_owner_stage = NULL;
     s_redraw_calls = 0;
     s_ensure_icon_window_calls = 0;
 }
@@ -745,25 +745,25 @@ static void s_test_iconify_cascade_skips_locked_and_done(void)
 
 /* A hide request marks the client hidden, writes the ICCCM iconic
  * state with no icon window, and syncs EWMH state, focus fallback,
- * and a redraw, clearing a surface's 'is_showing_desktop' flag along
+ * and a redraw, clearing a stage's 'is_showing_desktop' flag along
  * the way */
 static void s_test_hide_plain_client_sets_state(void)
 {
     client_td *client;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     client = s_make_client(30u);
-    memset(&surface, 0, sizeof(surface));
-    surface.is_showing_desktop = true;
-    s_owner_surface = &surface;
+    memset(&stage, 0, sizeof(stage));
+    stage.is_showing_desktop = true;
+    s_owner_stage = &stage;
 
     ccmd_client_hide(client);
 
     TAP_OK(client_is_hidden(client) != 0,
             "the client ends up marked hidden");
-    TAP_OK(!surface.is_showing_desktop,
-            "the surface's 'showing desktop' flag is cleared");
+    TAP_OK(!stage.is_showing_desktop,
+            "the stage's 'showing desktop' flag is cleared");
     TAP_EQ_INT(s_sync_states_calls, 1, "EWMH state is synced once");
     TAP_EQ_INT(s_redraw_calls, 1, "a redraw is requested once");
 

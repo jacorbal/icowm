@@ -223,24 +223,24 @@ void enact_client_resize(client_td *client, struct geometry_s geom)
 
 
 /* A connection that is never dereferenced, only checked against null,
- * and a surface whose only used field is its screen's root window */
+ * and a stage whose only used field is its screen's root window */
 static xcb_connection_t *const s_conn = (xcb_connection_t *) 0x1;
 static xcb_screen_t s_screen;
-static surface_td s_surface;
+static stage_td s_stage;
 
 
 /**
- * @brief Point the surface at a screen with a root window, which is
+ * @brief Point the stage at a screen with a root window, which is
  *        all 's_modal_enter' asks of it before granting the grab
  *
  * @note Complexity: @e O(1)
  */
-static void s_surface_reset(void)
+static void s_stage_reset(void)
 {
     memset(&s_screen, 0, sizeof(s_screen));
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
     s_screen.root = (xcb_window_t) 1u;
-    s_surface.screen = &s_screen;
+    s_stage.screen = &s_screen;
 }
 
 
@@ -313,7 +313,7 @@ static void s_test_inactive_until_started(void)
 
     TAP_OK(!kbd_modal_is_active(),
             "no session is active before one is started");
-    TAP_OK(!kbd_modal_handle_keypress(s_conn, &s_surface, KS_LEFT, &config),
+    TAP_OK(!kbd_modal_handle_keypress(s_conn, &s_stage, KS_LEFT, &config),
             "a key with no session open is left for whoever is next");
     TAP_OK(s_move_count == 0,
             "and nothing was moved on the way past");
@@ -333,12 +333,12 @@ static void s_test_start_and_finish(void)
     s_stubs_reset();
     s_client_reset(&client);
     s_config_reset(&config);
-    s_surface_reset();
+    s_stage_reset();
 
-    kbd_modal_move_start(s_conn, &s_surface, &client);
+    kbd_modal_move_start(s_conn, &s_stage, &client);
     TAP_OK(kbd_modal_is_active(), "starting a move opens a session");
 
-    TAP_OK(kbd_modal_handle_keypress(s_conn, &s_surface, KS_RETURN, &config),
+    TAP_OK(kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config),
             "Return is taken by the session rather than passed on");
     TAP_OK(!kbd_modal_is_active(), "and closes it");
     TAP_OK(s_ungrab_count == 1,
@@ -359,23 +359,23 @@ static void s_test_arrows_move_by_step(void)
     s_stubs_reset();
     s_client_reset(&client);
     s_config_reset(&config);
-    s_surface_reset();
-    kbd_modal_move_start(s_conn, &s_surface, &client);
+    s_stage_reset();
+    kbd_modal_move_start(s_conn, &s_stage, &client);
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RIGHT, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, &config);
     TAP_OK(s_moved_x == 110 && s_moved_y == 200,
             "Right moves one step along x and leaves y alone");
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_DOWN, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_DOWN, &config);
     TAP_OK(s_moved_x == 110 && s_moved_y == 210,
             "Down moves one step along y, from where Right left it");
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_LEFT, &config);
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_UP, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_LEFT, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_UP, &config);
     TAP_OK(s_moved_x == 100 && s_moved_y == 200,
             "Left and Up undo them, arriving back where it began");
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RETURN, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config);
 }
 
 
@@ -392,12 +392,12 @@ static void s_test_escape_restores(void)
     s_stubs_reset();
     s_client_reset(&client);
     s_config_reset(&config);
-    s_surface_reset();
+    s_stage_reset();
 
-    kbd_modal_move_start(s_conn, &s_surface, &client);
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RIGHT, &config);
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RIGHT, &config);
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_ESCAPE, &config);
+    kbd_modal_move_start(s_conn, &s_stage, &client);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_ESCAPE, &config);
 
     TAP_OK(!kbd_modal_is_active(), "Escape closes the session too");
     TAP_OK(client.layout.geometry.cur.pos.x == 100,
@@ -405,10 +405,10 @@ static void s_test_escape_restores(void)
 
     s_stubs_reset();
     s_client_reset(&client);
-    s_surface_reset();
-    kbd_modal_move_start(s_conn, &s_surface, &client);
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RIGHT, &config);
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RETURN, &config);
+    s_stage_reset();
+    kbd_modal_move_start(s_conn, &s_stage, &client);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config);
 
     TAP_OK(client.layout.geometry.cur.pos.x == 110,
             "while Return leaves it where the arrows put it");
@@ -429,18 +429,18 @@ static void s_test_resize_uses_its_own_step(void)
     s_stubs_reset();
     s_client_reset(&client);
     s_config_reset(&config);
-    s_surface_reset();
-    kbd_modal_resize_start(s_conn, &s_surface, &client);
+    s_stage_reset();
+    kbd_modal_resize_start(s_conn, &s_stage, &client);
 
     TAP_OK(kbd_modal_is_active(), "starting a resize opens a session");
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RIGHT, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, &config);
     TAP_OK(s_resize_count > 0,
             "an arrow in a resize session resizes rather than moves");
     TAP_OK(s_move_count == 0,
             "and moves nothing at all");
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RETURN, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config);
 }
 
 
@@ -458,17 +458,17 @@ static void s_test_unused_key_is_still_swallowed(void)
     s_stubs_reset();
     s_client_reset(&client);
     s_config_reset(&config);
-    s_surface_reset();
-    kbd_modal_move_start(s_conn, &s_surface, &client);
+    s_stage_reset();
+    kbd_modal_move_start(s_conn, &s_stage, &client);
 
-    TAP_OK(kbd_modal_handle_keypress(s_conn, &s_surface, KS_TAB, &config),
+    TAP_OK(kbd_modal_handle_keypress(s_conn, &s_stage, KS_TAB, &config),
             "a key the session has no use for is taken all the same");
     TAP_OK(s_move_count == 0 && s_resize_count == 0,
             "and moves or resizes nothing");
     TAP_OK(kbd_modal_is_active(),
             "leaving the session open");
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RETURN, &config);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config);
 }
 
 
@@ -484,14 +484,14 @@ static void s_test_null_config_falls_back(void)
 
     s_stubs_reset();
     s_client_reset(&client);
-    s_surface_reset();
-    kbd_modal_move_start(s_conn, &s_surface, &client);
+    s_stage_reset();
+    kbd_modal_move_start(s_conn, &s_stage, &client);
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RIGHT, NULL);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, NULL);
     TAP_OK(s_moved_x == 101,
             "a null configuration moves by one rather than not at all");
 
-    (void) kbd_modal_handle_keypress(s_conn, &s_surface, KS_RETURN, NULL);
+    (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, NULL);
 }
 
 

@@ -45,7 +45,7 @@
  *        submenu
  *
  * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
- * for how many desktops a surface can ever have, rather than an
+ * for how many desktops a stage can ever have, rather than an
  * independent number of its own that could silently drift out of step
  * with it and make some desktop past this cap unreachable from this
  * submenu.
@@ -59,10 +59,10 @@
  * @brief Maximum number of monitors shown in the "Send to monitor"
  *        submenu
  *
- * Matches @c WM_SURFACE_MAX_MONITORS, the real cap on how many
- * a surface can ever report.
+ * Matches @c WM_STAGE_MAX_MONITORS, the real cap on how many
+ * a stage can ever report.
  */
-#define WINCMENU_MAX_MONITORS (WM_SURFACE_MAX_MONITORS)
+#define WINCMENU_MAX_MONITORS (WM_STAGE_MAX_MONITORS)
 
 /**
  * @brief Most pages the "Send to page" submenu ever lists
@@ -92,7 +92,7 @@
  * always present for a simple, constant capacity bound rather than
  * optimizing the array size for the common case.  "Send to desktop"
  * does not appear when the topology is set to just one desktop,
- * "Send to monitor" only appears on a surface with more than one
+ * "Send to monitor" only appears on a stage with more than one
  * monitor, and Un/sticky only when the configured viewport spans
  * more than a single screen, which is also when "Send to page"
  * appears, except that a sticky client gets no "Send to page" either,
@@ -117,17 +117,17 @@
  * closed first.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to display the menu
+ * @param stage      Stage on which to display the menu
  * @param desktop    Desktop that currently contains @p client
  * @param client     Target client
  * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops on
- *       the surface
+ *       the stage
  */
 void wincmenu_show(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         struct position_s pos, const config_td *config);
 
 /**
@@ -156,7 +156,7 @@ void wincmenu_repaint(xcb_window_t win);
  * @brief Handle a button-press event inside the window context menu
  *
  * @param connection XCB connection
- * @param surface    Surface associated with the event
+ * @param stage      Stage associated with the event
  * @param win        Window that received the press
  * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
@@ -166,7 +166,7 @@ void wincmenu_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool wincmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config);
 
 /**
@@ -212,7 +212,7 @@ void wincmenu_notice_client_destroyed(const client_td *client);
  * context menu hierarchy.
  *
  * @param connection XCB connection
- * @param surface    Surface on which the menu is displayed
+ * @param stage      Stage on which the menu is displayed
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
@@ -221,7 +221,7 @@ void wincmenu_notice_client_destroyed(const client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of menu entries
  */
 bool wincmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config);
 
 /**

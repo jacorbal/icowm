@@ -58,7 +58,7 @@
  * (i.e., the visible submenu, or the root if no submenu is open).
  *
  * @param connection XCB connection (used to open submenus)
- * @param surface    Surface on which the menu is displayed
+ * @param stage      Stage on which the menu is displayed
  * @param state      Deepest open menu state
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
@@ -68,7 +68,7 @@
  * @note Complexity: @e O(n), where @e n is @p state->entry_count
  */
 bool ctxmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         xcb_keysym_t keysym, const config_td *config);
 
 /**
@@ -80,7 +80,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
  * opens the child menu.  Disabled entries are ignored.
  *
  * @param connection XCB connection
- * @param surface    Surface on which the menu is displayed
+ * @param stage      Stage on which the menu is displayed
  * @param state      Menu state that owns the window receiving the event
  * @param y          Pointer Y in root (screen) coordinates
  * @param config     Active configuration
@@ -90,7 +90,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         int y, const config_td *config);
 
 /**
@@ -104,7 +104,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
  * @param state Menu state that owns the window the pointer is over
  * @param x     Pointer X relative to the menu window (unused; kept for
  *              future use)
- * @param y     Pointer Y relative to the menu window top edge
+ * @param y Pointer Y relative to the menu window top edge
  *
  * @note Complexity: @e O(n), where @e n is @p state->entry_count
  */

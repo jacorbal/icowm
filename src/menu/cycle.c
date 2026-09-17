@@ -27,9 +27,7 @@
 /* Render includes */
 #include <render/icon.h>
 #include <render/outline.h>
-#include <render/surface.h>
-
-/* Render includes */
+#include <render/stage.h>
 #include <render/text.h>
 
 /* Input includes */
@@ -53,7 +51,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <menu/draw.h>
@@ -68,7 +66,7 @@ struct cycle_menu_state_s g_cycle_menu = {
     .selected = 0,
     .width = 0,
     .is_icon_menu = false,
-    .surface = NULL,
+    .stage = NULL,
     .desktop = NULL,
     .modifier = 0,
     .prev_focus = XCB_WINDOW_NONE,
@@ -294,14 +292,14 @@ static void s_cycle_scroll_to_selection(void)
  * @note A no-op for a client that is not actually an iconified icon (or
  *       @c NULL, or with no cycle menu open at all); the render
  *       function already guards that safely on its own
- * @note The cycle's initial preselection at @a cycle_init time
- *       needs no separate call here
+ * @note The cycle's initial preselection at @a cycle_init time needs no
+ *       separate call here
  * @note Complexity: @e O(1)
  *
  * @see @a ri_render_client_icon's comment in @c render/icon.h
- * @ see @a mi_cycle_preview_apply in @c menu/cycle/draw.c, which
- *       already applies the very same "selected" render this function
- *       itself calls below
+ * @see @a mi_cycle_preview_apply in @c menu/cycle/draw.c, which already
+ *      applies the very same "selected" render this function itself
+ *      calls below
  */
 static void s_cycle_repaint_icon(client_td *client)
 {
@@ -315,7 +313,7 @@ static void s_cycle_repaint_icon(client_td *client)
 
 /* Initialize the cycle menu for window or icon cycling */
 void cycle_init(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         bool is_icon, int preselect, uint16_t modifier,
         const config_td *cfg)
 {
@@ -344,7 +342,7 @@ void cycle_init(xcb_connection_t *connection,
             (unsigned int) XCB_MOD_MASK_LOCK |
             (unsigned int) XCB_MOD_MASK_2);
 
-    if (connection == NULL || surface == NULL || desktop == NULL ||
+    if (connection == NULL || stage == NULL || desktop == NULL ||
             cfg == NULL) {
         return;
     }
@@ -361,7 +359,7 @@ void cycle_init(xcb_connection_t *connection,
     (void) modifier;
 
     g_cycle_menu.count = 0;
-    g_cycle_menu.surface = surface;
+    g_cycle_menu.stage = stage;
     g_cycle_menu.desktop = desktop;
     g_cycle_menu.is_icon_menu = is_icon;
     g_cycle_menu.prev_focus = (foc_reply != NULL &&
@@ -478,7 +476,7 @@ void cycle_init(xcb_connection_t *connection,
      * 'config.h'. */
     if (cfg->theme.menu.show_pixmaps) {
         /* '#if' and not a ternary; see 'WM_MENU_ICON_INSET' in
-          * 'defs/ctxmenu.h' for why */
+         * 'defs/ctxmenu.h' for why */
 #if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
         uint16_t icon_size = (uint16_t)
             (WM_CYCLE_MENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
@@ -492,7 +490,7 @@ void cycle_init(xcb_connection_t *connection,
 
     /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERCENT' of
      * screen */
-    screen_h_pct = surface->properties.dim.h *
+    screen_h_pct = stage->properties.dim.h *
         (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERCENT / 100u;
     pad2 = cfg->theme.menu.padding.vertical * 2u;
     avail = (screen_h_pct > pad2) ? (screen_h_pct - pad2) : 0u;
@@ -515,9 +513,9 @@ void cycle_init(xcb_connection_t *connection,
 
     g_cycle_menu.width = menu_w;
 
-    menu_x = (int16_t) (((int32_t) surface->properties.dim.w -
+    menu_x = (int16_t) (((int32_t) stage->properties.dim.w -
                 (int32_t) menu_w) / 2);
-    menu_y = (int16_t) (((int32_t) surface->properties.dim.h -
+    menu_y = (int16_t) (((int32_t) stage->properties.dim.h -
                 (int32_t) menu_h) / 2);
     if (menu_x < 0) { menu_x = 0; }
     if (menu_y < 0) { menu_y = 0; }
@@ -537,7 +535,7 @@ void cycle_init(xcb_connection_t *connection,
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             g_cycle_menu.window,
-            surface->screen->root,
+            stage->screen->root,
             menu_x, menu_y,
             menu_w, menu_h,
             (uint16_t) cfg->theme.menu.border.width,
@@ -590,14 +588,14 @@ void cycle_init(xcb_connection_t *connection,
 void cycle_destroy(xcb_connection_t *connection)
 {
     xcb_window_t restore_focus;
-    surface_td *surface;
+    stage_td *stage;
 
     if (connection == NULL || g_cycle_menu.window == XCB_WINDOW_NONE) {
         return;
     }
 
     restore_focus = g_cycle_menu.prev_focus;
-    surface = g_cycle_menu.surface;
+    stage = g_cycle_menu.stage;
     s_cycle_preview_restore(connection);
     render_outline_hide(connection, g_cycle_menu.outline_windows);
 
@@ -606,7 +604,7 @@ void cycle_destroy(xcb_connection_t *connection)
     g_cycle_menu.count = 0;
     g_cycle_menu.selected = 0;
     g_cycle_menu.width = 0;
-    g_cycle_menu.surface = NULL;
+    g_cycle_menu.stage = NULL;
     g_cycle_menu.desktop = NULL;
     g_cycle_menu.modifier = 0;
     g_cycle_menu.prev_focus = XCB_WINDOW_NONE;
@@ -631,8 +629,8 @@ void cycle_destroy(xcb_connection_t *connection)
     /* Marked rather than painted here: the menu closing has no deadline
      * of its own, so the repaint goes out with everything else this
      * turn settles, once */
-    if (surface != NULL) {
-        surface->is_outdated = true;
+    if (stage != NULL) {
+        stage->is_outdated = true;
     }
 }
 
@@ -655,11 +653,11 @@ void cycle_notice_client_destroyed(const client_td *client)
 
 
 /* Confirm the currently selected cycle menu entry */
-void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
+void cycle_confirm(xcb_connection_t *connection, list_td *stages,
         const config_td *cfg)
 {
     client_td *target;
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     bool is_icon;
 
@@ -670,7 +668,7 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     }
 
     target = g_cycle_menu.clients[g_cycle_menu.selected];
-    surface = g_cycle_menu.surface;
+    stage = g_cycle_menu.stage;
     desktop = g_cycle_menu.desktop;
     is_icon = g_cycle_menu.is_icon_menu;
 
@@ -688,7 +686,7 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
      * the user had just cycled away from. */
     g_cycle_menu.prev_focus = XCB_WINDOW_NONE;
 
-    if (target != NULL && surface != NULL && desktop != NULL) {
+    if (target != NULL && stage != NULL && desktop != NULL) {
         if (is_icon) {
             enact_client_restore(target);
         } else if (target->properties.flags & CLIENT_FLAG_HIDDEN) {
@@ -711,7 +709,7 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
          * relying entirely on this same 'focus_apply' call to still
          * happen to repaint it correctly afterward instead of ever
          * being painted right the first time. */
-        focus_apply(surfaces, surface, desktop, target, true, cfg);
+        focus_apply(stages, stage, desktop, target, true, cfg);
     }
 
     cycle_destroy(connection);
@@ -800,6 +798,13 @@ bool cycle_is_open(void)
 xcb_window_t cycle_window(void)
 {
     return g_cycle_menu.window;
+}
+
+
+/* Return how many rows the cycle menu has scrolled past */
+int cycle_scroll_offset(void)
+{
+    return g_cycle_menu.scroll_offset;
 }
 
 

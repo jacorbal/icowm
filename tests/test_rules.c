@@ -52,6 +52,20 @@ static void s_write_rules_file(char *dir_out, size_t dir_out_size,
 }
 
 
+/**
+ * @brief Remove the rules.json a directory returned by
+ *        @a s_write_rules_file holds, and the directory itself
+ */
+static void s_remove_rules_dir(const char *dir)
+{
+    char path[512];
+
+    snprintf(path, sizeof(path), "%s/rules.json", dir);
+    unlink(path);
+    rmdir(dir);
+}
+
+
 /* rules_init gives a zeroed, ready-to-load table */
 static void s_test_init_and_destroy(void)
 {
@@ -91,6 +105,7 @@ static void s_test_load_missing_file_is_fine(void)
     TAP_EQ_INT((long) rules->count, 0, "no rules were loaded");
 
     rules_destroy(rules);
+    rmdir(dir);
 }
 
 
@@ -172,6 +187,7 @@ static void s_test_load_full_rule(void)
             "apply.size is parsed correctly");
 
     rules_destroy(rules);
+    s_remove_rules_dir(dir);
 }
 
 
@@ -198,6 +214,7 @@ static void s_test_load_match_array(void)
     TAP_EQ_STR(rule->match.klass[1], "chromium", "second value correct");
 
     rules_destroy(rules);
+    s_remove_rules_dir(dir);
 }
 
 
@@ -221,6 +238,7 @@ static void s_test_load_position_center(void)
             "\"center\" sets is_position_centered rather than x/y");
 
     rules_destroy(rules);
+    s_remove_rules_dir(dir);
 }
 
 
@@ -248,6 +266,7 @@ static void s_test_load_opacity_split(void)
             "inactive opacity loaded independently");
 
     rules_destroy(rules);
+    s_remove_rules_dir(dir);
 }
 
 
@@ -272,6 +291,7 @@ static void s_test_opacity_clamping(void)
             "an over-100 opacity clamps down to 100");
 
     rules_destroy(rules);
+    s_remove_rules_dir(dir);
 }
 
 
@@ -297,6 +317,7 @@ static void s_test_load_multiple_rules(void)
             "third rule's own desktop is correct");
 
     rules_destroy(rules);
+    s_remove_rules_dir(dir);
 }
 
 

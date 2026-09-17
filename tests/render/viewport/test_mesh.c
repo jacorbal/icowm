@@ -10,7 +10,7 @@
  * to create a pixmap and paint a root window, and neither holds any
  * logic the two calculations below do not already cover.
  *
- * 'wm_get_surface_by_id' and 'surface_viewport_has_room' are
+ * 'wm_get_stage_by_id' and 'stage_viewport_has_room' are
  * test-controlled, since the visibility decision asks both.  The XCB
  * connection accessor is a link-only stand-in: nothing reached here
  * ever paints.
@@ -38,7 +38,7 @@
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <render/viewport/mesh.h>
@@ -49,38 +49,38 @@
 
 static config_td s_config;
 static desktop_td s_desktop;
-static surface_td s_surface;
+static stage_td s_stage;
 static xcb_screen_t s_screen;
 
 
-/** Whether a scenario wants the surface's viewport reported pannable
+/** Whether a scenario wants the stage's viewport reported pannable
  * @note Complexity: @e O(1) */
 static bool s_viewport_has_room;
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_viewport_has_room
+ * @brief Test-controlled stand-in for @a stage_viewport_has_room
  *
  * @note Complexity: @e O(1)
  */
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_viewport_has_room;
 }
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_surface_by_id
+ * @brief Test-controlled stand-in for @a wm_get_stage_by_id
  *
  * @note Complexity: @e O(1)
  */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
 
-    return &s_surface;
+    return &s_stage;
 }
 
 
@@ -302,7 +302,7 @@ static void s_reset(void)
 {
     memset(&s_config, 0, sizeof(s_config));
     memset(&s_desktop, 0, sizeof(s_desktop));
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
     memset(&s_screen, 0, sizeof(s_screen));
 
     s_desktop.config = &s_config;

@@ -20,13 +20,13 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 #include <config.h>
 #include <i18n.h>
 #include <logger.h>
 #include <render/text.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <utils/safe/safestr.h>
 
 
@@ -50,14 +50,14 @@ static struct notify_popup_state_s s_desktop_notify = {
 
 /* Show the desktop-switch notification popup, centered on screen */
 void notify_desktop_show(xcb_connection_t *connection,
-        surface_td *surface, uint32_t desktop_idx,
+        stage_td *stage, uint32_t desktop_idx,
         const char *desktop_name,
         enum notify_desktop_cause_e cause, const config_td *cfg)
 {
     /* The name, plus every fixed part that can be appended to it,
      * each sized for a 'uint32_t' spelled out in full: the base
      * message, the ' {column, row}' page suffix and the
-     * ' (on surface n)' one.  Sized rather than trimmed because a
+     * ' (on stage n)' one.  Sized rather than trimmed because a
      * truncation here would cut a coordinate in half and leave the
      * notice naming a page that does not exist. */
     char text[WM_DESKTOP_MAX_LENGTH_NAME + 96];
@@ -67,8 +67,8 @@ void notify_desktop_show(xcb_connection_t *connection,
     bool has_page;
     size_t used;
 
-    if (connection == NULL || surface == NULL || cfg == NULL ||
-            surface->screen == NULL) {
+    if (connection == NULL || stage == NULL || cfg == NULL ||
+            stage->screen == NULL) {
         return;
     }
 
@@ -80,25 +80,25 @@ void notify_desktop_show(xcb_connection_t *connection,
     }
 
     text[0] = '\0';
-    desktop = surface_desktop_get(surface, desktop_idx);
+    desktop = stage_desktop_get(stage, desktop_idx);
     has_page = desktop != NULL &&
-        scmd_surface_viewport_desktop_page(surface, desktop,
+        scmd_stage_viewport_desktop_page(stage, desktop,
                 &vp_col, &vp_row);
 
     /* Nothing worth naming: one desktop and a viewport that cannot
      * pan means the view never moves anywhere the user could not
      * already see, so no popup at all rather than an empty one */
-    if (surface->desktop_count <= 1u && !has_page) {
+    if (stage->desktop_count <= 1u && !has_page) {
         return;
     }
 
     /* Only the page, with the word spelled out, when the desktop has
      * nothing to add: with a single desktop its index and name name
      * the only thing there is */
-    if (surface->desktop_count <= 1u) {
+    if (stage->desktop_count <= 1u) {
         (void) snprintf(text, sizeof(text),
                 _(STR_NOTIFY_VIEWPORT_PAGE_FMT), vp_col, vp_row);
-        notify_popup_show_centered(connection, surface,
+        notify_popup_show_centered(connection, stage,
                 &s_desktop_notify, text, cfg);
         LOGGER_TRACE("Desktop notify shown: '%s'", text);
         return;
@@ -112,13 +112,13 @@ void notify_desktop_show(xcb_connection_t *connection,
         (void) snprintf(text, sizeof(text), "%s: ", desktop_name);
     }
 
-    /* The one place that names a desktop is 'surface_desktop_label',
+    /* The one place that names a desktop is 'stage_desktop_label',
      * so that this overlay and every window list say it the same way.
      * The name is passed separately above, so it is not asked for
      * again here. */
     used = safe_strlen(text);
     if (used < sizeof(text)) {
-        surface_desktop_label(surface, desktop_idx, desktop_name,
+        stage_desktop_label(stage, desktop_idx, desktop_name,
                 false, false, text + used, sizeof(text) - used);
     }
 
@@ -130,7 +130,7 @@ void notify_desktop_show(xcb_connection_t *connection,
         (void) safe_strncat(text, vp_buf, sizeof(text));
     }
 
-    notify_popup_show_centered(connection, surface, &s_desktop_notify,
+    notify_popup_show_centered(connection, stage, &s_desktop_notify,
             text, cfg);
 
     LOGGER_TRACE("Desktop notify shown: '%s'", text);

@@ -30,7 +30,7 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <logger.h>
-#include <render/surface.h>
+#include <render/stage.h>
 #include <utils/geom.h>
 
 /* Local includes */
@@ -317,26 +317,26 @@ static void s_handle_resize_key(xcb_keysym_t keysym,
  * below, which only differ in which @c s_mode_e the session enters.
  *
  * @param connection XCB connection
- * @param surface    Surface @p client is on, for the keyboard grab's
+ * @param stage      Stage @p client is on, for the keyboard grab's
  *                   own root window
- * @param client     Client entering the modal session
- * @param mode       @c KBD_MODAL_MOVING or @c KBD_MODAL_RESIZING
+ * @param client Client entering the modal session
+ * @param mode   @c KBD_MODAL_MOVING or @c KBD_MODAL_RESIZING
  *
  * @note Complexity: @e O(1)
  */
 static void s_modal_enter(xcb_connection_t *connection,
-        surface_td *surface, client_td *client, s_mode_e mode)
+        stage_td *stage, client_td *client, s_mode_e mode)
 {
     xcb_window_t root_win;
     xcb_grab_keyboard_cookie_t cookie;
     xcb_grab_keyboard_reply_t *reply;
 
-    if (connection == NULL || client == NULL || surface == NULL) {
+    if (connection == NULL || client == NULL || stage == NULL) {
         return;
     }
 
-    root_win = (surface->screen != NULL)
-        ? surface->screen->root
+    root_win = (stage->screen != NULL)
+        ? stage->screen->root
         : XCB_WINDOW_NONE;
 
     if (root_win == XCB_WINDOW_NONE) {
@@ -377,30 +377,30 @@ bool kbd_modal_is_active(void)
 
 /* Enter keyboard modal move mode for the given client */
 void kbd_modal_move_start(xcb_connection_t *connection,
-        surface_td *surface, client_td *client)
+        stage_td *stage, client_td *client)
 {
-    s_modal_enter(connection, surface, client, KBD_MODAL_MOVING);
+    s_modal_enter(connection, stage, client, KBD_MODAL_MOVING);
 }
 
 
 /* Enter keyboard modal resize mode for the given client */
 void kbd_modal_resize_start(xcb_connection_t *connection,
-        surface_td *surface, client_td *client)
+        stage_td *stage, client_td *client)
 {
-    s_modal_enter(connection, surface, client, KBD_MODAL_RESIZING);
+    s_modal_enter(connection, stage, client, KBD_MODAL_RESIZING);
 }
 
 
 /* Dispatch a key press while a keyboard modal session is active */
 bool kbd_modal_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config)
 {
     int32_t move_step;
     int32_t resize_step;
 
     (void) connection;
-    (void) surface;
+    (void) stage;
 
     if (s_mode == KBD_MODAL_NONE) {
         return false;

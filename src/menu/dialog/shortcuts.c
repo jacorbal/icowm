@@ -28,8 +28,8 @@
 /* Project includes */
 #include <config.h>
 #include <i18n.h>
-#include <surface.h>
-#include <surface/viewport.h>
+#include <stage.h>
+#include <stage/viewport.h>
 
 /* Local includes */
 #include <menu/dialog/shortcuts.h>
@@ -330,11 +330,11 @@ static void s_append_group(struct s_shortcuts_ctx_s *ctx,
 /* Open a message dialog listing every currently active keyboard
  * shortcut */
 void dialog_shortcuts_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config)
+        stage_td *stage, const config_td *config)
 {
     struct s_shortcuts_ctx_s ctx;
 
-    if (connection == NULL || surface == NULL || config == NULL) {
+    if (connection == NULL || stage == NULL || config == NULL) {
         return;
     }
 
@@ -396,7 +396,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_binding(&ctx,
             _(STR_SHORTCUTS_DESKTOP_ADD),
             config->bindings.keyboard.desktop.add);
-    if (surface->desktop_count > 1u) {
+    if (stage->desktop_count > 1u) {
         s_append_binding(&ctx,
                 _(STR_SHORTCUTS_DESKTOP_REMOVE),
                 config->bindings.keyboard.desktop.remove);
@@ -464,7 +464,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_binding(&ctx,
             _(STR_SHORTCUTS_MAXIMIZE),
             config->bindings.keyboard.window.maximize);
-    if (surface->monitor_count > 1u) {
+    if (stage->monitor_count > 1u) {
         s_append_binding(&ctx,
                 _(STR_SHORTCUTS_MONITOR_NORTH),
                 config->bindings.keyboard.window.send_to.monitor.north);
@@ -478,13 +478,13 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 _(STR_SHORTCUTS_MONITOR_WEST),
                 config->bindings.keyboard.window.send_to.monitor.west);
     }
-    if (surface->desktop_count > 1u) {
+    if (stage->desktop_count > 1u) {
         s_append_binding(&ctx,
                 _(STR_SHORTCUTS_PIN),
                 config->bindings.keyboard.window.pin);
-        if (surface->config != NULL &&
-                surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
-                surface->config->base.screens[surface->id]
+        if (stage->config != NULL &&
+                stage->id < (uint32_t) CONFIG_MAX_SCREENS &&
+                stage->config->base.screens[stage->id]
                     .desktop_layout.rows > 1u) {
             s_append_binding(&ctx,
                     _(STR_SHORTCUTS_SEND_TO_DESKTOP_NORTH),
@@ -512,7 +512,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
      * size: a viewport that can never pan leaves the flag nothing to
      * hold a client still against, so the binding is not worth
      * listing */
-    if (surface_viewport_has_room(surface)) {
+    if (stage_viewport_has_room(stage)) {
         s_append_binding(&ctx,
                 _(STR_SHORTCUTS_STICKY),
                 config->bindings.keyboard.window.sticky);
@@ -551,10 +551,10 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_append_line(&ctx, "[%s]",
             _(STR_SHORTCUTS_HEADER_CYCLE));
-    if (surface->desktop_count > 1u) {
-        bool has_rows = surface->config != NULL &&
-            surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
-            surface->config->base.screens[surface->id]
+    if (stage->desktop_count > 1u) {
+        bool has_rows = stage->config != NULL &&
+            stage->id < (uint32_t) CONFIG_MAX_SCREENS &&
+            stage->config->base.screens[stage->id]
                 .desktop_layout.rows > 1u;
 
         if (has_rows) {
@@ -593,12 +593,12 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 config->bindings.keyboard.cycle.window.next
             }, 2u);
 
-    if (surface_viewport_has_room(surface)) {
+    if (stage_viewport_has_room(stage)) {
         uint32_t columns;
         uint32_t rows;
         uint32_t page_count;
 
-        surface_viewport_dims(surface, &columns, &rows);
+        stage_viewport_dims(stage, &columns, &rows);
         page_count = columns * rows;
         if (page_count > 10u) {
             page_count = 10u;
@@ -649,6 +649,6 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
         s_append_goto_viewport(&ctx, config, page_count);
     }
 
-    menu_message_dialog_show_pairs(connection, surface, config,
+    menu_message_dialog_show_pairs(connection, stage, config,
             ctx.pairs, ctx.count, MENU_MSG_LEVEL_NONE);
 }

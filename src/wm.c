@@ -55,6 +55,9 @@
 /* Control includes */
 #include <cctl/sn.h>
 
+/* Stage includes */
+#include <stage/desktop.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -62,7 +65,6 @@
 #include <lookup.h>
 #include <loop.h>
 #include <memguard.h>
-#include <surface/desktop.h>
 #include <systray.h>
 #include <xsettings.h>
 
@@ -82,7 +84,11 @@
  * In shadows of scope, few e'er call thee their,
  * Thy global existence, to none dost bring fear,
  * A sentinel watching, though thou art alone. */
-wm_td *wm = NULL;   /**< Singleton window manager instance */
+static wm_td *wm = NULL;        /**< Singleton window manager instance */
+
+
+/** Whether the last stop requested was a restart rather than an exit */
+static bool s_restart_requested = false;
 
 
 /**
@@ -90,7 +96,7 @@ wm_td *wm = NULL;   /**< Singleton window manager instance */
  */
 struct s_desktop_match_ctx_s {
     const desktop_td *wanted;   /**< Desktop being looked for */
-    bool is_found;              /**< Whether this surface holds it */
+    bool is_found;              /**< Whether this stage holds it */
 };
 
 
@@ -136,7 +142,7 @@ static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
  * teardown.
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces currently stored in @c wm->surfaces
+ *       stages currently stored in @c wm->stages
  */
 static void s_wm_cleanup(void)
 {
@@ -168,9 +174,9 @@ static void s_wm_cleanup(void)
     text_renderer_destroy();
     wmicon_renderer_destroy();
 
-    if (wm->surfaces != NULL) {
-        list_destroy(wm->surfaces);
-        wm->surfaces = NULL;
+    if (wm->stages != NULL) {
+        list_destroy(wm->stages);
+        wm->stages = NULL;
     }
 
     if (wm->rules != NULL) {
@@ -208,7 +214,7 @@ static void s_wm_cleanup(void)
 
     if (wm->connection != NULL) {
         /* Neither 'wm->ewmh_support_win' nor the 'WM_S<n>' manager
-         * selections this surface list once held are released with
+         * selections this stage list once held are released with
          * their own explicit request here: an 'xcb_window_destroy' and
          * an 'xcb_set_selection_owner(..., XCB_NONE, ...)', each ahead
          * of 'xcb_disconnect' below, would let a replacement instance,
@@ -274,7 +280,7 @@ static void s_wm_zero_fields(uint32_t restricted_memory_mib)
     wm->config = NULL;
     wm->rules = NULL;
     wm->session = NULL;
-    wm->surfaces = NULL;
+    wm->stages = NULL;
     wm->keysyms = NULL;
     wm->is_randr_available = false;
     wm->randr_base_event = 0u;
@@ -427,13 +433,13 @@ static int s_wm_load_config(const char *config_dir_prefix)
 
 
 /**
- * @brief Detect the screens and build a surface for each
+ * @brief Detect the screens and build a stage for each
  *
  * @return @c 0 on success, or the exit status the caller reports
  *
  * @note Complexity: @e O(n), where @e n is the number of screens
  */
-static int s_wm_create_surfaces(void)
+static int s_wm_create_stages(void)
 {
     uint32_t screens_detected;
     uint32_t screens_managed;
@@ -452,15 +458,15 @@ static int s_wm_create_surfaces(void)
         LOGGER_INFO("Detected screen %u as preferred", wm->screenp);
     }
 
-    LOGGER_DEBUG("Allocating memory for surface structures", L_NARG);
-    wm->surfaces = list_init((void(*)(void *)) surface_destroy);
-    if (wm->surfaces == NULL) {
-        LOGGER_FATAL("Failed to allocate memory for surfaces array",
+    LOGGER_DEBUG("Allocating memory for stage structures", L_NARG);
+    wm->stages = list_init((void(*)(void *)) stage_destroy);
+    if (wm->stages == NULL) {
+        LOGGER_FATAL("Failed to allocate memory for stages array",
                 L_NARG);
         return 6;
     }
 
-    LOGGER_DEBUG("Initializing surface structures", L_NARG);
+    LOGGER_DEBUG("Initializing stage structures", L_NARG);
     if (wm->config->base.screen_count != screens_detected) {
         LOGGER_NOTICE("Detected %u screen(s); %u" \
                 " specified in the configuration file",
@@ -487,30 +493,30 @@ static int s_wm_create_surfaces(void)
     for (unsigned int i = 0; i < screens_managed; ++i) {
         uint32_t desktops_count =
             wm->config->base.screens[i].desktop_count;
-        surface_td *const surface =
-            surface_init(wm->connection,
+        stage_td *const stage =
+            stage_init(wm->connection,
                     (uint32_t) i, desktops_count, wm->config);
-        if (surface == NULL) {
-            LOGGER_FATAL("Failed to initialize surface %u", i);
+        if (stage == NULL) {
+            LOGGER_FATAL("Failed to initialize stage %u", i);
             return 7;
         }
 
-        LOGGER_TRACE("Inserting surface %u into surface list", i);
-        if (list_ins_next(wm->surfaces, list_tail(wm->surfaces),
-                    surface) != 0) {
-            LOGGER_FATAL("Failed to insert surface %u" \
-                    " into surface list", i);
-            surface_destroy(surface);
+        LOGGER_TRACE("Inserting stage %u into stage list", i);
+        if (list_ins_next(wm->stages, list_tail(wm->stages),
+                    stage) != 0) {
+            LOGGER_FATAL("Failed to insert stage %u" \
+                    " into stage list", i);
+            stage_destroy(stage);
             return 8;
         }
 
-        surface->desktop_count =
+        stage->desktop_count =
             wm->config->base.screens[i].desktop_count;
-        surface->desktop_cur =
+        stage->desktop_cur =
             wm->config->base.screens[i].desktop_inaugural;
 
         LOGGER_TRACE("Setting desktop %u as the startup desktop" \
-                " on surface %u", surface->desktop_cur, i);
+                " on stage %u", stage->desktop_cur, i);
     }
 
     return 0;
@@ -522,7 +528,7 @@ static int s_wm_create_surfaces(void)
  *
  * @param replace_requested Whether another window manager may be
  *                          replaced
- * @param ipc_disabled      Whether the control socket stays closed
+ * @param ipc_disabled Whether the control socket stays closed
  *
  * @return @c 0 on success, or the exit status the caller reports
  *
@@ -575,7 +581,7 @@ static int s_wm_register(bool replace_requested, bool ipc_disabled)
 /**
  * @brief Announce a finished startup, and whatever it has to warn of
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
 static void s_wm_announce(void)
 {
@@ -603,10 +609,10 @@ static void s_wm_announce(void)
      * entering the main loop, so it is never a silent surprise to
      * whoever is sitting at the keyboard.  Only the log otherwise says
      * anything about it. */
-    if (wm->restricted_memory_mib > 0u && wm->surfaces != NULL &&
-            !list_is_empty(wm->surfaces)) {
+    if (wm->restricted_memory_mib > 0u && wm->stages != NULL &&
+            !list_is_empty(wm->stages)) {
         menu_message_dialog_show(wm->connection,
-                (surface_td *) list_data(list_head(wm->surfaces)),
+                (stage_td *) list_data(list_head(wm->stages)),
                 wm->config,
                 _(STR_WM_RESTRICTED_MEMORY_MODE_ANNOUNCE),
                 MENU_MSG_LEVEL_INFO);
@@ -660,18 +666,18 @@ int wm_start(const char *restrict display_name,
 
     s_wm_zero_fields(restricted_memory_mib);
 
-    /* Called this early, before any surface or desktop gets set up, so
+    /* Called this early, before any stage or desktop gets set up, so
      * every later allocation is already accounted against the ceiling
      * this mode imposes */
     memguard_init(wm->restricted_memory_mib);
 
     /* Short-circuiting on purpose: every phase below assumes the one
      * before it succeeded, so a failed connection must never reach the
-     * surface creation that dereferences it, and the status carries the
+     * stage creation that dereferences it, and the status carries the
      * first failure's exit code untouched */
     if ((status = s_wm_connect(display_name)) != 0 ||
             (status = s_wm_load_config(config_dir_prefix)) != 0 ||
-            (status = s_wm_create_surfaces()) != 0 ||
+            (status = s_wm_create_stages()) != 0 ||
             (status = s_wm_register(replace_requested,
                     ipc_disabled)) != 0) {
         s_wm_cleanup();
@@ -695,7 +701,7 @@ void wm_json_syntax_errors_warn(void)
 
     count = json_syntax_errors_count();
     if (count == 0u || wm == NULL || wm->connection == NULL ||
-            wm->surfaces == NULL || list_is_empty(wm->surfaces)) {
+            wm->stages == NULL || list_is_empty(wm->stages)) {
         return;
     }
 
@@ -750,7 +756,7 @@ void wm_json_syntax_errors_warn(void)
     }
 
     menu_message_dialog_show(wm->connection,
-            (surface_td *) list_data(list_head(wm->surfaces)),
+            (stage_td *) list_data(list_head(wm->stages)),
             wm->config, message, MENU_MSG_LEVEL_WARNING);
 
     /* Cleared once shown, so reopening the root menu (or reloading
@@ -780,10 +786,6 @@ int wm_stop(void)
 
     return 0;
 }
-
-
-/** Whether the last stop requested was a restart rather than an exit */
-static bool s_restart_requested = false;
 
 
 /* Request a graceful stop of the main window manager loop */
@@ -836,23 +838,23 @@ desktop_td *wm_get_client_desktop(const client_td *client)
         return NULL;
     }
 
-    (void) lookup_find_client(wm->surfaces, client->id, NULL, &desktop);
+    (void) lookup_find_client(wm->stages, client->id, NULL, &desktop);
     return desktop;
 }
 
 
-/* Return the managed surface with the given identifier */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+/* Return the managed stage with the given identifier */
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    if (wm == NULL || wm->surfaces == NULL) {
+    if (wm == NULL || wm->stages == NULL) {
         return NULL;
     }
 
-    for (list_item_td *snode = list_head(wm->surfaces);
+    for (list_item_td *snode = list_head(wm->stages);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
-        if (surface != NULL && surface->id == surface_id) {
-            return surface;
+        stage_td *const stage = (stage_td *) list_data(snode);
+        if (stage != NULL && stage->id == stage_id) {
+            return stage;
         }
     }
 
@@ -867,34 +869,34 @@ bool wm_sync_is_available(void)
 }
 
 
-/* Return the surfaces the singleton window manager manages */
-list_td *wm_get_surfaces(void)
+/* Return the stages the singleton window manager manages */
+list_td *wm_get_stages(void)
 {
-    return (wm != NULL) ? wm->surfaces : NULL;
+    return (wm != NULL) ? wm->stages : NULL;
 }
 
 
-/* Find which managed surface a given desktop belongs to */
-surface_td *wm_get_desktop_surface(const desktop_td *desktop)
+/* Find which managed stage a given desktop belongs to */
+stage_td *wm_get_desktop_stage(const desktop_td *desktop)
 {
     struct s_desktop_match_ctx_s found_ctx;
-    if (desktop == NULL || wm == NULL || wm->surfaces == NULL) {
+    if (desktop == NULL || wm == NULL || wm->stages == NULL) {
         return NULL;
     }
 
-    for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(wm->stages); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
         found_ctx.wanted = desktop;
         found_ctx.is_found = false;
-        surface_desktop_walk_all(surface, s_desktop_match_visit,
+        stage_desktop_walk_all(stage, s_desktop_match_visit,
                 &found_ctx);
         if (found_ctx.is_found) {
-            return surface;
+            return stage;
         }
     }
 
@@ -918,12 +920,12 @@ xcb_key_symbols_t *wm_get_keysyms(void)
 }
 
 
-/* Mark the client owner desktop and surface as outdated */
+/* Mark the client owner desktop and stage as outdated */
 void wm_request_client_redraw(client_td *client)
 {
     desktop_td *desktop;
 
-    if (client == NULL || wm == NULL || wm->surfaces == NULL) {
+    if (client == NULL || wm == NULL || wm->stages == NULL) {
         return;
     }
 
@@ -937,39 +939,39 @@ void wm_request_client_redraw(client_td *client)
         desktop->is_outdated = true;
     }
 
-    for (list_item_td *snode = list_head(wm->surfaces);
+    for (list_item_td *snode = list_head(wm->stages);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
-        if (surface->id == client->screen_id) {
-            surface->is_outdated = true;
+        if (stage->id == client->screen_id) {
+            stage->is_outdated = true;
             break;
         }
     } /* ! for (snode) */
 }
 
 
-/* Mark all surfaces and desktops as outdated */
+/* Mark all stages and desktops as outdated */
 void wm_request_full_redraw(void)
 {
-    if (wm == NULL || wm->surfaces == NULL) {
+    if (wm == NULL || wm->stages == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(wm->surfaces);
+    for (list_item_td *snode = list_head(wm->stages);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
 
-        surface->is_outdated = true;
+        stage->is_outdated = true;
 
-        surface_desktop_walk_all(surface, s_desktop_outdate_visit, NULL);
+        stage_desktop_walk_all(stage, s_desktop_outdate_visit, NULL);
     } /* ! for (snode) */
 }
 

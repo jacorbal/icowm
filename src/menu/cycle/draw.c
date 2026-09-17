@@ -38,7 +38,7 @@
 #include <client.h>
 #include <config.h>
 
-#include <surface.h>
+#include <stage.h>
 #include <desktop.h>
 
 /* Local includes */
@@ -114,8 +114,8 @@ static void s_cycle_row_style(const config_td *config,
  * @param i          Absolute entry index to draw, not one relative
  *                   to the visible rows; must fall within the current
  *                   visible range
- * @param pad_y      Vertical padding, for this row's Y offset
- * @param style      Drawing constants from @a s_cycle_row_style
+ * @param pad_y Vertical padding, for this row's Y offset
+ * @param style Drawing constants from @a s_cycle_row_style
  *
  * @note Complexity: @e O(1)
  *
@@ -148,7 +148,7 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
      * elsewhere too) simply gets no icon and no reserved space, same
      * as 'icon_offset' being 0 when 'show-pixmaps' is off. */
     if (style->icon_size > 0u && row_client != NULL &&
-            g_cycle_menu.surface != NULL) {
+            g_cycle_menu.stage != NULL) {
         struct position_s icon_pos;
 
         icon_pos.x = style->pad_x;
@@ -290,9 +290,9 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
  * border for decorated client frames, and the normal window border
  * width for undecorated window targets.
  *
- * @param client         Client the target belongs to
- * @param config         Active configuration
- * @param is_icon_menu   Whether the cycle menu is showing icon previews
+ * @param client       Client the target belongs to
+ * @param config       Active configuration
+ * @param is_icon_menu Whether the cycle menu is showing icon previews
  *
  * @return Border width to apply to the preview target
  *
@@ -400,7 +400,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 
     if (connection == NULL || config == NULL ||
             g_cycle_menu.window == XCB_WINDOW_NONE ||
-            g_cycle_menu.surface == NULL ||
+            g_cycle_menu.stage == NULL ||
             g_cycle_menu.desktop == NULL ||
             g_cycle_menu.selected < 0 ||
             g_cycle_menu.selected >= g_cycle_menu.count) {
@@ -510,7 +510,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
      * defeats the whole point of drawing one. */
     if (g_cycle_menu.outline_windows[0] == XCB_WINDOW_NONE) {
         render_outline_show(connection,
-                g_cycle_menu.surface->screen->root,
+                g_cycle_menu.stage->screen->root,
                 s_mi_cycle_preview_outline_geom(selected,
                     g_cycle_menu.is_icon_menu),
                 config->theme.cycle.border.width,

@@ -9,8 +9,8 @@
  * 'menu_confirm_dialog_show' is a recording stand-in below rather than
  * the real confirm.c, which has its own test battery
  * (tests/menu/dialog/test_confirm.c) already exercising that machinery
- * directly.  'surface_action_randr_revert_profiles' is likewise a
- * recording stand-in: it lives in surface.c, a whole other module this
+ * directly.  'stage_action_randr_revert_profiles' is likewise a
+ * recording stand-in: it lives in stage.c, a whole other module this
  * file has no reason to link just to observe that rrsafe.c's own
  * cancel callback reaches it.
  */
@@ -35,7 +35,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -43,20 +43,20 @@
 #include <menu/dialog/rrsafe.h>
 
 
-/** Fake, non-null XCB connection/surface/config handles, standing in
+/** Fake, non-null XCB connection/stage/config handles, standing in
  *  for live ones wherever rrsafe.c merely forwards them onward without
  *  ever dereferencing them itself */
 static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
-static surface_td s_fake_surface;
+static stage_td s_fake_stage;
 static config_td s_fake_config;
 
 /** Recording stand-ins' own call counters and captured arguments,
  *  reset by s_reset between scenarios */
 static int s_call_confirm_show;
 static xcb_connection_t *s_confirm_connection;
-static surface_td *s_confirm_surface;
+static stage_td *s_confirm_stage;
 static const config_td *s_confirm_config;
 static char s_confirm_prompt[256];
 static char s_confirm_cancel_label[64];
@@ -76,7 +76,7 @@ static void s_reset(void)
 {
     s_call_confirm_show = 0;
     s_confirm_connection = NULL;
-    s_confirm_surface = NULL;
+    s_confirm_stage = NULL;
     s_confirm_config = NULL;
     s_confirm_prompt[0] = '\0';
     s_confirm_cancel_label[0] = '\0';
@@ -93,7 +93,7 @@ static void s_reset(void)
  * @note Complexity: @e O(1)
  */
 void menu_confirm_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *prompt, const char *cancel_label,
         const char *confirm_label,
         void (*on_confirm)(xcb_connection_t *),
@@ -102,7 +102,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
 {
     s_call_confirm_show++;
     s_confirm_connection = connection;
-    s_confirm_surface = surface;
+    s_confirm_stage = stage;
     s_confirm_config = config;
     (void) strncpy(s_confirm_prompt, (prompt != NULL) ? prompt : "",
             sizeof(s_confirm_prompt) - 1u);
@@ -122,29 +122,29 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
 
 
 /**
- * @brief Link-only stand-in for @a surface_action_randr_revert_profiles
+ * @brief Link-only stand-in for @a stage_action_randr_revert_profiles
  * @note Complexity: @e O(1)
  */
-void surface_action_randr_revert_profiles(void)
+void stage_action_randr_revert_profiles(void)
 {
     s_call_revert_randr++;
 }
 
 
 /* dialog_rrsafe_show delegates to menu_confirm_dialog_show exactly
- * once, forwarding the connection, surface, and config unchanged */
+ * once, forwarding the connection, stage, and config unchanged */
 static void s_test_show_delegates_to_confirm(void)
 {
     s_reset();
-    dialog_rrsafe_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_rrsafe_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_EQ_INT(s_call_confirm_show, 1,
             "rrsafe_show: delegates to menu_confirm_dialog_show exactly"
             " once");
     TAP_OK(s_confirm_connection == s_fake_connection,
             "rrsafe_show: forwards the connection unchanged");
-    TAP_OK(s_confirm_surface == &s_fake_surface,
-            "rrsafe_show: forwards the surface unchanged");
+    TAP_OK(s_confirm_stage == &s_fake_stage,
+            "rrsafe_show: forwards the stage unchanged");
     TAP_OK(s_confirm_config == &s_fake_config,
             "rrsafe_show: forwards the config unchanged");
 }
@@ -155,7 +155,7 @@ static void s_test_show_delegates_to_confirm(void)
 static void s_test_show_passes_labels_and_timeout(void)
 {
     s_reset();
-    dialog_rrsafe_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_rrsafe_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_OK(s_confirm_prompt[0] != '\0',
             "rrsafe_show: passes a non-empty prompt");
@@ -178,7 +178,7 @@ static void s_test_show_passes_labels_and_timeout(void)
 static void s_test_cancel_callback_reverts_randr(void)
 {
     s_reset();
-    dialog_rrsafe_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_rrsafe_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_NOT_NULL(s_confirm_on_cancel,
             "rrsafe_show: on_cancel callback was captured before"
@@ -196,7 +196,7 @@ static void s_test_cancel_callback_reverts_randr(void)
 static void s_test_confirm_callback_is_a_pure_noop(void)
 {
     s_reset();
-    dialog_rrsafe_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_rrsafe_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_NOT_NULL(s_confirm_on_confirm,
             "rrsafe_show: on_confirm callback was captured before"

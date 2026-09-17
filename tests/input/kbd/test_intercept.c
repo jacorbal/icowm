@@ -69,7 +69,7 @@
 /* Project includes */
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <utils/xcb/connection.h>
 
 /* Local includes */
@@ -84,9 +84,9 @@ static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
         (xcb_connection_t *) &s_fake_connection_storage;
 
-/** Non-null opaque handle standing in for a real surface_td used as
- *  the "surface present" scenario in every guard below */
-static surface_td s_fake_surface;
+/** Non-null opaque handle standing in for a real stage_td used as
+ *  the "stage present" scenario in every guard below */
+static stage_td s_fake_stage;
 
 /** Every '*_is_open'/'*_is_active' flag the guard chain checks, each
  *  independently controllable so a scenario can set exactly one true
@@ -219,10 +219,10 @@ bool kbd_modal_is_active(void)
 
 
 bool kbd_modal_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym, const config_td *config)
+        stage_td *stage, xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) keysym;
     (void) config;
     s_call_kbd_modal_handle_keypress++;
@@ -257,11 +257,11 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg)
 }
 
 
-void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
+void cycle_confirm(xcb_connection_t *connection, list_td *stages,
         const config_td *cfg)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) cfg;
     s_call_cycle_confirm++;
 }
@@ -307,11 +307,11 @@ bool search_is_open(void)
 
 
 void search_handle_keypress(xcb_connection_t *connection,
-        list_td *surfaces, xcb_keysym_t keysym, uint16_t state,
+        list_td *stages, xcb_keysym_t keysym, uint16_t state,
         const config_td *cfg)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) keysym;
     (void) state;
     (void) cfg;
@@ -327,11 +327,11 @@ bool run_is_open(void)
 }
 
 
-void run_handle_keypress(xcb_connection_t *connection, surface_td *surface,
+void run_handle_keypress(xcb_connection_t *connection, stage_td *stage,
         xcb_keysym_t keysym, uint16_t modmask, const config_td *cfg)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) keysym;
     (void) modmask;
     (void) cfg;
@@ -445,10 +445,10 @@ bool wincmenu_is_open(void)
 
 
 bool wincmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym, const config_td *config)
+        stage_td *stage, xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) keysym;
     (void) config;
     s_call_wincmenu_handle_keypress++;
@@ -463,10 +463,10 @@ bool rootmenu_is_open(void)
 
 
 bool rootmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym, const config_td *config)
+        stage_td *stage, xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) keysym;
     (void) config;
     s_call_rootmenu_handle_keypress++;
@@ -481,10 +481,10 @@ bool winlist_is_open(void)
 
 
 bool winlist_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym, const config_td *config)
+        stage_td *stage, xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) keysym;
     (void) config;
     s_call_winlist_handle_keypress++;
@@ -499,10 +499,10 @@ bool iconmenu_is_open(void)
 
 
 bool iconmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym, const config_td *config)
+        stage_td *stage, xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) keysym;
     (void) config;
     s_call_iconmenu_handle_keypress++;
@@ -605,7 +605,7 @@ static void s_test_no_guard_active_falls_through(void)
 
     s_reset();
     consumed = ik_intercept_keypress(KS_RETURN, KS_RETURN, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_OK(!consumed,
             "with every guard false the press is not consumed");
 }
@@ -622,7 +622,7 @@ static void s_test_place_manual_active_wins_priority(void)
     s_flag_kbd_modal_active = true;
 
     consumed = ik_intercept_keypress(KS_ESCAPE, KS_ESCAPE, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
 
     TAP_OK(consumed,
             "manual placement being active consumes the key press");
@@ -643,7 +643,7 @@ static void s_test_kbd_modal_active_consumes_key(void)
     s_flag_kbd_modal_active = true;
 
     consumed = ik_intercept_keypress(KS_LEFT, KS_LEFT, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
 
     TAP_OK(consumed, "keyboard modal mode consumes the key press");
     TAP_EQ_INT(s_call_kbd_modal_handle_keypress, 1,
@@ -667,16 +667,16 @@ static void s_test_cycle_open_navigation_and_dismiss(void)
     TAP_EQ_INT(s_call_cycle_navigate_next, 0,
             "Up arrow never calls cycle_navigate_next");
 
-    /* A real surface is required here so 's_handle_cycle_key' has a
+    /* A real stage is required here so 's_handle_cycle_key' has a
      * non-NULL connection to call 'cycle_destroy' with; with a NULL
-     * surface, its every drawing/destroying call is itself skipped,
-     * which is exactly what the 'without a surface' scenarios
+     * stage, its every drawing/destroying call is itself skipped,
+     * which is exactly what the 'without a stage' scenarios
      * elsewhere in this file document on purpose, but would leave
      * this one unable to observe 'cycle_destroy' at all */
     s_reset();
     s_flag_cycle_open = true;
     consumed_other = ik_intercept_keypress((xcb_keysym_t) 'x',
-            (xcb_keysym_t) 'x', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'x', 0, &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_other,
             "the cycle menu consumes an unmatched key too");
     TAP_EQ_INT(s_call_cycle_destroy, 1,
@@ -736,7 +736,7 @@ static void s_test_search_open_consumes_key(void)
     s_flag_search_open = true;
 
     consumed = ik_intercept_keypress((xcb_keysym_t) 'a',
-            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'a', 0, &s_fake_stage, NULL, NULL);
 
     TAP_OK(consumed, "the search widget consumes the key press");
     TAP_EQ_INT(s_call_search_handle_keypress, 1,
@@ -753,7 +753,7 @@ static void s_test_run_open_consumes_key(void)
     s_flag_run_open = true;
 
     consumed = ik_intercept_keypress((xcb_keysym_t) 'a',
-            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'a', 0, &s_fake_stage, NULL, NULL);
 
     TAP_OK(consumed, "the run-box consumes the key press");
     TAP_EQ_INT(s_call_run_handle_keypress, 1,
@@ -772,7 +772,7 @@ static void s_test_confirm_dialog_tab_enter_escape(void)
     s_reset();
     s_flag_confirm_open = true;
     consumed_tab = ik_intercept_keypress(KS_TAB, KS_TAB, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_tab, "the confirm dialog consumes a Tab press");
     TAP_EQ_INT(s_call_menu_confirm_dialog_toggle_selection, 1,
             "Tab toggles the confirm dialog's selected button");
@@ -780,7 +780,7 @@ static void s_test_confirm_dialog_tab_enter_escape(void)
     s_reset();
     s_flag_confirm_open = true;
     consumed_enter = ik_intercept_keypress(KS_RETURN, KS_RETURN, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_enter, "the confirm dialog consumes an Enter press");
     TAP_EQ_INT(s_call_menu_confirm_dialog_accept, 1,
             "Enter accepts the confirm dialog's selected button");
@@ -788,7 +788,7 @@ static void s_test_confirm_dialog_tab_enter_escape(void)
     s_reset();
     s_flag_confirm_open = true;
     consumed_escape = ik_intercept_keypress(KS_ESCAPE, KS_ESCAPE, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_escape,
             "the confirm dialog consumes an Escape press");
     TAP_EQ_INT(s_call_menu_confirm_dialog_cancel, 1,
@@ -810,7 +810,7 @@ static void s_test_info_dialog_enter_requires_selection_gate(void)
     s_message_requires_selection = true;
     s_message_ok_selected = false;
     consumed_enter_gated = ik_intercept_keypress(KS_RETURN, KS_RETURN, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_enter_gated,
             "the info dialog reports the Enter press as consumed" \
             " even when gated");
@@ -823,7 +823,7 @@ static void s_test_info_dialog_enter_requires_selection_gate(void)
     s_message_requires_selection = true;
     s_message_ok_selected = true;
     consumed_enter_selected = ik_intercept_keypress(KS_RETURN, KS_RETURN,
-            0, &s_fake_surface, NULL, NULL);
+            0, &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_enter_selected,
             "the info dialog consumes Enter once OK is selected");
     TAP_EQ_INT(s_call_dialog_info_close, 1,
@@ -834,7 +834,7 @@ static void s_test_info_dialog_enter_requires_selection_gate(void)
     s_flag_info_open = true;
     s_message_requires_selection = true;
     consumed_escape_gated = ik_intercept_keypress(KS_ESCAPE, KS_ESCAPE, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_escape_gated,
             "the info dialog reports Escape as consumed even when" \
             " gated");
@@ -844,19 +844,19 @@ static void s_test_info_dialog_enter_requires_selection_gate(void)
 
 
 /* The info dialog's Up/Down/PageUp/PageDown scroll, and Tab selects
- * OK, all only while a real surface and connection are available */
+ * OK, all only while a real stage and connection are available */
 static void s_test_info_dialog_scroll_and_select(void)
 {
     s_reset();
     s_flag_info_open = true;
-    (void) ik_intercept_keypress(KS_UP, KS_UP, 0, &s_fake_surface,
+    (void) ik_intercept_keypress(KS_UP, KS_UP, 0, &s_fake_stage,
             NULL, NULL);
     TAP_EQ_INT(s_call_menu_message_dialog_scroll, 1,
             "Up arrow scrolls the info dialog by one line");
 
     s_reset();
     s_flag_info_open = true;
-    (void) ik_intercept_keypress(KS_TAB, KS_TAB, 0, &s_fake_surface,
+    (void) ik_intercept_keypress(KS_TAB, KS_TAB, 0, &s_fake_stage,
             NULL, NULL);
     TAP_EQ_INT(s_call_menu_message_dialog_select_ok, 1,
             "Tab selects OK in the info dialog");
@@ -865,7 +865,7 @@ static void s_test_info_dialog_scroll_and_select(void)
     s_flag_info_open = true;
     (void) ik_intercept_keypress(KS_UP, KS_UP, 0, NULL, NULL, NULL);
     TAP_EQ_INT(s_call_menu_message_dialog_scroll, 0,
-            "without a surface the info dialog never scrolls");
+            "without a stage the info dialog never scrolls");
 }
 
 
@@ -879,7 +879,7 @@ static void s_test_message_dialog_enter_escape(void)
     s_flag_message_open = true;
     s_message_requires_selection = false;
     consumed = ik_intercept_keypress(KS_RETURN, KS_RETURN, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_OK(consumed, "the message dialog consumes an Enter press");
     TAP_EQ_INT(s_call_menu_message_dialog_close, 1,
             "Enter closes a message dialog with no selection gate");
@@ -888,7 +888,7 @@ static void s_test_message_dialog_enter_escape(void)
     s_flag_message_open = true;
     s_message_requires_selection = true;
     (void) ik_intercept_keypress(KS_ESCAPE, KS_ESCAPE, 0,
-            &s_fake_surface, NULL, NULL);
+            &s_fake_stage, NULL, NULL);
     TAP_EQ_INT(s_call_menu_message_dialog_close, 0,
             "Escape never closes a selection-gated message dialog");
 }
@@ -908,7 +908,7 @@ static void s_test_context_menus_priority_order(void)
     s_flag_wincmenu_open = true;
     s_flag_rootmenu_open = true;
     consumed_wincmenu = ik_intercept_keypress((xcb_keysym_t) 'a',
-            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'a', 0, &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_wincmenu,
             "the window context menu consumes the key press");
     TAP_EQ_INT(s_call_wincmenu_handle_keypress, 1,
@@ -920,7 +920,7 @@ static void s_test_context_menus_priority_order(void)
     s_flag_rootmenu_open = true;
     s_flag_winlist_open = true;
     consumed_rootmenu = ik_intercept_keypress((xcb_keysym_t) 'a',
-            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'a', 0, &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_rootmenu,
             "the root menu consumes the key press");
     TAP_EQ_INT(s_call_winlist_handle_keypress, 0,
@@ -929,7 +929,7 @@ static void s_test_context_menus_priority_order(void)
     s_reset();
     s_flag_winlist_open = true;
     consumed_winlist = ik_intercept_keypress((xcb_keysym_t) 'a',
-            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'a', 0, &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_winlist,
             "the window list menu consumes the key press on its own");
     TAP_EQ_INT(s_call_winlist_handle_keypress, 1,
@@ -939,14 +939,14 @@ static void s_test_context_menus_priority_order(void)
     s_flag_winlist_open = true;
     s_flag_iconmenu_open = true;
     (void) ik_intercept_keypress((xcb_keysym_t) 'a',
-            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'a', 0, &s_fake_stage, NULL, NULL);
     TAP_EQ_INT(s_call_iconmenu_handle_keypress, 0,
             "the window list menu takes priority over the icon menu");
 
     s_reset();
     s_flag_iconmenu_open = true;
     consumed_iconmenu = ik_intercept_keypress((xcb_keysym_t) 'a',
-            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+            (xcb_keysym_t) 'a', 0, &s_fake_stage, NULL, NULL);
     TAP_OK(consumed_iconmenu,
             "the icon menu consumes the key press on its own");
     TAP_EQ_INT(s_call_iconmenu_handle_keypress, 1,
@@ -957,7 +957,7 @@ static void s_test_context_menus_priority_order(void)
 int main(void)
 {
     xcb_connection_set(s_fake_connection);
-    memset(&s_fake_surface, 0, sizeof(s_fake_surface));
+    memset(&s_fake_stage, 0, sizeof(s_fake_stage));
 
     TAP_PLAN(46);
 

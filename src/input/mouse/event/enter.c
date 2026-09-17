@@ -58,7 +58,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <input/mouse/cursor.h>
@@ -96,13 +96,13 @@ static struct timespec s_pending_due;
 /* Re-evaluate the resize cursor, then apply focus-follows-mouse, on
  * an enter-notify event */
 void mouse_handle_enter(xcb_connection_t *connection,
-        list_td *surfaces, xcb_enter_notify_event_t *event,
+        list_td *stages, xcb_enter_notify_event_t *event,
         const config_td *config)
 {
     client_td *client;
     client_td *entered;
     desktop_td *desktop;
-    surface_td *surface;
+    stage_td *stage;
 
     if (connection == NULL || event == NULL || config == NULL) {
         return;
@@ -128,7 +128,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
      * directly on this client's window (see 'client.c'), giving the
      * resize-cursor logic a second, independent chance to catch what
      * motion alone might have missed. */
-    entered = mouse_resize_cursor_update(connection, surfaces,
+    entered = mouse_resize_cursor_update(connection, stages,
             event->event,
             (struct position_s) { event->root_x, event->root_y });
 
@@ -170,14 +170,14 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    client = lookup_find_client(surfaces, event->event, NULL,
+    client = lookup_find_client(stages, event->event, NULL,
             &desktop);
     if (client == NULL) {
         return;
     }
 
-    surface = lookup_surface_for_root(surfaces, event->root);
-    if (surface == NULL || desktop == NULL) {
+    stage = lookup_stage_for_root(stages, event->root);
+    if (stage == NULL || desktop == NULL) {
         return;
     }
 
@@ -185,7 +185,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
             clock_gettime(CLOCK_MONOTONIC, &s_pending_due) != 0) {
         s_pending_window = XCB_WINDOW_NONE;
         s_enter_focus_active = true;
-        focus_apply(surfaces, surface, desktop, client, false, config);
+        focus_apply(stages, stage, desktop, client, false, config);
         return;
     }
 
@@ -229,14 +229,14 @@ int mouse_enter_focus_ms_remaining(void)
 
 
 /* Apply the pending delayed sloppy-focus, if one is due */
-void mouse_enter_focus_tick(list_td *surfaces, const config_td *config)
+void mouse_enter_focus_tick(list_td *stages, const config_td *config)
 {
     client_td *client;
     desktop_td *desktop;
-    surface_td *surface;
+    stage_td *stage;
     xcb_window_t window;
 
-    if (surfaces == NULL || config == NULL ||
+    if (stages == NULL || config == NULL ||
             s_pending_window == XCB_WINDOW_NONE ||
             mouse_enter_focus_ms_remaining() > 0) {
         return;
@@ -257,11 +257,11 @@ void mouse_enter_focus_tick(list_td *surfaces, const config_td *config)
         return;
     }
 
-    client = lookup_find_client(surfaces, window, &surface, &desktop);
-    if (client == NULL || surface == NULL || desktop == NULL) {
+    client = lookup_find_client(stages, window, &stage, &desktop);
+    if (client == NULL || stage == NULL || desktop == NULL) {
         return;
     }
 
     s_enter_focus_active = true;
-    focus_apply(surfaces, surface, desktop, client, false, config);
+    focus_apply(stages, stage, desktop, client, false, config);
 }

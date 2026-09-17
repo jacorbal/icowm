@@ -116,19 +116,19 @@ void ccmd_client_grab_buttons(client_td *client)
  * @brief Test-controlled stand-in for @a ccmd_client_monitor
  *
  * Answers @c false unconditionally, the same as a client whose
- * surface cannot be found: 'ccmd_client_fullscreen' falls through to
+ * stage cannot be found: 'ccmd_client_fullscreen' falls through to
  * 'ccmd_screen_dim' instead, which this file also controls.
  *
  * @note Complexity: @e O(1)
  */
-bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
+bool ccmd_client_monitor(client_td *client, stage_td **out_stage,
         monitor_td *out_monitor)
 {
     (void) client;
     (void) out_monitor;
 
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
 
     return false;

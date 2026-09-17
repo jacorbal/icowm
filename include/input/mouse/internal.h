@@ -68,7 +68,7 @@
  * @param mode       @c XCB_ALLOW_ASYNC_POINTER to consume the press,
  *                   @c XCB_ALLOW_REPLAY_POINTER to hand it back to
  *                   the window underneath
- * @param time       X server timestamp of the press
+ * @param time X server timestamp of the press
  *
  * @note Complexity: @e O(1)
  */
@@ -79,14 +79,14 @@ void im_allow_and_flush(xcb_connection_t *connection, uint8_t mode,
  * @brief Keep a pinned client's active state in step across
  *        desktops
  *
- * @param surface Surface the client belongs to
+ * @param stage   Stage the client belongs to
  * @param desktop Desktop the press happened on
  * @param client  Client that just became active
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops on
- *       @p surface
+ *       @p stage
  */
-void im_sync_pinned_active(surface_td *surface,
+void im_sync_pinned_active(stage_td *stage,
         const desktop_td *desktop, const client_td *client);
 
 /**
@@ -97,17 +97,17 @@ void im_sync_pinned_active(surface_td *surface,
  * underneath it.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Button press event
  * @param config     Active configuration
  *
  * @return @c true when the press was consumed dismissing an overlay
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 bool im_press_close_overlays(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config);
 
 /**
@@ -117,19 +117,19 @@ bool im_press_close_overlays(xcb_connection_t *connection,
  * shades, unshades or maximizes when it turns over a titlebar.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Button press event carrying the wheel direction
  * @param client     Client under the pointer, may be @c NULL
  * @param desktop    Desktop under the pointer, may be @c NULL
  * @param type       Resolved binding, one of the
  *                   @c MOUSEBIND_DESKTOP_* directions
- * @param config     Active configuration
+ * @param config Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the affected desktop
  */
 void im_press_scroll_binding(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop,
         enum wm_mousebind_type_e type, const config_td *config);
 
@@ -146,11 +146,11 @@ void im_press_scroll_binding(xcb_connection_t *connection,
  * @a mouse_handle_press).
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Button press event
  * @param client     Client whose titlebar was pressed
  * @param desktop    Desktop the client belongs to
- * @param surface    Surface the client belongs to
+ * @param stage      Stage the client belongs to
  * @param config     Active configuration
  *
  * @return @c true when the click just started a move drag (an active
@@ -161,9 +161,9 @@ void im_press_scroll_binding(xcb_connection_t *connection,
  * @note Complexity: @e O(b), where @e b is the number of configured
  *       titlebar buttons
  */
-bool im_press_titlebar(xcb_connection_t *connection, list_td *surfaces,
+bool im_press_titlebar(xcb_connection_t *connection, list_td *stages,
         xcb_button_press_event_t *event, client_td *client,
-        desktop_td *desktop, surface_td *surface,
+        desktop_td *desktop, stage_td *stage,
         const config_td *config);
 
 /**

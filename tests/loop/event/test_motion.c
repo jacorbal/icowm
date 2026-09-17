@@ -287,10 +287,10 @@ void drag_background_update(xcb_connection_t *connection,
 /** Link-only stand-in for mouse_handle_motion_hover
  *  (input/mouse/hover.c) */
 void mouse_handle_motion_hover(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_motion_notify_event_t *me)
+        list_td *stages, const xcb_motion_notify_event_t *me)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) me;
     s_mouse_handle_motion_hover_calls++;
 }
@@ -298,10 +298,10 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
 
 /** Link-only stand-in for mouse_viewport_edge_check
  *  (input/mouse/viewport/edge.c) */
-void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
+void mouse_viewport_edge_check(list_td *stages, xcb_window_t root,
         int16_t root_x, int16_t root_y)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
     (void) root_x;
     (void) root_y;

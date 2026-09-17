@@ -12,9 +12,9 @@
  * link-only stand-in below, the same 'tests/menu/dialog/test_confirm.c'
  * pattern of re-declaring libxcb's own entry points rather than linking
  * the real library, since there is no X server for this test binary to
- * actually talk to.  'surface_monitor_for_point' is likewise a
+ * actually talk to.  'stage_monitor_for_point' is likewise a
  * recording stand-in: it is a whole other module's own logic
- * ('src/surface/monitors.c'), not anything 'dialog.c' itself defines,
+ * ('src/stage/monitors.c'), not anything 'dialog.c' itself defines,
  * so this file only needs to control what it answers, not exercise it.
  */
 /*
@@ -37,7 +37,7 @@
 #include <types/pair.h>
 
 /* Project includes */
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -51,7 +51,7 @@ static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
 
-/** Fake, non-null XCB screen, so 'surface->screen != NULL' takes the
+/** Fake, non-null XCB screen, so 'stage->screen != NULL' takes the
  *  pointer-query branch in 'dlgutil_resolve_monitor' */
 static xcb_screen_t s_fake_screen;
 
@@ -62,7 +62,7 @@ static bool s_pointer_query_succeeds;
 static int16_t s_pointer_root_x;
 static int16_t s_pointer_root_y;
 
-/** Monitor this file's own surface_monitor_for_point stand-in answers,
+/** Monitor this file's own stage_monitor_for_point stand-in answers,
  *  and the last point it was asked to resolve */
 static monitor_td s_stub_monitor;
 static struct position_s s_last_resolved_point;
@@ -221,20 +221,20 @@ xcb_query_pointer_reply_t *xcb_query_pointer_reply(xcb_connection_t *c,
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_monitor_for_point
+ * @brief Test-controlled stand-in for @a stage_monitor_for_point
  *
  * Records the point it was asked to resolve and answers whichever
  * fixed monitor the current scenario configured, so this file
- * controls 'dlgutil_resolve_monitor' 's own fallback-to-whole-surface
+ * controls 'dlgutil_resolve_monitor' 's own fallback-to-whole-stage
  * branch (an all-zero monitor) independently from whether the pointer
  * query itself succeeded.
  *
  * @note Complexity: @e O(1)
  */
-monitor_td surface_monitor_for_point(const surface_td *surface,
+monitor_td stage_monitor_for_point(const stage_td *stage,
         struct position_s point)
 {
-    (void) surface;
+    (void) stage;
     s_call_monitor_for_point++;
     s_last_resolved_point = point;
     return s_stub_monitor;
@@ -242,15 +242,15 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
 
 
 /**
- * @brief Build a minimal, real surface fixture
+ * @brief Build a minimal, real stage fixture
  * @note Complexity: @e O(1)
  */
-static void s_make_surface(surface_td *surface, bool with_screen)
+static void s_make_stage(stage_td *stage, bool with_screen)
 {
-    memset(surface, 0, sizeof(*surface));
-    surface->screen = (with_screen) ? &s_fake_screen : NULL;
-    surface->properties.dim.w = 1920u;
-    surface->properties.dim.h = 1080u;
+    memset(stage, 0, sizeof(*stage));
+    stage->screen = (with_screen) ? &s_fake_screen : NULL;
+    stage->properties.dim.w = 1920u;
+    stage->properties.dim.h = 1080u;
 }
 
 
@@ -343,8 +343,8 @@ static void s_test_button_border_draw_draws_inset_rect(void)
 
 
 /* dlgutil_resolve_monitor answers an all-zero monitor without touching
- * XCB or the surface's dimensions when surface is NULL */
-static void s_test_resolve_monitor_null_surface(void)
+ * XCB or the stage's dimensions when stage is NULL */
+static void s_test_resolve_monitor_null_stage(void)
 {
     monitor_td monitor;
 
@@ -352,11 +352,11 @@ static void s_test_resolve_monitor_null_surface(void)
     monitor = dlgutil_resolve_monitor(s_fake_connection, NULL);
 
     TAP_EQ_INT((int) monitor.w, 0,
-            "resolve_monitor: NULL surface answers zero width");
+            "resolve_monitor: NULL stage answers zero width");
     TAP_EQ_INT((int) monitor.h, 0,
-            "resolve_monitor: NULL surface answers zero height");
+            "resolve_monitor: NULL stage answers zero height");
     TAP_EQ_INT(s_call_monitor_for_point, 0,
-            "resolve_monitor: NULL surface never queries a monitor");
+            "resolve_monitor: NULL stage never queries a monitor");
 }
 
 
@@ -364,10 +364,10 @@ static void s_test_resolve_monitor_null_surface(void)
  * reported root position */
 static void s_test_resolve_monitor_uses_pointer_position(void)
 {
-    surface_td surface;
+    stage_td stage;
     monitor_td monitor;
 
-    s_make_surface(&surface, true);
+    s_make_stage(&stage, true);
     s_reset();
     s_pointer_query_succeeds = true;
     s_pointer_root_x = 640;
@@ -377,10 +377,10 @@ static void s_test_resolve_monitor_uses_pointer_position(void)
     s_stub_monitor.w = 800u;
     s_stub_monitor.h = 600u;
 
-    monitor = dlgutil_resolve_monitor(s_fake_connection, &surface);
+    monitor = dlgutil_resolve_monitor(s_fake_connection, &stage);
 
     TAP_EQ_INT(s_call_monitor_for_point, 1,
-            "resolve_monitor: resolves through surface_monitor_for_point"
+            "resolve_monitor: resolves through stage_monitor_for_point"
             " once");
     TAP_EQ_INT((int) s_last_resolved_point.x, 640,
             "resolve_monitor: resolves at the pointer's reported x");
@@ -394,61 +394,61 @@ static void s_test_resolve_monitor_uses_pointer_position(void)
 
 
 /* A failed pointer query falls back to a monitor spanning the whole
- * surface */
+ * stage */
 static void s_test_resolve_monitor_falls_back_on_query_failure(void)
 {
-    surface_td surface;
+    stage_td stage;
     monitor_td monitor;
 
-    s_make_surface(&surface, true);
+    s_make_stage(&stage, true);
     s_reset();
     s_pointer_query_succeeds = false;
 
-    monitor = dlgutil_resolve_monitor(s_fake_connection, &surface);
+    monitor = dlgutil_resolve_monitor(s_fake_connection, &stage);
 
     TAP_EQ_INT((int) monitor.x, 0,
             "resolve_monitor: query failure falls back to x = 0");
     TAP_EQ_INT((int) monitor.y, 0,
             "resolve_monitor: query failure falls back to y = 0");
     TAP_EQ_INT((int) monitor.w, 1920,
-            "resolve_monitor: query failure falls back to surface width");
+            "resolve_monitor: query failure falls back to stage width");
     TAP_EQ_INT((int) monitor.h, 1080,
-            "resolve_monitor: query failure falls back to surface height");
+            "resolve_monitor: query failure falls back to stage height");
 }
 
 
 /* A NULL connection skips the pointer query outright and falls back to
- * a monitor spanning the whole surface, the same as a failed query */
+ * a monitor spanning the whole stage, the same as a failed query */
 static void s_test_resolve_monitor_null_connection_falls_back(void)
 {
-    surface_td surface;
+    stage_td stage;
     monitor_td monitor;
 
-    s_make_surface(&surface, true);
+    s_make_stage(&stage, true);
     s_reset();
 
-    monitor = dlgutil_resolve_monitor(NULL, &surface);
+    monitor = dlgutil_resolve_monitor(NULL, &stage);
 
     TAP_EQ_INT(s_call_monitor_for_point, 0,
             "resolve_monitor: NULL connection never queries a monitor");
     TAP_EQ_INT((int) monitor.w, 1920,
-            "resolve_monitor: NULL connection falls back to surface"
+            "resolve_monitor: NULL connection falls back to stage"
             " width");
     TAP_EQ_INT((int) monitor.h, 1080,
-            "resolve_monitor: NULL connection falls back to surface"
+            "resolve_monitor: NULL connection falls back to stage"
             " height");
 }
 
 
 /* A resolved monitor reporting zero width or height (as this file's
  * own stand-in can be told to do) is treated the same as a query
- * failure: dimensions fall back to the whole surface */
+ * failure: dimensions fall back to the whole stage */
 static void s_test_resolve_monitor_zero_size_falls_back(void)
 {
-    surface_td surface;
+    stage_td stage;
     monitor_td monitor;
 
-    s_make_surface(&surface, true);
+    s_make_stage(&stage, true);
     s_reset();
     s_pointer_query_succeeds = true;
     s_stub_monitor.x = 5;
@@ -456,14 +456,14 @@ static void s_test_resolve_monitor_zero_size_falls_back(void)
     s_stub_monitor.w = 0u;
     s_stub_monitor.h = 0u;
 
-    monitor = dlgutil_resolve_monitor(s_fake_connection, &surface);
+    monitor = dlgutil_resolve_monitor(s_fake_connection, &stage);
 
     TAP_EQ_INT((int) monitor.w, 1920,
             "resolve_monitor: zero-width resolved monitor falls back to"
-            " surface width");
+            " stage width");
     TAP_EQ_INT((int) monitor.h, 1080,
             "resolve_monitor: zero-height resolved monitor falls back to"
-            " surface height");
+            " stage height");
 }
 
 
@@ -473,28 +473,28 @@ static void s_test_center_null_output_guards(void)
 {
     int16_t x;
     int16_t y;
-    surface_td surface;
+    stage_td stage;
 
-    s_make_surface(&surface, true);
+    s_make_stage(&stage, true);
     x = -1;
     y = -1;
     s_reset();
-    menu_dialog_center(s_fake_connection, &surface, 100u, 50u, NULL, &y);
+    menu_dialog_center(s_fake_connection, &stage, 100u, 50u, NULL, &y);
     TAP_EQ_INT((int) y, -1,
             "center: NULL out_x leaves out_y untouched (no-op)");
 
     x = -1;
     y = -1;
     s_reset();
-    menu_dialog_center(s_fake_connection, &surface, 100u, 50u, &x, NULL);
+    menu_dialog_center(s_fake_connection, &stage, 100u, 50u, &x, NULL);
     TAP_EQ_INT((int) x, -1,
             "center: NULL out_y leaves out_x untouched (no-op)");
 }
 
 
-/* menu_dialog_center reports (0, 0) for a NULL surface, without
+/* menu_dialog_center reports (0, 0) for a NULL stage, without
  * touching XCB at all */
-static void s_test_center_null_surface(void)
+static void s_test_center_null_stage(void)
 {
     int16_t x = -5;
     int16_t y = -5;
@@ -502,10 +502,10 @@ static void s_test_center_null_surface(void)
     s_reset();
     menu_dialog_center(s_fake_connection, NULL, 100u, 50u, &x, &y);
 
-    TAP_EQ_INT((int) x, 0, "center: NULL surface reports x = 0");
-    TAP_EQ_INT((int) y, 0, "center: NULL surface reports y = 0");
+    TAP_EQ_INT((int) x, 0, "center: NULL stage reports x = 0");
+    TAP_EQ_INT((int) y, 0, "center: NULL stage reports y = 0");
     TAP_EQ_INT(s_call_monitor_for_point, 0,
-            "center: NULL surface never resolves a monitor");
+            "center: NULL stage never resolves a monitor");
 }
 
 
@@ -513,11 +513,11 @@ static void s_test_center_null_surface(void)
  * in the middle of it */
 static void s_test_center_centers_within_monitor(void)
 {
-    surface_td surface;
+    stage_td stage;
     int16_t x = 0;
     int16_t y = 0;
 
-    s_make_surface(&surface, true);
+    s_make_stage(&stage, true);
     s_reset();
     s_pointer_query_succeeds = true;
     s_stub_monitor.x = 100;
@@ -525,7 +525,7 @@ static void s_test_center_centers_within_monitor(void)
     s_stub_monitor.w = 800u;
     s_stub_monitor.h = 600u;
 
-    menu_dialog_center(s_fake_connection, &surface, 200u, 100u, &x, &y);
+    menu_dialog_center(s_fake_connection, &stage, 200u, 100u, &x, &y);
 
     TAP_EQ_INT((int) x, 100 + (800 - 200) / 2,
             "center: horizontally centered within the resolved monitor");
@@ -538,11 +538,11 @@ static void s_test_center_centers_within_monitor(void)
  * pinned flush to that axis's monitor origin instead of going negative */
 static void s_test_center_clamps_oversized_dialog(void)
 {
-    surface_td surface;
+    stage_td stage;
     int16_t x = 0;
     int16_t y = 0;
 
-    s_make_surface(&surface, true);
+    s_make_stage(&stage, true);
     s_reset();
     s_pointer_query_succeeds = true;
     s_stub_monitor.x = 50;
@@ -550,7 +550,7 @@ static void s_test_center_clamps_oversized_dialog(void)
     s_stub_monitor.w = 300u;
     s_stub_monitor.h = 200u;
 
-    menu_dialog_center(s_fake_connection, &surface, 300u, 400u, &x, &y);
+    menu_dialog_center(s_fake_connection, &stage, 300u, 400u, &x, &y);
 
     TAP_EQ_INT((int) x, 50,
             "center: dialog exactly as wide as the monitor is pinned to"
@@ -568,13 +568,13 @@ int main(void)
     s_test_u16max();
     s_test_button_border_draw_guards();
     s_test_button_border_draw_draws_inset_rect();
-    s_test_resolve_monitor_null_surface();
+    s_test_resolve_monitor_null_stage();
     s_test_resolve_monitor_uses_pointer_position();
     s_test_resolve_monitor_falls_back_on_query_failure();
     s_test_resolve_monitor_null_connection_falls_back();
     s_test_resolve_monitor_zero_size_falls_back();
     s_test_center_null_output_guards();
-    s_test_center_null_surface();
+    s_test_center_null_stage();
     s_test_center_centers_within_monitor();
     s_test_center_clamps_oversized_dialog();
 

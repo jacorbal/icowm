@@ -30,7 +30,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <render/text.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Default initial values */
 #include <defs/popup.h>
@@ -64,7 +64,7 @@ static struct timespec s_popup_open_time = { 0, 0 };
 
 /* Show a popup by the client window, with its information */
 void popup_show(xcb_connection_t *connection,
-        surface_td *surface, const desktop_td *desktop,
+        stage_td *stage, const desktop_td *desktop,
         client_td *client,
         uint16_t modifier, xcb_keycode_t keycode, const config_td *cfg)
 {
@@ -86,14 +86,14 @@ void popup_show(xcb_connection_t *connection,
     int32_t max_y;
     uint32_t mask;
     uint32_t values[4];
-    surface_td *client_surface = NULL;
+    stage_td *client_stage = NULL;
     monitor_td client_monitor;
     uint32_t monitor_id = 0u;
     uint16_t widest_line = 0u;
 
-    if (connection == NULL || surface == NULL || desktop == NULL ||
+    if (connection == NULL || stage == NULL || desktop == NULL ||
             client == NULL || cfg == NULL ||
-            surface->screen == NULL) {
+            stage->screen == NULL) {
         return;
     }
 
@@ -107,13 +107,13 @@ void popup_show(xcb_connection_t *connection,
      * currently falls on, the same way
      * 'ccmd_client_move_to_next_monitor' in 'cmds/client/geom.c'
      * does, to display alongside its
-     * desktop/surface; a client on a single-monitor surface always
+     * desktop/stage; a client on a single-monitor stage always
      * resolves to monitor 0. */
-    if (ccmd_client_monitor(client, &client_surface, &client_monitor) &&
-            client_surface != NULL) {
-        for (uint32_t i = 0u; i < client_surface->monitor_count; ++i) {
-            if (client_surface->monitors[i].x == client_monitor.x &&
-                    client_surface->monitors[i].y == client_monitor.y) {
+    if (ccmd_client_monitor(client, &client_stage, &client_monitor) &&
+            client_stage != NULL) {
+        for (uint32_t i = 0u; i < client_stage->monitor_count; ++i) {
+            if (client_stage->monitors[i].x == client_monitor.x &&
+                    client_stage->monitors[i].y == client_monitor.y) {
                 monitor_id = i;
                 break;
             }
@@ -130,9 +130,9 @@ void popup_show(xcb_connection_t *connection,
             "name=%s class=%s instance=%s",
             name, class_name, instance_name);
     (void) snprintf(s_popup_lines[1], sizeof(s_popup_lines[1]),
-            "frame_id=%#x client_id=%#x desktop_id=%u surface_id=%u" \
+            "frame_id=%#x client_id=%#x desktop_id=%u stage_id=%u" \
             " monitor_id=%u",
-            client->frame, client->id, desktop->id, surface->id,
+            client->frame, client->id, desktop->id, stage->id,
             monitor_id);
     (void) snprintf(s_popup_lines[2], sizeof(s_popup_lines[2]),
             "geom=%ux%u%+d%+d",
@@ -167,8 +167,8 @@ void popup_show(xcb_connection_t *connection,
      * screen */
     x = (int16_t) client->layout.geometry.cur.pos.x;
     y = (int16_t) client->layout.geometry.cur.pos.y;
-    max_x = (int32_t) surface->properties.dim.w - (int32_t) width;
-    max_y = (int32_t) surface->properties.dim.h - (int32_t) height;
+    max_x = (int32_t) stage->properties.dim.w - (int32_t) width;
+    max_y = (int32_t) stage->properties.dim.h - (int32_t) height;
     if ((int32_t) x > max_x) { x = (int16_t) max_x; }
     if ((int32_t) y > max_y) { y = (int16_t) max_y; }
     if (x < 0) { x = 0; }
@@ -194,7 +194,7 @@ void popup_show(xcb_connection_t *connection,
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             s_popup_window,
-            surface->screen->root,
+            stage->screen->root,
             x, y,
             (uint16_t) width, (uint16_t) height,
             (uint16_t) cfg->theme.overlay.border.width,

@@ -43,7 +43,7 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <i18n.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -63,8 +63,8 @@ static ctxmenu_state_td s_root;
 /** Entries for the top-level icon context menu */
 static ctxmenu_entry_td s_entries[ICONMENU_FIXED_ENTRIES];
 
-/** Pointer to the surface (valid while the menu is open) */
-static surface_td *s_surface = NULL;
+/** Pointer to the stage (valid while the menu is open) */
+static stage_td *s_stage = NULL;
 
 /** Active configuration (valid while the menu is open) */
 static const config_td *s_config = NULL;
@@ -173,13 +173,13 @@ static void s_cb_inspect(xcb_connection_t *connection, void *userdata)
         return;
     }
 
-    dialog_inspect_show(connection, s_surface, s_config,
+    dialog_inspect_show(connection, s_stage, s_config,
             (client_td *) userdata);
 }
 
 
 void iconmenu_show(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         struct position_s pos, const config_td *config)
 {
     int n;
@@ -193,7 +193,7 @@ void iconmenu_show(xcb_connection_t *connection,
     ctxmenu_entry_td *monitor_entries = NULL;
     ctxmenu_state_td *monitor_state = NULL;
 
-    if (connection == NULL || surface == NULL || desktop == NULL ||
+    if (connection == NULL || stage == NULL || desktop == NULL ||
             client == NULL || config == NULL ||
             client_is_locked(client)) {
         return;
@@ -202,25 +202,25 @@ void iconmenu_show(xcb_connection_t *connection,
     /* Close any previously open icon context menu */
     iconmenu_close();
 
-    s_surface = surface;
+    s_stage = stage;
     s_config = config;
     s_target_client = client;
 
-    page_count = ctxmenu_submenu_page_build(surface, desktop, client,
+    page_count = ctxmenu_submenu_page_build(stage, desktop, client,
             &page_entries, &page_state);
-    desk_count = ctxmenu_submenu_desktop_build(surface, desktop, client,
+    desk_count = ctxmenu_submenu_desktop_build(stage, desktop, client,
             &desk_entries, &desk_state);
 
     /* Build "Send to monitor" submenu, only meaningful (and only shown
-     * at all, see below) on a surface with more than one monitor */
-    monitor_count = ctxmenu_submenu_monitor_build(surface, desktop,
+     * at all, see below) on a stage with more than one monitor */
+    monitor_count = ctxmenu_submenu_monitor_build(stage, desktop,
             client, &monitor_entries, &monitor_state);
 
     memset(s_entries, 0, sizeof(s_entries));
     n = 0;
 
     /* Send to desktop (submenu); omitted entirely, not just disabled,
-     * on a surface with only one desktop */
+     * on a stage with only one desktop */
     if (desk_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
         safe_strncpy(s_entries[n].label,
@@ -247,7 +247,7 @@ void iconmenu_show(xcb_connection_t *connection,
     }
 
     /* Send to monitor (submenu); omitted entirely, not just disabled,
-     * on a surface with only one monitor */
+     * on a stage with only one monitor */
     if (monitor_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
         safe_strncpy(s_entries[n].label,
@@ -291,7 +291,7 @@ void iconmenu_show(xcb_connection_t *connection,
     s_root.entries = s_entries;
     s_root.entry_count = n;
 
-    ctxmenu_show(connection, surface, &s_root, pos, config);
+    ctxmenu_show(connection, stage, &s_root, pos, config);
 
     /* Nothing else marks 'client' outdated or otherwise revisits its
      * icon on its own here, so without this the icon would go on
@@ -315,7 +315,7 @@ void iconmenu_close(void)
     client_td *const was_target = s_target_client;
 
     ctxmenu_close(&s_root);
-    s_surface = NULL;
+    s_stage = NULL;
     s_config = NULL;
     s_target_client = NULL;
 
@@ -338,10 +338,10 @@ void iconmenu_repaint(xcb_window_t win)
 
 /* Handle a button-press event inside the icon context menu */
 bool iconmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int y,
+        stage_td *stage, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_click_window(connection, surface,
+    return ctxmenu_tree_handle_click_window(connection, stage,
             &s_root, win, y, config);
 }
 
@@ -381,7 +381,7 @@ void iconmenu_notice_client_destroyed(const client_td *client)
      * here promises are still consistent enough mid-teardown for that
      * repaint to read safely. */
     ctxmenu_close(&s_root);
-    s_surface = NULL;
+    s_stage = NULL;
     s_config = NULL;
     s_target_client = NULL;
 }
@@ -389,10 +389,10 @@ void iconmenu_notice_client_destroyed(const client_td *client)
 
 /* Handle a key-press event while the icon context menu is open */
 bool iconmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_keypress_deepest(connection, surface,
+    return ctxmenu_tree_handle_keypress_deepest(connection, stage,
             &s_root, keysym, config);
 }
 

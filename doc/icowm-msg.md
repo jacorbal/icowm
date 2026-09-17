@@ -75,12 +75,12 @@ name, every known event name) and exit; see §5.
 Every `<key>=<value>` argument is split on its first `=`; the value half
 is sent as:
 
-| Value                                                      | Sent as |
-|------------------------------------------------------------|---------|
-| Exactly `true` or `false`                                  | A JSON boolean |
-| Parses in full as a number (e.g., `23068673`, `-5`, `3.5`) | A JSON number |
+| Value                                                                                 | Sent as |
+|---------------------------------------------------------------------------------------|---------|
+| Exactly `true` or `false`                                                             | A JSON boolean |
+| Parses in full as a number (e.g., `23068673`, `-5`, `3.5`)                            | A JSON number |
 | Parses in full as a hexadecimal number, prefixed `0x` (e.g., `0x1600001`, `0xaaccff`) | A JSON number, its decimal value |
-| Anything else                                              | A JSON string, verbatim |
+| Anything else                                                                         | A JSON string, verbatim |
 
 This means a numeric ID never needs quoting on the command line
 (`client_id=23068673`, not `client_id="23068673"`), and a value that
@@ -159,13 +159,13 @@ $ icowm-msg get_version
 {"ok":true,"protocol_version":1}
 
 $ icowm-msg list_desktops
-{"ok":true,"desktops":[{"id":0,"name":"Work","surface_id":0,"current":true}]}
+{"ok":true,"desktops":[{"id":0,"name":"Work","stage_id":0,"current":true}]}
 
 $ icowm-msg goto_desktop desktop_id=1
 {"ok":true}
 
 $ icowm-msg goto_desktop desktop_id=99
-{"ok":false,"error":"no such desktop on that surface"}
+{"ok":false,"error":"no such desktop on that stage"}
 
 $ icowm-msg move_client client_id=23068673 x=100 y=200
 {"ok":true}
@@ -239,9 +239,9 @@ response field means, is in [`icowm.md`](icowm.md) §5.3.
 | Command                        | Arguments                                | Description |
 |--------------------------------|------------------------------------------|-------------|
 | `get_version`                  | *none*                                   | Reports the wire protocol version |
-| `list_desktops`                | *none*                                   | Lists every desktop on every managed surface |
+| `list_desktops`                | *none*                                   | Lists every desktop on every managed stage |
 | `list_clients`                 | *none*                                   | Lists every managed client, with geometry and state flags |
-| `get_focused`                  | *none*                                   | Reports the active client of every managed surface |
+| `get_focused`                  | *none*                                   | Reports the active client of every managed stage |
 | `close_client`                 | `client_id`                              | Closes the client politely, or destroys its window |
 | `kill_client`                  | `client_id`                              | Forcibly terminates the client's X connection |
 | `focus_client`                 | `client_id`                              | Moves input focus to the client (does not raise it) |
@@ -286,21 +286,21 @@ response field means, is in [`icowm.md`](icowm.md) §5.3.
 | `reclass_client`               | `client_id` `class_name` `instance_name` | Overrides the client's `WM_CLASS` |
 | `rerole_client`                | `client_id` `role`                       | Overrides the client's window role |
 | `set_client_icon`              | `client_id` `icon_name`                  | Overrides which icon IcoWM shows for the client |
-| `set_desktop_background`       | `desktop_id` [`surface_id`] `color`      | Sets that desktop's solid background color |
-| `show_desktop`                 | `desktop_id` [`surface_id`] `show`       | Shows or hides every client on that desktop at once |
-| `send_client_to_desktop`       | `client_id` `target_desktop_id`          | Moves the client to another desktop on the same surface |
-| `iconify_all`                  | [`desktop_id`] [`surface_id`]            | Iconifies every client on that desktop at once |
-| `deiconify_all`                | [`desktop_id`] [`surface_id`]            | Restores every iconified client on that desktop at once |
-| `rearrange_desktop`            | [`desktop_id`] [`surface_id`]            | Re-applies the configured placement policy on that desktop |
-| `goto_desktop`                 | `desktop_id` [`surface_id`]              | Switches the resolved surface to that desktop |
-| `goto_north_desktop`           | [`surface_id`]                           | Switches the resolved surface to the desktop north of its current one |
-| `goto_south_desktop`           | [`surface_id`]                           | The same, toward the desktop south of the current one |
-| `goto_east_desktop`            | [`surface_id`]                           | The same, toward the desktop east of the current one |
-| `goto_west_desktop`            | [`surface_id`]                           | The same, toward the desktop west of the current one |
-| `add_desktop`                  | [`surface_id`]                           | Adds a new desktop after the resolved surface's last one, growing its configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
-| `remove_desktop`               | [`surface_id`]                           | Removes the resolved surface's last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its last member.  Refused, with an error, while only one desktop remains |
-| `toggle_scratchpad`            | [`desktop_id`] [`surface_id`]            | Launches the scratchpad, or shows/hides it if already running |
-| `toggle_strutless_maximize`    | [`surface_id`]                           | Toggles whether panel and tray struts are set aside when computing that surface's work areas |
+| `set_desktop_background`       | `desktop_id` [`stage_id`] `color`        | Sets that desktop's solid background color |
+| `show_desktop`                 | `desktop_id` [`stage_id`] `show`         | Shows or hides every client on that desktop at once |
+| `send_client_to_desktop`       | `client_id` `target_desktop_id`          | Moves the client to another desktop on the same stage |
+| `iconify_all`                  | [`desktop_id`] [`stage_id`]              | Iconifies every client on that desktop at once |
+| `deiconify_all`                | [`desktop_id`] [`stage_id`]              | Restores every iconified client on that desktop at once |
+| `rearrange_desktop`            | [`desktop_id`] [`stage_id`]              | Re-applies the configured placement policy on that desktop |
+| `goto_desktop`                 | `desktop_id` [`stage_id`]                | Switches the resolved stage to that desktop |
+| `goto_north_desktop`           | [`stage_id`]                             | Switches the resolved stage to the desktop north of its current one |
+| `goto_south_desktop`           | [`stage_id`]                             | The same, toward the desktop south of the current one |
+| `goto_east_desktop`            | [`stage_id`]                             | The same, toward the desktop east of the current one |
+| `goto_west_desktop`            | [`stage_id`]                             | The same, toward the desktop west of the current one |
+| `add_desktop`                  | [`stage_id`]                             | Adds a new desktop after the resolved stage's last one, growing its configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop`               | [`stage_id`]                             | Removes the resolved stage's last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its last member.  Refused, with an error, while only one desktop remains |
+| `toggle_scratchpad`            | [`desktop_id`] [`stage_id`]              | Launches the scratchpad, or shows/hides it if already running |
+| `toggle_strutless_maximize`    | [`stage_id`]                             | Toggles whether panel and tray struts are set aside when computing that stage's work areas |
 | `reload_config`                | *none*                                   | Reloads every configuration file |
 | `restart_wm`                   | *none*                                   | Requests that IcoWM stop and restart itself in place, keeping every managed client open |
 | `exit_wm`                      | *none*                                   | Requests that IcoWM stop and exit |
@@ -328,37 +328,37 @@ error, since it has nothing to count events for.
 
 | Event                        | Fields |
 |------------------------------|--------|
-| `window_mapped`              | `client_id`, `desktop_id`, `surface_id`: a client was just mapped onto that desktop |
-| `window_closed`              | `client_id`, `desktop_id`, `surface_id`: a client was just destroyed |
-| `desktop_switched`           | `surface_id`, `desktop_id`: that surface's current desktop just changed to `desktop_id` |
-| `focus_changed`              | `surface_id`, `client_id`: that client just became the active one on its surface |
-| `urgency_set`                | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just set |
-| `urgency_cleared`            | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
-| `window_moved`               | `client_id`, `desktop_id`, `surface_id`: that client's position just changed (see the `list_clients` command for its current `x`/`y`) |
-| `window_resized`             | `client_id`, `desktop_id`, `surface_id`: that client's size just changed (see the `list_clients` command for its current `w`/`h`) |
-| `rule_applied`               | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's properties |
-| `pin_set`                    | `client_id`, `desktop_id`, `surface_id`: that client was just pinned (visible on every desktop) |
-| `pin_cleared`                | `client_id`, `desktop_id`, `surface_id`: that client was just unpinned |
-| `fullscreen_set`             | `client_id`, `desktop_id`, `surface_id`: that client just entered full screen |
-| `fullscreen_cleared`         | `client_id`, `desktop_id`, `surface_id`: that client just left full screen |
-| `shade_set`                  | `client_id`, `desktop_id`, `surface_id`: that client was just shaded (rolled up into its titlebar) |
-| `shade_cleared`              | `client_id`, `desktop_id`, `surface_id`: that client was just unshaded |
-| `hide_set`                   | `client_id`, `desktop_id`, `surface_id`: that client was just hidden |
-| `hide_cleared`               | `client_id`, `desktop_id`, `surface_id`: that client was just unhidden |
-| `decoration_set`             | `client_id`, `desktop_id`, `surface_id`: that client's titlebar and border were just shown |
-| `decoration_cleared`         | `client_id`, `desktop_id`, `surface_id`: that client's titlebar and border were just hidden |
-| `client_iconified`           | `client_id`, `desktop_id`, `surface_id`: that client was just iconified |
-| `client_deiconified`         | `client_id`, `desktop_id`, `surface_id`: that client was just restored from being iconified |
-| `layer_changed`              | `client_id`, `desktop_id`, `surface_id`: that client's stacking layer just changed (see `list_clients` for its current layer) |
-| `client_desktop_changed`     | `client_id`, `desktop_id`, `surface_id`: that client just moved to a different desktop (`desktop_id` is the new one) |
-| `client_renamed`             | `client_id`, `desktop_id`, `surface_id`, `name`: that client's displayed title was just overridden |
-| `client_reclassed`           | `client_id`, `desktop_id`, `surface_id`, `class_name`, `instance_name`: that client's `WM_CLASS` was just overridden |
-| `client_reroled`             | `client_id`, `desktop_id`, `surface_id`, `role`: that client's window role was just overridden |
-| `client_icon_changed`        | `client_id`, `desktop_id`, `surface_id`, `icon_name`: that client's displayed icon was just overridden |
-| `desktop_background_changed` | `desktop_id`, `surface_id`: that desktop's solid background color was just set |
-| `desktop_shown`              | `desktop_id`, `surface_id`: every client on that desktop was just shown at once |
-| `desktop_hidden`             | `desktop_id`, `surface_id`: every client on that desktop was just hidden at once |
-| `stacking_changed`           | `client_id`, `desktop_id`, `surface_id`: that client's position within its layer's stacking order just changed |
+| `window_mapped`              | `client_id`, `desktop_id`, `stage_id`: a client was just mapped onto that desktop |
+| `window_closed`              | `client_id`, `desktop_id`, `stage_id`: a client was just destroyed |
+| `desktop_switched`           | `stage_id`, `desktop_id`: that stage's current desktop just changed to `desktop_id` |
+| `focus_changed`              | `stage_id`, `client_id`: that client just became the active one on its stage |
+| `urgency_set`                | `client_id`, `desktop_id`, `stage_id`: that client's urgency hint was just set |
+| `urgency_cleared`            | `client_id`, `desktop_id`, `stage_id`: that client's urgency hint was just cleared |
+| `window_moved`               | `client_id`, `desktop_id`, `stage_id`: that client's position just changed (see the `list_clients` command for its current `x`/`y`) |
+| `window_resized`             | `client_id`, `desktop_id`, `stage_id`: that client's size just changed (see the `list_clients` command for its current `w`/`h`) |
+| `rule_applied`               | `client_id`, `desktop_id`, `stage_id`: a loaded rule just changed one or more of that client's properties |
+| `pin_set`                    | `client_id`, `desktop_id`, `stage_id`: that client was just pinned (visible on every desktop) |
+| `pin_cleared`                | `client_id`, `desktop_id`, `stage_id`: that client was just unpinned |
+| `fullscreen_set`             | `client_id`, `desktop_id`, `stage_id`: that client just entered full screen |
+| `fullscreen_cleared`         | `client_id`, `desktop_id`, `stage_id`: that client just left full screen |
+| `shade_set`                  | `client_id`, `desktop_id`, `stage_id`: that client was just shaded (rolled up into its titlebar) |
+| `shade_cleared`              | `client_id`, `desktop_id`, `stage_id`: that client was just unshaded |
+| `hide_set`                   | `client_id`, `desktop_id`, `stage_id`: that client was just hidden |
+| `hide_cleared`               | `client_id`, `desktop_id`, `stage_id`: that client was just unhidden |
+| `decoration_set`             | `client_id`, `desktop_id`, `stage_id`: that client's titlebar and border were just shown |
+| `decoration_cleared`         | `client_id`, `desktop_id`, `stage_id`: that client's titlebar and border were just hidden |
+| `client_iconified`           | `client_id`, `desktop_id`, `stage_id`: that client was just iconified |
+| `client_deiconified`         | `client_id`, `desktop_id`, `stage_id`: that client was just restored from being iconified |
+| `layer_changed`              | `client_id`, `desktop_id`, `stage_id`: that client's stacking layer just changed (see `list_clients` for its current layer) |
+| `client_desktop_changed`     | `client_id`, `desktop_id`, `stage_id`: that client just moved to a different desktop (`desktop_id` is the new one) |
+| `client_renamed`             | `client_id`, `desktop_id`, `stage_id`, `name`: that client's displayed title was just overridden |
+| `client_reclassed`           | `client_id`, `desktop_id`, `stage_id`, `class_name`, `instance_name`: that client's `WM_CLASS` was just overridden |
+| `client_reroled`             | `client_id`, `desktop_id`, `stage_id`, `role`: that client's window role was just overridden |
+| `client_icon_changed`        | `client_id`, `desktop_id`, `stage_id`, `icon_name`: that client's displayed icon was just overridden |
+| `desktop_background_changed` | `desktop_id`, `stage_id`: that desktop's solid background color was just set |
+| `desktop_shown`              | `desktop_id`, `stage_id`: every client on that desktop was just shown at once |
+| `desktop_hidden`             | `desktop_id`, `stage_id`: every client on that desktop was just hidden at once |
+| `stacking_changed`           | `client_id`, `desktop_id`, `stage_id`: that client's position within its layer's stacking order just changed |
 | `config_reloaded`            | *none*: every configuration file was just reloaded |
 
 Every event line also carries its `"event"` field naming which one it
@@ -370,8 +370,8 @@ envelope to unwrap.
 ```sh
 $ icowm-msg -w window_mapped,desktop_switched -n 2
 {"ok":true}
-{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"window_mapped"}
-{"surface_id":0,"desktop_id":1,"event":"desktop_switched"}
+{"client_id":23068673,"desktop_id":0,"stage_id":0,"event":"window_mapped"}
+{"stage_id":0,"desktop_id":1,"event":"desktop_switched"}
 ```
 
 The very first line is always the `subscribe` request's response
@@ -400,7 +400,7 @@ exiting, the same way it reports any other connection failure:
 ```sh
 $ icowm-msg -w window_mapped
 {"ok":true}
-{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"window_mapped"}
+{"client_id":23068673,"desktop_id":0,"stage_id":0,"event":"window_mapped"}
 icowm-msg: connection closed with no response
 $ echo $?
 2

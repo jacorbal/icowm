@@ -5,13 +5,13 @@
  *
  * wm_startup_acquire_selection has exactly one meaningfully
  * unit-testable behavior in isolation: its leading
- * 'if (wm == NULL || connection == NULL || surfaces == NULL) return
+ * 'if (wm == NULL || connection == NULL || stages == NULL) return
  * -1;' guard.  Every line past that guard interns the real 'MANAGER'
  * atom (a live XCB round trip through 'atom_intern'), then
  * unconditionally creates a real support window with
  * 'xcb_generate_id' and 'xcb_create_window', both of which need
  * a live connection's real setup data ('xcb_get_setup(connection)')
- * before the per-surface loop is ever reached.  The per-surface loop
+ * before the per-stage loop is ever reached.  The per-stage loop
  * body itself calls the static 's_acquire_one_screen', which opens
  * with 'xcb_get_selection_owner_reply', a blocking round trip with no
  * way to fabricate a plausible reply short of a real X server on the
@@ -191,7 +191,7 @@ static void s_test_acquire_null_connection(void)
 
     memset(&local_wm, 0, sizeof(local_wm));
     local_wm.connection = NULL;
-    local_wm.surfaces = NULL;
+    local_wm.stages = NULL;
 
     result = wm_startup_acquire_selection(&local_wm, false);
 
@@ -201,22 +201,22 @@ static void s_test_acquire_null_connection(void)
 }
 
 
-/* A non-NULL wm with no surfaces list also fails the guard clause,
- * even with 'replace_requested' set, since wm_surfaces(wm) resolving
+/* A non-NULL wm with no stages list also fails the guard clause,
+ * even with 'replace_requested' set, since wm_stages(wm) resolving
  * to NULL is checked independently of the connection */
-static void s_test_acquire_null_surfaces(void)
+static void s_test_acquire_null_stages(void)
 {
     wm_td local_wm;
     int result;
 
     memset(&local_wm, 0, sizeof(local_wm));
     local_wm.connection = NULL;
-    local_wm.surfaces = NULL;
+    local_wm.stages = NULL;
 
     result = wm_startup_acquire_selection(&local_wm, true);
 
     TAP_EQ_INT(result, -1,
-            "a non-NULL wm with a NULL surfaces list also returns -1,"
+            "a non-NULL wm with a NULL stages list also returns -1,"
             " regardless of replace_requested");
 }
 
@@ -227,7 +227,7 @@ int main(void)
 
     s_test_acquire_null_wm();
     s_test_acquire_null_connection();
-    s_test_acquire_null_surfaces();
+    s_test_acquire_null_stages();
 
     return TAP_DONE();
 }

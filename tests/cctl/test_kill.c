@@ -12,7 +12,7 @@
  * slot's own bookkeeping (in_use, pid, start_time, deadline) is a
  * file-local static array with no accessor, reachable and observable
  * from outside cctl/kill.c only through the three functions above, so
- * this file drives every scenario through exactly that public surface.
+ * this file drives every scenario through exactly that public stage.
  *
  * cctl_kill_register's own no-op guard for a non-positive pid, and its
  * slot-filling loop (proven indirectly through cctl_kill_ms_remaining

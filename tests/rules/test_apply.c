@@ -55,7 +55,7 @@
 #include <enact.h>
 #include <ipc.h>
 #include <policy/focus.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -139,12 +139,12 @@ config_td *wm_config(const wm_td *wm)
 
 
 /**
- * @brief Link-only stand-in for @a wm_surfaces, never exercised for
+ * @brief Link-only stand-in for @a wm_stages, never exercised for
  *        its return value by any scenario below
  *
  * @note Complexity: @e O(1)
  */
-list_td *wm_surfaces(const wm_td *wm)
+list_td *wm_stages(const wm_td *wm)
 {
     (void) wm;
     return NULL;
@@ -152,13 +152,13 @@ list_td *wm_surfaces(const wm_td *wm)
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_get
+ * @brief Link-only stand-in for @a stage_desktop_get
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     return s_desktop_get_result;
 }
@@ -489,12 +489,12 @@ void client_decoration_layout_sync(client_td *client)
  *
  * @note Complexity: @e O(1)
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -551,7 +551,7 @@ cJSON *cJSON_AddNumberToObject(cJSON *object, const char *name,
 
 /** Every client_td this file needs, built once by s_reset */
 static client_td s_client;
-static surface_td s_surface;
+static stage_td s_stage;
 static desktop_td s_desktop;
 
 
@@ -560,7 +560,7 @@ static void s_reset(void)
     memset(&s_rules, 0, sizeof(s_rules));
     memset(&s_config, 0, sizeof(s_config));
     memset(&s_client, 0, sizeof(s_client));
-    memset(&s_surface, 0, sizeof(s_surface));
+    memset(&s_stage, 0, sizeof(s_stage));
     memset(&s_desktop, 0, sizeof(s_desktop));
 
     s_client.id = 1u;
@@ -569,9 +569,9 @@ static void s_reset(void)
     s_client.layout.geometry.cur.dim.w = 300u;
     s_client.layout.geometry.cur.dim.h = 200u;
 
-    s_surface.id = 0u;
-    s_surface.properties.dim.w = 1920u;
-    s_surface.properties.dim.h = 1080u;
+    s_stage.id = 0u;
+    s_stage.properties.dim.w = 1920u;
+    s_stage.properties.dim.h = 1080u;
 
     s_desktop.id = 0u;
 
@@ -632,13 +632,13 @@ static void s_add_rule(enum rules_when_e when, struct rules_apply_s apply)
 /* NULL wm is a no-op, returning false without touching anything */
 static void s_test_null_wm_returns_false(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     bool result;
 
     s_reset();
 
-    result = rules_apply(NULL, &s_client, &surface, &desktop,
+    result = rules_apply(NULL, &s_client, &stage, &desktop,
             RULES_TRIGGER_MAP);
 
     TAP_OK(!result, "a NULL wm returns false");
@@ -648,40 +648,40 @@ static void s_test_null_wm_returns_false(void)
 /* NULL client is a no-op, returning false */
 static void s_test_null_client_returns_false(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     bool result;
 
     s_reset();
 
-    result = rules_apply(s_fake_wm, NULL, &surface, &desktop,
+    result = rules_apply(s_fake_wm, NULL, &stage, &desktop,
             RULES_TRIGGER_MAP);
 
     TAP_OK(!result, "a NULL client returns false");
 }
 
 
-/* NULL surface_io, desktop_io, or the pointer they point to being
+/* NULL stage_io, desktop_io, or the pointer they point to being
  * NULL, are each a no-op */
 static void s_test_null_io_pointers_return_false(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
-    surface_td *null_surface = NULL;
+    stage_td *null_stage = NULL;
     desktop_td *null_desktop = NULL;
 
     s_reset();
 
     TAP_OK(!rules_apply(s_fake_wm, &s_client, NULL, &desktop,
                 RULES_TRIGGER_MAP),
-            "a NULL surface_io itself returns false");
-    TAP_OK(!rules_apply(s_fake_wm, &s_client, &surface, NULL,
+            "a NULL stage_io itself returns false");
+    TAP_OK(!rules_apply(s_fake_wm, &s_client, &stage, NULL,
                 RULES_TRIGGER_MAP),
             "a NULL desktop_io itself returns false");
-    TAP_OK(!rules_apply(s_fake_wm, &s_client, &null_surface, &desktop,
+    TAP_OK(!rules_apply(s_fake_wm, &s_client, &null_stage, &desktop,
                 RULES_TRIGGER_MAP),
-            "a NULL *surface_io returns false");
-    TAP_OK(!rules_apply(s_fake_wm, &s_client, &surface, &null_desktop,
+            "a NULL *stage_io returns false");
+    TAP_OK(!rules_apply(s_fake_wm, &s_client, &stage, &null_desktop,
                 RULES_TRIGGER_MAP),
             "a NULL *desktop_io returns false");
 }
@@ -690,12 +690,12 @@ static void s_test_null_io_pointers_return_false(void)
 /* No rules loaded at all: no match, returns false */
 static void s_test_no_rules_returns_false(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
 
     s_reset();
 
-    TAP_OK(!rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    TAP_OK(!rules_apply(s_fake_wm, &s_client, &stage, &desktop,
                 RULES_TRIGGER_MAP),
             "an empty rules table never matches: returns false");
 }
@@ -706,7 +706,7 @@ static void s_test_no_rules_returns_false(void)
  * false */
 static void s_test_empty_apply_block_changes_nothing(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
     bool result;
@@ -715,7 +715,7 @@ static void s_test_empty_apply_block_changes_nothing(void)
     memset(&apply, 0, sizeof(apply));
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    result = rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    result = rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_MAP);
 
     TAP_OK(!result, "a rule that matches but sets nothing changes"
@@ -729,7 +729,7 @@ static void s_test_empty_apply_block_changes_nothing(void)
  * trigger sees no match at all */
 static void s_test_when_map_only_matches_map_trigger(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -739,14 +739,14 @@ static void s_test_when_map_only_matches_map_trigger(void)
     apply.layer = (uint16_t) CLIENT_LAYER_ABOVE;
     s_add_rule(RULES_WHEN_MAP, apply);
 
-    TAP_OK(rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    TAP_OK(rules_apply(s_fake_wm, &s_client, &stage, &desktop,
                 RULES_TRIGGER_MAP),
             "WHEN_MAP rule matches a map trigger");
 
     s_reset();
     s_add_rule(RULES_WHEN_MAP, apply);
 
-    TAP_OK(!rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    TAP_OK(!rules_apply(s_fake_wm, &s_client, &stage, &desktop,
                 RULES_TRIGGER_PROPERTY),
             "the same WHEN_MAP rule does not match a property trigger");
 }
@@ -756,7 +756,7 @@ static void s_test_when_map_only_matches_map_trigger(void)
  * exactly one of the three ever firing */
 static void s_test_layer_dispatches_to_the_right_enact_call(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -766,7 +766,7 @@ static void s_test_layer_dispatches_to_the_right_enact_call(void)
     s_reset();
     apply.layer = (uint16_t) CLIENT_LAYER_ABOVE;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_layer_above, 1,
             "CLIENT_LAYER_ABOVE calls enact_client_layer_above once");
@@ -776,7 +776,7 @@ static void s_test_layer_dispatches_to_the_right_enact_call(void)
     s_reset();
     apply.layer = (uint16_t) CLIENT_LAYER_BELOW;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_layer_below, 1,
             "CLIENT_LAYER_BELOW calls enact_client_layer_below once");
@@ -784,7 +784,7 @@ static void s_test_layer_dispatches_to_the_right_enact_call(void)
     s_reset();
     apply.layer = (uint16_t) CLIENT_LAYER_NORMAL;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_layer_normal, 1,
             "CLIENT_LAYER_NORMAL calls enact_client_layer_normal once");
@@ -795,7 +795,7 @@ static void s_test_layer_dispatches_to_the_right_enact_call(void)
  * all */
 static void s_test_no_layer_field_calls_nothing(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -805,7 +805,7 @@ static void s_test_no_layer_field_calls_nothing(void)
     apply.is_pinned = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_layer_above +
@@ -818,7 +818,7 @@ static void s_test_no_layer_field_calls_nothing(void)
 /* has_pinned true pins the client, false unpins it */
 static void s_test_pinned_pins_or_unpins(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -828,7 +828,7 @@ static void s_test_pinned_pins_or_unpins(void)
     s_reset();
     apply.is_pinned = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_pin, 1, "is_pinned true: pins once");
     TAP_EQ_INT(s_call_enact_client_unpin, 0, "and never unpins");
@@ -836,7 +836,7 @@ static void s_test_pinned_pins_or_unpins(void)
     s_reset();
     apply.is_pinned = false;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_unpin, 1,
             "is_pinned false: unpins once");
@@ -847,7 +847,7 @@ static void s_test_pinned_pins_or_unpins(void)
  * confused with has_pinned above, a fully independent flag */
 static void s_test_sticky_sticks_or_unsticks(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -857,7 +857,7 @@ static void s_test_sticky_sticks_or_unsticks(void)
     s_reset();
     apply.is_sticky = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_stick, 1,
             "is_sticky true: sticks once");
@@ -866,7 +866,7 @@ static void s_test_sticky_sticks_or_unsticks(void)
     s_reset();
     apply.is_sticky = false;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_unstick, 1,
             "is_sticky false: unsticks once");
@@ -877,7 +877,7 @@ static void s_test_sticky_sticks_or_unsticks(void)
  * actually differs from the client's current one, never redundantly */
 static void s_test_decoration_toggles_only_on_mismatch(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -890,7 +890,7 @@ static void s_test_decoration_toggles_only_on_mismatch(void)
      * starts out undecorated already */
     s_reset();
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_toggle_decorate, 0,
             "asking for undecorated on an already-undecorated client:"
@@ -899,7 +899,7 @@ static void s_test_decoration_toggles_only_on_mismatch(void)
     apply.is_decorated = true;
     s_reset();
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_toggle_decorate, 1,
             "asking for decorated on an undecorated client: toggles"
@@ -910,7 +910,7 @@ static void s_test_decoration_toggles_only_on_mismatch(void)
 /* has_opacity_active/inactive forward their exact percent values */
 static void s_test_opacity_forwards_exact_values(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -922,7 +922,7 @@ static void s_test_opacity_forwards_exact_values(void)
     apply.opacity_inactive = 30u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_last_opacity_active, 75,
@@ -937,7 +937,7 @@ static void s_test_opacity_forwards_exact_values(void)
  * calling any enact function directly */
 static void s_test_map_trigger_defers_state_instead_of_enacting(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -949,7 +949,7 @@ static void s_test_map_trigger_defers_state_instead_of_enacting(void)
     apply.is_maximized = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_MAP);
 
     TAP_OK(s_client.has_rule_iconified && s_client.is_rule_iconified,
@@ -965,7 +965,7 @@ static void s_test_map_trigger_defers_state_instead_of_enacting(void)
  * enact, unlike RULES_TRIGGER_MAP */
 static void s_test_property_trigger_applies_state_directly(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -975,7 +975,7 @@ static void s_test_property_trigger_applies_state_directly(void)
     apply.is_fullscreen = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_fullscreen, 1,
@@ -990,7 +990,7 @@ static void s_test_property_trigger_applies_state_directly(void)
  * differs from the client's current one */
 static void s_test_maximized_toggles_only_on_mismatch(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1000,7 +1000,7 @@ static void s_test_maximized_toggles_only_on_mismatch(void)
 
     s_reset();
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_maximize, 0,
             "asking for un-maximized on an already-restored client:"
@@ -1009,7 +1009,7 @@ static void s_test_maximized_toggles_only_on_mismatch(void)
     apply.is_maximized = true;
     s_reset();
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_maximize, 1,
             "asking for maximized on a restored client: toggles once");
@@ -1020,7 +1020,7 @@ static void s_test_maximized_toggles_only_on_mismatch(void)
  * non-about-to-iconify client */
 static void s_test_shaded_applies_when_eligible(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1031,7 +1031,7 @@ static void s_test_shaded_applies_when_eligible(void)
     apply.is_shaded = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_shade, 1,
@@ -1044,7 +1044,7 @@ static void s_test_shaded_applies_when_eligible(void)
  * call at all */
 static void s_test_shaded_loses_to_fullscreen(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1057,7 +1057,7 @@ static void s_test_shaded_loses_to_fullscreen(void)
     apply.is_fullscreen = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_shade, 0,
@@ -1070,7 +1070,7 @@ static void s_test_shaded_loses_to_fullscreen(void)
 /* has_shaded true loses to a client not decorated */
 static void s_test_shaded_loses_to_undecorated(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1081,7 +1081,7 @@ static void s_test_shaded_loses_to_undecorated(void)
     apply.is_shaded = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_shade, 0,
@@ -1094,7 +1094,7 @@ static void s_test_shaded_loses_to_undecorated(void)
  * apply block */
 static void s_test_shaded_loses_to_iconified(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1107,7 +1107,7 @@ static void s_test_shaded_loses_to_iconified(void)
     apply.is_iconified = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_shade, 0,
@@ -1120,7 +1120,7 @@ static void s_test_shaded_loses_to_iconified(void)
 /* has_hidden true/false dispatch to hide/unhide respectively */
 static void s_test_hidden_dispatches_hide_or_unhide(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1130,14 +1130,14 @@ static void s_test_hidden_dispatches_hide_or_unhide(void)
     s_reset();
     apply.is_hidden = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_hide, 1, "is_hidden true: hides once");
 
     s_reset();
     apply.is_hidden = false;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_unhide, 1,
             "is_hidden false: unhides once");
@@ -1148,7 +1148,7 @@ static void s_test_hidden_dispatches_hide_or_unhide(void)
  * iconified state actually differs from what was requested */
 static void s_test_iconified_toggles_only_on_mismatch(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1158,7 +1158,7 @@ static void s_test_iconified_toggles_only_on_mismatch(void)
     s_reset();
     apply.is_iconified = false;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_iconify + s_call_enact_client_restore,
             0, "already-restored client asked to un-iconify: no call"
@@ -1167,7 +1167,7 @@ static void s_test_iconified_toggles_only_on_mismatch(void)
     s_reset();
     apply.is_iconified = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_iconify, 1,
             "a restored client asked to iconify: iconifies once");
@@ -1176,19 +1176,19 @@ static void s_test_iconified_toggles_only_on_mismatch(void)
     s_client.properties.state |= (uint16_t) CLIENT_STATE_ICONIFIED;
     apply.is_iconified = false;
     s_add_rule(RULES_WHEN_BOTH, apply);
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_restore, 1,
             "an iconified client asked to restore: restores once");
 }
 
 
-/* has_desktop resolves the target desktop via surface_desktop_get and
+/* has_desktop resolves the target desktop via stage_desktop_get and
  * moves the client through enact_desktop_client_send, updating
  * *desktop_io on success */
 static void s_test_desktop_moves_client_and_updates_io(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     desktop_td target;
     struct rules_apply_s apply;
@@ -1202,7 +1202,7 @@ static void s_test_desktop_moves_client_and_updates_io(void)
     apply.desktop = 3u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_desktop_client_send, 1,
@@ -1216,7 +1216,7 @@ static void s_test_desktop_moves_client_and_updates_io(void)
  * never calls enact_desktop_client_send */
 static void s_test_desktop_same_target_is_noop(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1227,7 +1227,7 @@ static void s_test_desktop_same_target_is_noop(void)
     apply.desktop = 0u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_desktop_client_send, 0,
@@ -1239,7 +1239,7 @@ static void s_test_desktop_same_target_is_noop(void)
  * 0 when it exists */
 static void s_test_desktop_falls_back_to_zero(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     desktop_td fallback;
     struct rules_apply_s apply;
@@ -1247,7 +1247,7 @@ static void s_test_desktop_falls_back_to_zero(void)
     s_reset();
     memset(&fallback, 0, sizeof(fallback));
     fallback.id = 0u;
-    /* surface_desktop_get stand-in always returns the same result
+    /* stage_desktop_get stand-in always returns the same result
      * regardless of the id asked for, which is fine here: the rule
      * targets a nonexistent desktop, so both lookups (target, then
      * the desktop-0 fallback) resolve to the same fallback desktop */
@@ -1257,7 +1257,7 @@ static void s_test_desktop_falls_back_to_zero(void)
     apply.desktop = 99u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_OK(desktop == &fallback,
@@ -1268,7 +1268,7 @@ static void s_test_desktop_falls_back_to_zero(void)
 /* has_size alone resizes without touching position at all */
 static void s_test_size_only_sets_width_and_height(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1279,7 +1279,7 @@ static void s_test_size_only_sets_width_and_height(void)
     apply.h = 480u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_last_geometry_w, 640, "width applied exactly");
@@ -1294,7 +1294,7 @@ static void s_test_size_only_sets_width_and_height(void)
  * an exact x/y, clamping a negative y to 0 */
 static void s_test_explicit_position_clamps_negative_y(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1306,7 +1306,7 @@ static void s_test_explicit_position_clamps_negative_y(void)
     apply.y = -20;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_last_geometry_x, 50, "x applied exactly as given");
@@ -1319,10 +1319,10 @@ static void s_test_explicit_position_clamps_negative_y(void)
 
 
 /* is_position_centered true centers the client within the whole
- * surface when no monitor is targeted */
-static void s_test_centered_position_uses_surface_dimensions(void)
+ * stage when no monitor is targeted */
+static void s_test_centered_position_uses_stage_dimensions(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1332,15 +1332,15 @@ static void s_test_centered_position_uses_surface_dimensions(void)
     apply.is_position_centered = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
-    /* surface is 1920x1080, client (unresized here) is 300x200:
+    /* stage is 1920x1080, client (unresized here) is 300x200:
      * centered x = (1920-300)/2 = 810, y = (1080-200)/2 = 440 */
     TAP_EQ_INT(s_last_geometry_x, 810,
-            "centered x uses the surface's own width");
+            "centered x uses the stage's own width");
     TAP_EQ_INT(s_last_geometry_y, 440,
-            "centered y uses the surface's own height");
+            "centered y uses the stage's own height");
 }
 
 
@@ -1348,19 +1348,19 @@ static void s_test_centered_position_uses_surface_dimensions(void)
  * targeted monitor, offset by that monitor's own top-left corner */
 static void s_test_monitor_alone_centers_by_default(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
     s_reset();
-    s_surface.monitor_count = 2u;
-    s_surface.monitors[1] = (monitor_td) { 2000, 100, 800u, 600u };
+    s_stage.monitor_count = 2u;
+    s_stage.monitors[1] = (monitor_td) { 2000, 100, 800u, 600u };
     memset(&apply, 0, sizeof(apply));
     apply.has_monitor = true;
     apply.monitor = 1u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     /* monitor 1 is 800x600 at (2000,100); client 300x200:
@@ -1379,23 +1379,23 @@ static void s_test_monitor_alone_centers_by_default(void)
  * crashing or reading past the array */
 static void s_test_monitor_out_of_range_falls_back_to_zero(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
     s_reset();
-    s_surface.monitor_count = 1u;
-    s_surface.monitors[0] = (monitor_td) { 0, 0, 1920u, 1080u };
+    s_stage.monitor_count = 1u;
+    s_stage.monitors[0] = (monitor_td) { 0, 0, 1920u, 1080u };
     memset(&apply, 0, sizeof(apply));
     apply.has_monitor = true;
     apply.monitor = 7u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
-    /* monitor 0 is the full 1920x1080 surface at (0,0): same as the
-     * whole-surface centering case */
+    /* monitor 0 is the full 1920x1080 stage at (0,0): same as the
+     * whole-stage centering case */
     TAP_EQ_INT(s_last_geometry_x, 810,
             "an out-of-range monitor falls back to monitor 0's own"
             " centered x");
@@ -1406,7 +1406,7 @@ static void s_test_monitor_out_of_range_falls_back_to_zero(void)
  * with an explicit has_position/has_size in the merged apply block */
 static void s_test_fullscreen_client_skips_geometry(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1421,7 +1421,7 @@ static void s_test_fullscreen_client_skips_geometry(void)
     apply.h = 50u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
@@ -1435,7 +1435,7 @@ static void s_test_fullscreen_client_skips_geometry(void)
  * silently un-maximizing it */
 static void s_test_maximized_client_skips_geometry(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1450,7 +1450,7 @@ static void s_test_maximized_client_skips_geometry(void)
     apply.h = 50u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
@@ -1464,7 +1464,7 @@ static void s_test_maximized_client_skips_geometry(void)
  * for, so both stay skipped rather than only the free one */
 static void s_test_maximized_horz_client_skips_geometry(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1480,7 +1480,7 @@ static void s_test_maximized_horz_client_skips_geometry(void)
     apply.h = 50u;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
@@ -1493,7 +1493,7 @@ static void s_test_maximized_horz_client_skips_geometry(void)
  * focus_apply exactly once */
 static void s_test_focus_applies_when_focusable(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1503,7 +1503,7 @@ static void s_test_focus_applies_when_focusable(void)
     apply.is_focused = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_focus_apply, 1,
@@ -1516,7 +1516,7 @@ static void s_test_focus_applies_when_focusable(void)
  * calls focus_apply */
 static void s_test_focus_skips_unfocusable_client(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
@@ -1527,7 +1527,7 @@ static void s_test_focus_skips_unfocusable_client(void)
     apply.is_focused = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_focus_apply, 0,
@@ -1540,7 +1540,7 @@ static void s_test_focus_skips_unfocusable_client(void)
  * together rather than one replacing the other */
 static void s_test_two_rules_merge_disjoint_fields(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply_a;
     struct rules_apply_s apply_b;
@@ -1555,7 +1555,7 @@ static void s_test_two_rules_merge_disjoint_fields(void)
     s_add_rule(RULES_WHEN_BOTH, apply_a);
     s_add_rule(RULES_WHEN_BOTH, apply_b);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_pin, 1,
@@ -1569,7 +1569,7 @@ static void s_test_two_rules_merge_disjoint_fields(void)
  * last-write-wins */
 static void s_test_later_rule_overrides_earlier_same_field(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply_a;
     struct rules_apply_s apply_b;
@@ -1584,7 +1584,7 @@ static void s_test_later_rule_overrides_earlier_same_field(void)
     s_add_rule(RULES_WHEN_BOTH, apply_a);
     s_add_rule(RULES_WHEN_BOTH, apply_b);
 
-    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_last_opacity_active, 90,
@@ -1598,7 +1598,7 @@ static void s_test_later_rule_overrides_earlier_same_field(void)
  * IPC_EVENT_RULE_APPLIED and returns true */
 static void s_test_successful_apply_broadcasts_and_returns_true(void)
 {
-    surface_td *surface = &s_surface;
+    stage_td *stage = &s_stage;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
     bool result;
@@ -1609,7 +1609,7 @@ static void s_test_successful_apply_broadcasts_and_returns_true(void)
     apply.is_pinned = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
-    result = rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+    result = rules_apply(s_fake_wm, &s_client, &stage, &desktop,
             RULES_TRIGGER_PROPERTY);
 
     TAP_OK(result, "a rule that actually changes something returns"
@@ -1651,7 +1651,7 @@ int main(void)
     s_test_desktop_falls_back_to_zero();
     s_test_size_only_sets_width_and_height();
     s_test_explicit_position_clamps_negative_y();
-    s_test_centered_position_uses_surface_dimensions();
+    s_test_centered_position_uses_stage_dimensions();
     s_test_monitor_alone_centers_by_default();
     s_test_monitor_out_of_range_falls_back_to_zero();
     s_test_fullscreen_client_skips_geometry();

@@ -40,7 +40,7 @@
 #include <config.h>
 #include <i18n.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <memguard.h>
@@ -72,7 +72,7 @@ static bool s_warned = false;
  * was actually identical between the two.
  *
  * @param connection XCB connection
- * @param surface    Surface to center the dialog on
+ * @param stage      Stage to center the dialog on
  * @param config     Active configuration, for the dialog
  * @param level      Alert level to show the dialog at
  * @param message    Already-built message text
@@ -80,14 +80,14 @@ static bool s_warned = false;
  * @note Complexity: @e O(1)
  */
 static void s_memguard_show_dialog(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         menu_msg_level_e level, const char *message)
 {
-    if (connection == NULL || surface == NULL || config == NULL ||
+    if (connection == NULL || stage == NULL || config == NULL ||
             menu_message_dialog_is_open()) {
         return;
     }
-    menu_message_dialog_show(connection, surface, config,
+    menu_message_dialog_show(connection, stage, config,
             message, level);
 }
 
@@ -138,14 +138,14 @@ uint32_t memguard_max_clients(void)
 
 /* Periodically check memory usage against the configured ceiling */
 void memguard_tick(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config)
+        stage_td *stage, const config_td *config)
 {
     struct timespec now;
     uint32_t rss_mib;
     uint32_t hysteresis_floor_mib;
     char message[DIALOG_MSG_RAW_MAX_LENGTH];
 
-    if (s_ceiling_mib == 0u || connection == NULL || surface == NULL ||
+    if (s_ceiling_mib == 0u || connection == NULL || stage == NULL ||
             config == NULL) {
         return;
     }
@@ -192,7 +192,7 @@ void memguard_tick(xcb_connection_t *connection,
     (void) snprintf(message, sizeof(message),
             _(STR_MEMGUARD_CEILING_REACHED_FMT),
             (unsigned int) rss_mib, (unsigned int) s_ceiling_mib);
-    s_memguard_show_dialog(connection, surface, config,
+    s_memguard_show_dialog(connection, stage, config,
             MENU_MSG_LEVEL_ERROR, message);
     s_warned = true;
 }
@@ -201,11 +201,11 @@ void memguard_tick(xcb_connection_t *connection,
 /* Warn through a message dialog that 'memguard_max_clients' has been
  * reached on a desktop */
 void memguard_warn_client_cap(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config)
+        stage_td *stage, const config_td *config)
 {
     char message[DIALOG_MSG_RAW_MAX_LENGTH];
 
-    if (connection == NULL || surface == NULL || config == NULL) {
+    if (connection == NULL || stage == NULL || config == NULL) {
         return;
     }
 
@@ -216,6 +216,6 @@ void memguard_warn_client_cap(xcb_connection_t *connection,
     (void) snprintf(message, sizeof(message),
             _(STR_MEMGUARD_CLIENT_CAP_REACHED_FMT),
             (unsigned int) s_max_clients);
-    s_memguard_show_dialog(connection, surface, config,
+    s_memguard_show_dialog(connection, stage, config,
             MENU_MSG_LEVEL_WARNING, message);
 }

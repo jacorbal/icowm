@@ -38,8 +38,8 @@
 /* Windows & icons policy includes */
 #include <policy/placement/window.h>
 
-/* Surface includes */
-#include <surface/viewport.h>
+/* Stage includes */
+#include <stage/viewport.h>
 
 /* Utils includes */
 #include <utils/geom.h>
@@ -119,7 +119,7 @@ static void s_ccmd_client_unpin_one(client_td *client)
 {
     const desktop_td *owner_desktop;
     const desktop_td *current_desktop;
-    surface_td *surface;
+    stage_td *stage;
     xcb_window_t target;
 
     client_unpin(client);
@@ -127,9 +127,9 @@ static void s_ccmd_client_unpin_one(client_td *client)
     ccmd_publish_wm_desktop(client, client->desktop_id);
 
     owner_desktop = wm_get_client_desktop(client);
-    surface = wm_get_surface_by_id(client->screen_id);
-    current_desktop = (surface != NULL)
-        ? lookup_current_desktop(surface)
+    stage = wm_get_stage_by_id(client->screen_id);
+    current_desktop = (stage != NULL)
+        ? lookup_current_desktop(stage)
         : NULL;
     if (owner_desktop != NULL && current_desktop != NULL &&
             owner_desktop->id != current_desktop->id) {
@@ -290,7 +290,7 @@ void ccmd_client_unpin(client_td *client)
 /* Toggle the client's pin state */
 void ccmd_client_toggle_pin(client_td *client)
 {
-    const surface_td *surface;
+    const stage_td *stage;
 
     if (client == NULL || client_is_locked(client)) {
         return;
@@ -304,8 +304,8 @@ void ccmd_client_toggle_pin(client_td *client)
      * it lives in), but the keyboard shortcut has no such menu to
      * hide behind, so it is guarded here instead, at the one place
      * both of them ultimately call through. */
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (surface != NULL && surface->desktop_count <= 1u) {
+    stage = wm_get_stage_by_id(client->screen_id);
+    if (stage != NULL && stage->desktop_count <= 1u) {
         return;
     }
 
@@ -366,7 +366,7 @@ void ccmd_client_unstick(client_td *client)
 /* Toggle the client's sticky state */
 void ccmd_client_toggle_stick(client_td *client)
 {
-    const surface_td *surface;
+    const stage_td *stage;
 
     if (client == NULL || client_is_locked(client)) {
         return;
@@ -380,8 +380,8 @@ void ccmd_client_toggle_stick(client_td *client)
      * has nothing to hide behind, so it is guarded here instead, at
      * the one place all of them ultimately call through, exactly as
      * 'ccmd_client_toggle_pin' above guards its own case. */
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (surface != NULL && !surface_viewport_has_room(surface)) {
+    stage = wm_get_stage_by_id(client->screen_id);
+    if (stage != NULL && !stage_viewport_has_room(stage)) {
         return;
     }
 
@@ -460,7 +460,7 @@ void ccmd_client_urge(client_td *client)
                 (double) client->id);
         cJSON_AddNumberToObject(fields, "desktop_id",
                 (double) client->desktop_id);
-        cJSON_AddNumberToObject(fields, "surface_id",
+        cJSON_AddNumberToObject(fields, "stage_id",
                 (double) client->screen_id);
     }
     ipc_broadcast_event(IPC_EVENT_URGENCY_SET, fields);
@@ -492,7 +492,7 @@ void ccmd_client_unurge(client_td *client)
                 (double) client->id);
         cJSON_AddNumberToObject(fields, "desktop_id",
                 (double) client->desktop_id);
-        cJSON_AddNumberToObject(fields, "surface_id",
+        cJSON_AddNumberToObject(fields, "stage_id",
                 (double) client->screen_id);
     }
     ipc_broadcast_event(IPC_EVENT_URGENCY_CLEARED, fields);

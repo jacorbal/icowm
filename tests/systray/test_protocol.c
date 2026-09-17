@@ -44,7 +44,7 @@
 #include <config.h>
 #include <harness/tap.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray/handle.h>
 #include <systray/internal.h>
 #include <wm.h>
@@ -55,7 +55,7 @@ struct systray_state_s s_tray;
 
 /** A non-NULL opaque handle standing in for a real wm_td, which this
  *  file never actually builds, since the type is opaque outside wm.c
- *  itself; wm_config/wm_connection/wm_surfaces below never dereference
+ *  itself; wm_config/wm_connection/wm_stages below never dereference
  *  it, only ignore it and return their own fixtures, the same pattern
  *  tests/rules/test_apply.c and tests/test_systray.c already use */
 static int s_fake_wm_storage;
@@ -63,8 +63,8 @@ static wm_td *const s_fake_wm = (wm_td *) &s_fake_wm_storage;
 
 static xcb_connection_t *s_connection_stub = (xcb_connection_t *) 1;
 static config_td s_config;
-static list_td *s_surfaces_stub = NULL;
-static surface_td s_fixture_surface;
+static list_td *s_stages_stub = NULL;
+static stage_td s_fixture_stage;
 static xcb_screen_t s_fixture_screen;
 
 /* Controllable stand-in state: 'utils/xcb/connection.h' */
@@ -224,7 +224,7 @@ xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
     if (strcmp(name, "_XEMBED_INFO") == 0) {
         return s_xembed_info_atom_value;
     }
-    /* Anything else is the per-surface '_NET_SYSTEM_TRAY_Sn' name */
+    /* Anything else is the per-stage '_NET_SYSTEM_TRAY_Sn' name */
     return 205u;
 }
 
@@ -649,22 +649,22 @@ static void s_reset_config(void)
     s_config.theme.systray.style.opacity = 80u;
 }
 
-/** Rebuilds a one-surface fixture surface list, the head of which is
+/** Rebuilds a one-stage fixture stage list, the head of which is
  *  the only entry 'systray_protocol_window_ensure' ever reads */
-static void s_reset_surfaces(void)
+static void s_reset_stages(void)
 {
-    (void) memset(&s_fixture_surface, 0, sizeof(s_fixture_surface));
+    (void) memset(&s_fixture_stage, 0, sizeof(s_fixture_stage));
     (void) memset(&s_fixture_screen, 0, sizeof(s_fixture_screen));
     s_fixture_screen.root = 700u;
     s_fixture_screen.root_visual = 800u;
-    s_fixture_surface.screen = &s_fixture_screen;
-    s_fixture_surface.id = 0u;
+    s_fixture_stage.screen = &s_fixture_screen;
+    s_fixture_stage.id = 0u;
 
-    if (s_surfaces_stub != NULL) {
-        list_destroy(s_surfaces_stub);
+    if (s_stages_stub != NULL) {
+        list_destroy(s_stages_stub);
     }
-    s_surfaces_stub = list_init(NULL);
-    (void) list_ins_next(s_surfaces_stub, NULL, &s_fixture_surface);
+    s_stages_stub = list_init(NULL);
+    (void) list_ins_next(s_stages_stub, NULL, &s_fixture_stage);
 }
 
 
@@ -680,9 +680,9 @@ config_td *wm_config(const wm_td *wm)
     return (wm == s_fake_wm) ? &s_config : NULL;
 }
 
-list_td *wm_surfaces(const wm_td *wm)
+list_td *wm_stages(const wm_td *wm)
 {
-    return (wm == s_fake_wm) ? s_surfaces_stub : NULL;
+    return (wm == s_fake_wm) ? s_stages_stub : NULL;
 }
 
 const char *wm_config_dir_prefix(const wm_td *wm)
@@ -1077,8 +1077,8 @@ static void s_test_window_ensure_idempotent(void)
 
 /**
  * @brief 'systray_protocol_window_ensure' refuses cleanly for a NULL
- *        'wm', a NULL connection, config, or surface list, an empty
- *        surface list, or a screen-less surface
+ *        'wm', a NULL connection, config, or stage list, an empty
+ *        stage list, or a screen-less stage
  */
 static void s_test_window_ensure_guards(void)
 {
@@ -1091,31 +1091,31 @@ static void s_test_window_ensure_guards(void)
 
     s_reset();
     s_reset_config();
-    s_surfaces_stub = NULL;
+    s_stages_stub = NULL;
     ok = systray_protocol_window_ensure(s_fake_wm);
-    TAP_OK(!ok, "a NULL surface list is refused");
+    TAP_OK(!ok, "a NULL stage list is refused");
 
     s_reset();
     s_reset_config();
-    s_surfaces_stub = list_init(NULL);
+    s_stages_stub = list_init(NULL);
     ok = systray_protocol_window_ensure(s_fake_wm);
-    TAP_OK(!ok, "an empty, non-NULL surface list is refused rather"
+    TAP_OK(!ok, "an empty, non-NULL stage list is refused rather"
             " than dereferencing list_head's NULL result");
     TAP_EQ_INT(s_create_window_calls, 0, "and nothing is created"
             " either");
-    list_destroy(s_surfaces_stub);
-    s_surfaces_stub = NULL;
+    list_destroy(s_stages_stub);
+    s_stages_stub = NULL;
 
     s_reset();
     s_reset_config();
-    (void) memset(&s_fixture_surface, 0, sizeof(s_fixture_surface));
-    s_fixture_surface.screen = NULL;
-    s_surfaces_stub = list_init(NULL);
-    (void) list_ins_next(s_surfaces_stub, NULL, &s_fixture_surface);
+    (void) memset(&s_fixture_stage, 0, sizeof(s_fixture_stage));
+    s_fixture_stage.screen = NULL;
+    s_stages_stub = list_init(NULL);
+    (void) list_ins_next(s_stages_stub, NULL, &s_fixture_stage);
     ok = systray_protocol_window_ensure(s_fake_wm);
-    TAP_OK(!ok, "a surface with no screen at all is refused too");
-    list_destroy(s_surfaces_stub);
-    s_surfaces_stub = NULL;
+    TAP_OK(!ok, "a stage with no screen at all is refused too");
+    list_destroy(s_stages_stub);
+    s_stages_stub = NULL;
 }
 
 
@@ -1131,14 +1131,14 @@ static void s_test_window_ensure_success(void)
 
     s_reset();
     s_reset_config();
-    s_reset_surfaces();
+    s_reset_stages();
     s_tray.height = 28u;
     s_opacity_raw_return = 12345u;
 
     ok = systray_protocol_window_ensure(s_fake_wm);
-    TAP_OK(ok, "a fully-formed wm/config/surface succeeds");
-    TAP_OK(s_tray.surface == &s_fixture_surface, "the tray remembers"
-            " the surface it ensured the window on");
+    TAP_OK(ok, "a fully-formed wm/config/stage succeeds");
+    TAP_OK(s_tray.stage == &s_fixture_stage, "the tray remembers"
+            " the stage it ensured the window on");
     TAP_OK(s_atom_intern_calls >= 7, "every one of the seven systray"
             " atoms is interned");
     TAP_EQ_INT(s_create_window_calls, 1, "exactly one window is"
@@ -1156,8 +1156,8 @@ static void s_test_window_ensure_success(void)
     TAP_OK(s_last_opacity_raw == 12345u, "with the converted value");
     TAP_OK(s_tray.is_window_ready, "the tray is now marked ready");
 
-    list_destroy(s_surfaces_stub);
-    s_surfaces_stub = NULL;
+    list_destroy(s_stages_stub);
+    s_stages_stub = NULL;
 }
 
 
@@ -1214,7 +1214,7 @@ static void s_test_selection_acquire_guards(void)
 
 /**
  * @brief A successful 'systray_protocol_selection_acquire' publishes
- *        the horizontal orientation and the surface's root visual,
+ *        the horizontal orientation and the stage's root visual,
  *        and marks the selection owned
  */
 static void s_test_selection_acquire_success(void)
@@ -1222,14 +1222,14 @@ static void s_test_selection_acquire_success(void)
     bool ok;
 
     s_reset();
-    s_reset_surfaces();
+    s_reset_stages();
     s_tray.is_window_ready = true;
     s_tray.window = 300u;
     s_tray.selection_atom = 205u;
     s_tray.manager_atom = 200u;
     s_tray.orientation_atom = 202u;
     s_tray.visual_atom = 203u;
-    s_tray.surface = &s_fixture_surface;
+    s_tray.stage = &s_fixture_stage;
     s_generate_id_return = s_tray.window;/* 'selection.c''s owner
                                             check compares against
                                             this via
@@ -1243,8 +1243,8 @@ static void s_test_selection_acquire_success(void)
     TAP_EQ_INT(s_change_property_calls, 2, "exactly two properties are"
             " published: orientation and visual");
 
-    list_destroy(s_surfaces_stub);
-    s_surfaces_stub = NULL;
+    list_destroy(s_stages_stub);
+    s_stages_stub = NULL;
 }
 
 
@@ -1257,12 +1257,12 @@ static void s_test_selection_acquire_fails_when_taken(void)
     bool ok;
 
     s_reset();
-    s_reset_surfaces();
+    s_reset_stages();
     s_tray.is_window_ready = true;
     s_tray.window = 300u;
     s_tray.selection_atom = 205u;
     s_tray.manager_atom = 200u;
-    s_tray.surface = &s_fixture_surface;
+    s_tray.stage = &s_fixture_stage;
     s_selection_owner_matches = false;   /* a NULL reply: real
                                              protocol error path
                                              already covered in
@@ -1277,8 +1277,8 @@ static void s_test_selection_acquire_fails_when_taken(void)
     TAP_EQ_INT(s_change_property_calls, 0, "nor are the orientation or"
             " visual properties published");
 
-    list_destroy(s_surfaces_stub);
-    s_surfaces_stub = NULL;
+    list_destroy(s_stages_stub);
+    s_stages_stub = NULL;
 }
 
 
@@ -1345,8 +1345,8 @@ int main(void)
     s_test_selection_release_noop_when_not_owned();
     s_test_selection_release_success();
 
-    if (s_surfaces_stub != NULL) {
-        list_destroy(s_surfaces_stub);
+    if (s_stages_stub != NULL) {
+        list_destroy(s_stages_stub);
     }
 
     return TAP_DONE();

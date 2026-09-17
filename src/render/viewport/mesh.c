@@ -30,8 +30,8 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
-#include <surface/viewport.h>
+#include <stage.h>
+#include <stage/viewport.h>
 #include <wm.h>
 
 /* Local includes */
@@ -146,7 +146,7 @@ static struct s_mesh_cache_s *s_cache_slot(uint32_t screen_id)
  *
  * @param connection Connection the pixmap lives on, or @c NULL when
  *                   there is none left to free anything on
- * @param slot       Cache slot to set aside
+ * @param slot Cache slot to set aside
  *
  * @note An older retired tile, if one is somehow still held, is freed
  *       here: the root cannot be naming two at once
@@ -228,8 +228,8 @@ bool viewport_mesh_is_visible(const desktop_td *desktop)
         return false;
     }
 
-    return surface_viewport_has_room(
-            wm_get_surface_by_id(desktop->screen_id));
+    return stage_viewport_has_room(
+            wm_get_stage_by_id(desktop->screen_id));
 }
 
 

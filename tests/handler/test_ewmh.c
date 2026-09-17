@@ -8,7 +8,7 @@
  * tests/handler/test_message.c) dispatches to for a specific EWMH
  * atom, exercised entirely through synthetic
  * @c xcb_client_message_event_t structs, hand-built @c client_td/
- * @c surface_td/@c desktop_td/@c wm_td fixtures (all transparent
+ * @c stage_td/@c desktop_td/@c wm_td fixtures (all transparent
  * structs, safe on the stack), and a hand-built
  * @c xcb_ewmh_connection_t with sentinel state atoms.  No live X
  * connection is ever needed.
@@ -70,7 +70,7 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Input includes */
 #include <input/mouse/drag.h>
@@ -93,7 +93,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -125,20 +125,20 @@ static unsigned int s_call_unmap_decorated = 0u;
 static unsigned int s_call_publish_wm_desktop = 0u;
 static unsigned int s_call_transient_top_parent = 0u;
 static unsigned int s_call_transient_family_snapshot = 0u;
-static unsigned int s_call_lookup_surface_for_root = 0u;
-static unsigned int s_call_surface_switch = 0u;
-static unsigned int s_call_surface_viewport_set = 0u;
+static unsigned int s_call_lookup_stage_for_root = 0u;
+static unsigned int s_call_stage_switch = 0u;
+static unsigned int s_call_stage_viewport_set = 0u;
 static int32_t s_last_viewport_set_x = 0;
 static int32_t s_last_viewport_set_y = 0;
-static unsigned int s_call_surface_desktop_get = 0u;
+static unsigned int s_call_stage_desktop_get = 0u;
 static unsigned int s_call_configure_window = 0u;
 static unsigned int s_call_atom_intern = 0u;
 static unsigned int s_call_change_property = 0u;
 static unsigned int s_call_lookup_current_desktop = 0u;
 static unsigned int s_call_stacking_count = 0u;
 static unsigned int s_call_stacking_walk = 0u;
-static unsigned int s_call_surface_clients_show = 0u;
-static unsigned int s_call_surface_clients_hide = 0u;
+static unsigned int s_call_stage_clients_show = 0u;
+static unsigned int s_call_stage_clients_hide = 0u;
 static unsigned int s_call_set_input_focus = 0u;
 static unsigned int s_call_drag_start = 0u;
 static unsigned int s_call_drag_start_directed = 0u;
@@ -152,8 +152,8 @@ static desktop_td *s_wm_get_client_desktop_result = NULL;
 static client_td *s_transient_top_parent_result = NULL;
 static client_td **s_transient_family_snapshot_result = NULL;
 static size_t s_transient_family_snapshot_count = 0u;
-static surface_td *s_lookup_surface_for_root_result = NULL;
-static desktop_td *s_surface_desktop_get_result = NULL;
+static stage_td *s_lookup_stage_for_root_result = NULL;
+static desktop_td *s_stage_desktop_get_result = NULL;
 static desktop_td *s_lookup_current_desktop_result = NULL;
 static uint32_t s_stacking_count_result = 0u;
 static bool s_drag_is_active_result = false;
@@ -382,47 +382,47 @@ desktop_td *wm_get_client_desktop(const client_td *client)
 }
 
 
-/** Link-only stand-in for lookup_surface_for_root */
-surface_td *lookup_surface_for_root(list_td *surfaces,
+/** Link-only stand-in for lookup_stage_for_root */
+stage_td *lookup_stage_for_root(list_td *stages,
         xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
 
-    s_call_lookup_surface_for_root++;
-    return s_lookup_surface_for_root_result;
+    s_call_lookup_stage_for_root++;
+    return s_lookup_stage_for_root_result;
 }
 
 
-/** Link-only stand-in for scmd_surface_desktop_switch */
-void scmd_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
+/** Link-only stand-in for scmd_stage_desktop_switch */
+void scmd_stage_desktop_switch(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
-    s_call_surface_switch++;
+    s_call_stage_switch++;
 }
 
 
-/** Recording stand-in for scmd_surface_viewport_set */
-void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y)
+/** Recording stand-in for scmd_stage_viewport_set */
+void scmd_stage_viewport_set(stage_td *stage, int32_t x, int32_t y)
 {
-    (void) surface;
+    (void) stage;
 
-    s_call_surface_viewport_set++;
+    s_call_stage_viewport_set++;
     s_last_viewport_set_x = x;
     s_last_viewport_set_y = y;
 }
 
 
-/** Link-only stand-in for surface_desktop_get */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+/** Link-only stand-in for stage_desktop_get */
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
-    s_call_surface_desktop_get++;
-    return s_surface_desktop_get_result;
+    s_call_stage_desktop_get++;
+    return s_stage_desktop_get_result;
 }
 
 
@@ -503,9 +503,9 @@ xcb_connection_t *xcb_connection_get(void)
 
 
 /** Link-only stand-in for lookup_current_desktop */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     s_call_lookup_current_desktop++;
     return s_lookup_current_desktop_result;
@@ -550,23 +550,23 @@ void stacking_walk(const desktop_td *desktop, stacking_visitor_fn visit,
 }
 
 
-/** Link-only stand-in for surface_client_show_all */
-void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
+/** Link-only stand-in for stage_client_show_all */
+void stage_client_show_all(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
-    s_call_surface_clients_show++;
+    s_call_stage_clients_show++;
 }
 
 
-/** Link-only stand-in for surface_client_hide_all */
-void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
+/** Link-only stand-in for stage_client_hide_all */
+void stage_client_hide_all(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
-    s_call_surface_clients_hide++;
+    s_call_stage_clients_hide++;
 }
 
 
@@ -708,12 +708,12 @@ static void s_test_reset_state(void)
     s_call_publish_wm_desktop = 0u;
     s_call_transient_top_parent = 0u;
     s_call_transient_family_snapshot = 0u;
-    s_call_lookup_surface_for_root = 0u;
-    s_call_surface_switch = 0u;
-    s_call_surface_viewport_set = 0u;
+    s_call_lookup_stage_for_root = 0u;
+    s_call_stage_switch = 0u;
+    s_call_stage_viewport_set = 0u;
     s_last_viewport_set_x = 0;
     s_last_viewport_set_y = 0;
-    s_call_surface_desktop_get = 0u;
+    s_call_stage_desktop_get = 0u;
     s_call_configure_window = 0u;
     s_call_atom_intern = 0u;
     s_call_change_property = 0u;
@@ -721,8 +721,8 @@ static void s_test_reset_state(void)
     s_call_stacking_count = 0u;
     s_call_stacking_walk = 0u;
     s_stacking_walk_client_count = 0u;
-    s_call_surface_clients_show = 0u;
-    s_call_surface_clients_hide = 0u;
+    s_call_stage_clients_show = 0u;
+    s_call_stage_clients_hide = 0u;
     s_call_set_input_focus = 0u;
     s_call_drag_start = 0u;
     s_call_drag_start_directed = 0u;
@@ -734,8 +734,8 @@ static void s_test_reset_state(void)
     s_transient_top_parent_result = NULL;
     s_transient_family_snapshot_result = NULL;
     s_transient_family_snapshot_count = 0u;
-    s_lookup_surface_for_root_result = NULL;
-    s_surface_desktop_get_result = NULL;
+    s_lookup_stage_for_root_result = NULL;
+    s_stage_desktop_get_result = NULL;
     s_lookup_current_desktop_result = NULL;
     s_stacking_count_result = 0u;
     s_drag_is_active_result = false;
@@ -797,20 +797,20 @@ static void s_test_wm_state_null_guards(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
 
-    hi_handle_net_wm_state(NULL, &event, &ewmh, &surface, &desktop);
-    hi_handle_net_wm_state(&client, NULL, &ewmh, &surface, &desktop);
-    hi_handle_net_wm_state(&client, &event, NULL, &surface, &desktop);
+    hi_handle_net_wm_state(NULL, &event, &ewmh, &stage, &desktop);
+    hi_handle_net_wm_state(&client, NULL, &ewmh, &stage, &desktop);
+    hi_handle_net_wm_state(&client, &event, NULL, &stage, &desktop);
 
     TAP_OK(s_call_fullscreen == 0u,
             "a null client, event, or ewmh never reaches any state" \
@@ -819,32 +819,32 @@ static void s_test_wm_state_null_guards(void)
 
 
 /* hi_handle_net_wm_state: ADD action on _NET_WM_STATE_FULLSCREEN
- * fullscreens the client and outdates both surface and desktop */
+ * fullscreens the client and outdates both stage and desktop */
 static void s_test_wm_state_fullscreen_add(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     ewmh._NET_WM_STATE_FULLSCREEN = (xcb_atom_t) 10;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_FULLSCREEN;
 
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
 
     TAP_OK(s_call_fullscreen == 1u,
             "ADD on _NET_WM_STATE_FULLSCREEN calls the fullscreen" \
             " collaborator exactly once");
-    TAP_OK(surface.is_outdated && desktop.is_outdated,
-            "handling _NET_WM_STATE outdates both the surface and" \
+    TAP_OK(stage.is_outdated && desktop.is_outdated,
+            "handling _NET_WM_STATE outdates both the stage and" \
             " the desktop");
 }
 
@@ -854,21 +854,21 @@ static void s_test_wm_state_fullscreen_remove(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     ewmh._NET_WM_STATE_FULLSCREEN = (xcb_atom_t) 10;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_REMOVE;
     event.data.data32[1] = ewmh._NET_WM_STATE_FULLSCREEN;
 
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
 
     TAP_OK(s_call_unfullscreen == 1u,
             "REMOVE on _NET_WM_STATE_FULLSCREEN calls the" \
@@ -884,21 +884,21 @@ static void s_test_wm_state_fullscreen_toggle(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     ewmh._NET_WM_STATE_FULLSCREEN = (xcb_atom_t) 10;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_TOGGLE;
     event.data.data32[1] = ewmh._NET_WM_STATE_FULLSCREEN;
 
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
 
     TAP_OK(s_call_toggle_fullscreen == 1u,
             "TOGGLE on _NET_WM_STATE_FULLSCREEN calls the toggle" \
@@ -912,7 +912,7 @@ static void s_test_wm_state_two_atoms(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
@@ -920,7 +920,7 @@ static void s_test_wm_state_two_atoms(void)
     memset(&ewmh, 0, sizeof(ewmh));
     ewmh._NET_WM_STATE_MAXIMIZED_HORZ = (xcb_atom_t) 20;
     ewmh._NET_WM_STATE_MAXIMIZED_VERT = (xcb_atom_t) 21;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
@@ -929,7 +929,7 @@ static void s_test_wm_state_two_atoms(void)
     event.data.data32[1] = ewmh._NET_WM_STATE_MAXIMIZED_HORZ;
     event.data.data32[2] = ewmh._NET_WM_STATE_MAXIMIZED_VERT;
 
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
 
     TAP_OK(s_call_maximize_horz == 1u,
             "the first state atom in data32[1] is processed");
@@ -945,14 +945,14 @@ static void s_test_wm_state_maximize_gated(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     ewmh._NET_WM_STATE_MAXIMIZED_HORZ = (xcb_atom_t) 20;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     client.properties.flags = 0u; /* Not resizable, so unmaximizable */
@@ -960,7 +960,7 @@ static void s_test_wm_state_maximize_gated(void)
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_MAXIMIZED_HORZ;
 
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
 
     TAP_OK(s_call_maximize_horz == 0u,
             "a maximize request on an unmaximizable (non-resizable)" \
@@ -974,21 +974,21 @@ static void s_test_wm_state_remaining_atoms(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     ewmh._NET_WM_STATE_ABOVE = (xcb_atom_t) 30;
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     client.properties.layer = CLIENT_LAYER_NORMAL;
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_ABOVE;
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
     TAP_OK(s_call_layer_above == 1u,
             "ADD on _NET_WM_STATE_ABOVE calls the layer-above" \
             " collaborator");
@@ -1001,7 +1001,7 @@ static void s_test_wm_state_remaining_atoms(void)
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_BELOW;
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
     TAP_OK(s_call_layer_below == 1u,
             "ADD on _NET_WM_STATE_BELOW calls the layer-below" \
             " collaborator");
@@ -1014,7 +1014,7 @@ static void s_test_wm_state_remaining_atoms(void)
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_STICKY;
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
     TAP_OK(s_call_pin == 1u,
             "ADD on _NET_WM_STATE_STICKY calls the pin collaborator");
 
@@ -1026,7 +1026,7 @@ static void s_test_wm_state_remaining_atoms(void)
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_SHADED;
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
     TAP_OK(s_call_shade == 1u,
             "ADD on _NET_WM_STATE_SHADED calls the shade" \
             " collaborator");
@@ -1039,7 +1039,7 @@ static void s_test_wm_state_remaining_atoms(void)
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_HIDDEN;
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
     TAP_OK(s_call_iconify == 1u,
             "ADD on _NET_WM_STATE_HIDDEN calls the iconify" \
             " collaborator");
@@ -1052,7 +1052,7 @@ static void s_test_wm_state_remaining_atoms(void)
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_DEMANDS_ATTENTION;
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
     TAP_OK(s_call_urge == 1u,
             "ADD on _NET_WM_STATE_DEMANDS_ATTENTION calls the urge" \
             " collaborator");
@@ -1065,7 +1065,7 @@ static void s_test_wm_state_remaining_atoms(void)
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_MODAL;
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
     TAP_OK(s_call_sync_states == 1u,
             "ADD on _NET_WM_STATE_MODAL syncs the client's states" \
             " afterward");
@@ -1078,20 +1078,20 @@ static void s_test_wm_state_unrecognized_atom(void)
 {
     xcb_ewmh_connection_t ewmh;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = (xcb_atom_t) 777777;
 
-    hi_handle_net_wm_state(&client, &event, &ewmh, &surface, &desktop);
+    hi_handle_net_wm_state(&client, &event, &ewmh, &stage, &desktop);
 
     TAP_OK(s_call_fullscreen == 0u && s_call_maximize_horz == 0u &&
             s_call_layer_above == 0u && s_call_pin == 0u &&
@@ -1119,14 +1119,14 @@ static void s_test_current_desktop_null_guards(void)
     hi_handle_net_current_desktop(NULL, &event);
     hi_handle_net_current_desktop(&wm, NULL);
 
-    TAP_OK(s_call_lookup_surface_for_root == 0u,
-            "a null wm or event never reaches the surface lookup");
+    TAP_OK(s_call_lookup_stage_for_root == 0u,
+            "a null wm or event never reaches the stage lookup");
 }
 
 
 /* hi_handle_net_current_desktop: an unresolved root window is a
  * no-op */
-static void s_test_current_desktop_no_surface(void)
+static void s_test_current_desktop_no_stage(void)
 {
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
@@ -1138,41 +1138,41 @@ static void s_test_current_desktop_no_surface(void)
     memset(&config, 0, sizeof(config));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_event(&event, 0x1, (xcb_atom_t) 1);
-    s_lookup_surface_for_root_result = NULL;
+    s_lookup_stage_for_root_result = NULL;
 
     hi_handle_net_current_desktop(&wm, &event);
 
-    TAP_OK(s_call_surface_switch == 0u,
+    TAP_OK(s_call_stage_switch == 0u,
             "an unresolved root window never switches any desktop");
 }
 
 
-/* hi_handle_net_current_desktop: a resolved surface switches to the
+/* hi_handle_net_current_desktop: a resolved stage switches to the
  * requested desktop and gets outdated */
 static void s_test_current_desktop_switches(void)
 {
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_event(&event, 0x1, (xcb_atom_t) 1);
     event.data.data32[0] = 3u;
-    s_lookup_surface_for_root_result = &surface;
+    s_lookup_stage_for_root_result = &stage;
 
     hi_handle_net_current_desktop(&wm, &event);
 
-    TAP_OK(s_call_surface_switch == 1u,
-            "a resolved surface switches its current desktop exactly" \
+    TAP_OK(s_call_stage_switch == 1u,
+            "a resolved stage switches its current desktop exactly" \
             " once");
-    TAP_OK(surface.is_outdated,
-            "switching desktops outdates the surface");
+    TAP_OK(stage.is_outdated,
+            "switching desktops outdates the stage");
 }
 
 
@@ -1193,14 +1193,14 @@ static void s_test_desktop_viewport_null_guards(void)
     hi_handle_net_desktop_viewport(NULL, &event);
     hi_handle_net_desktop_viewport(&wm, NULL);
 
-    TAP_OK(s_call_lookup_surface_for_root == 0u,
-            "a null wm or event never reaches the surface lookup");
+    TAP_OK(s_call_lookup_stage_for_root == 0u,
+            "a null wm or event never reaches the stage lookup");
 }
 
 
 /* hi_handle_net_desktop_viewport: an unresolved root window is a
  * no-op */
-static void s_test_desktop_viewport_no_surface(void)
+static void s_test_desktop_viewport_no_stage(void)
 {
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
@@ -1212,16 +1212,16 @@ static void s_test_desktop_viewport_no_surface(void)
     memset(&config, 0, sizeof(config));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_event(&event, 0x1, (xcb_atom_t) 1);
-    s_lookup_surface_for_root_result = NULL;
+    s_lookup_stage_for_root_result = NULL;
 
     hi_handle_net_desktop_viewport(&wm, &event);
 
-    TAP_OK(s_call_surface_viewport_set == 0u,
+    TAP_OK(s_call_stage_viewport_set == 0u,
             "an unresolved root window never moves any viewport");
 }
 
 
-/* hi_handle_net_desktop_viewport: a resolved surface moves its
+/* hi_handle_net_desktop_viewport: a resolved stage moves its
  * current desktop's viewport to the requested origin and gets
  * outdated */
 static void s_test_desktop_viewport_moves(void)
@@ -1229,29 +1229,29 @@ static void s_test_desktop_viewport_moves(void)
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
     config_td config;
-    surface_td surface;
+    stage_td stage;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_event(&event, 0x1, (xcb_atom_t) 1);
     event.data.data32[0] = 1024u;
     event.data.data32[1] = 768u;
-    s_lookup_surface_for_root_result = &surface;
+    s_lookup_stage_for_root_result = &stage;
 
     hi_handle_net_desktop_viewport(&wm, &event);
 
-    TAP_OK(s_call_surface_viewport_set == 1u,
-            "a resolved surface moves its viewport exactly once");
+    TAP_OK(s_call_stage_viewport_set == 1u,
+            "a resolved stage moves its viewport exactly once");
     TAP_EQ_INT(s_last_viewport_set_x, 1024,
             "the requested X origin is forwarded unchanged");
     TAP_EQ_INT(s_last_viewport_set_y, 768,
             "the requested Y origin is forwarded unchanged");
-    TAP_OK(surface.is_outdated,
-            "moving the viewport outdates the surface");
+    TAP_OK(stage.is_outdated,
+            "moving the viewport outdates the stage");
 }
 
 
@@ -1262,24 +1262,24 @@ static void s_test_wm_desktop_null_guards(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
 
-    hi_handle_net_wm_desktop(NULL, &event, &client, &surface, &desktop);
-    hi_handle_net_wm_desktop(&wm, NULL, &client, &surface, &desktop);
-    hi_handle_net_wm_desktop(&wm, &event, NULL, &surface, &desktop);
+    hi_handle_net_wm_desktop(NULL, &event, &client, &stage, &desktop);
+    hi_handle_net_wm_desktop(&wm, NULL, &client, &stage, &desktop);
+    hi_handle_net_wm_desktop(&wm, &event, NULL, &stage, &desktop);
 
-    TAP_OK(s_call_surface_desktop_get == 0u,
+    TAP_OK(s_call_stage_desktop_get == 0u,
             "a null wm, event, or client never reaches the target" \
             " desktop lookup");
 }
@@ -1293,30 +1293,30 @@ static void s_test_wm_desktop_same_or_missing_target(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
-    s_surface_desktop_get_result = &desktop; /* Same as src_desktop */
+    s_stage_desktop_get_result = &desktop; /* Same as src_desktop */
 
-    hi_handle_net_wm_desktop(&wm, &event, &client, &surface, &desktop);
+    hi_handle_net_wm_desktop(&wm, &event, &client, &stage, &desktop);
 
     TAP_OK(s_call_transient_top_parent == 0u,
             "a target desktop identical to the source desktop never" \
             " reaches the transient-family cascade");
 
     s_test_reset_state();
-    s_surface_desktop_get_result = NULL; /* Unresolvable target */
+    s_stage_desktop_get_result = NULL; /* Unresolvable target */
 
-    hi_handle_net_wm_desktop(&wm, &event, &client, &surface, &desktop);
+    hi_handle_net_wm_desktop(&wm, &event, &client, &stage, &desktop);
 
     TAP_OK(s_call_transient_top_parent == 0u,
             "an unresolvable target desktop never reaches the" \
@@ -1335,7 +1335,7 @@ static void s_test_wm_desktop_no_top_parent(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     desktop_td target_desktop;
     xcb_client_message_event_t event;
@@ -1343,16 +1343,16 @@ static void s_test_wm_desktop_no_top_parent(void)
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&target_desktop, 0, sizeof(target_desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
-    s_surface_desktop_get_result = &target_desktop;
+    s_stage_desktop_get_result = &target_desktop;
     s_transient_top_parent_result = NULL;
 
-    hi_handle_net_wm_desktop(&wm, &event, &client, &surface, &desktop);
+    hi_handle_net_wm_desktop(&wm, &event, &client, &stage, &desktop);
 
     TAP_OK(s_call_desktop_move == 0u,
             "an unresolvable transient top parent never moves any" \
@@ -1361,14 +1361,14 @@ static void s_test_wm_desktop_no_top_parent(void)
 
 
 /* hi_handle_net_wm_desktop: a resolvable client with no transient
- * siblings moves exactly the one client and outdates the surface */
+ * siblings moves exactly the one client and outdates the stage */
 static void s_test_wm_desktop_single_client_moves(void)
 {
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     desktop_td target_desktop;
     xcb_client_message_event_t event;
@@ -1376,22 +1376,22 @@ static void s_test_wm_desktop_single_client_moves(void)
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&target_desktop, 0, sizeof(target_desktop));
     target_desktop.id = 7;
-    surface.desktop_cur = 7;
+    stage.desktop_cur = 7;
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[0] = 7u;
-    s_surface_desktop_get_result = &target_desktop;
+    s_stage_desktop_get_result = &target_desktop;
     s_transient_top_parent_result = &client;
     s_wm_get_client_desktop_result = &desktop;
     s_transient_family_snapshot_result = NULL;
     s_transient_family_snapshot_count = 0u;
 
-    hi_handle_net_wm_desktop(&wm, &event, &client, &surface, &desktop);
+    hi_handle_net_wm_desktop(&wm, &event, &client, &stage, &desktop);
 
     TAP_OK(s_call_desktop_move == 1u,
             "a resolvable client with no transient family moves" \
@@ -1399,8 +1399,8 @@ static void s_test_wm_desktop_single_client_moves(void)
     TAP_OK(s_call_publish_wm_desktop == 1u,
             "moving a client publishes its new _NET_WM_DESKTOP" \
             " exactly once");
-    TAP_OK(surface.is_outdated,
-            "hi_handle_net_wm_desktop outdates the surface when done");
+    TAP_OK(stage.is_outdated,
+            "hi_handle_net_wm_desktop outdates the stage when done");
 }
 
 
@@ -1411,21 +1411,21 @@ static void s_test_moveresize_window_iconified_noop(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     client.properties.state = (uint16_t) CLIENT_STATE_ICONIFIED;
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
 
-    hi_handle_net_moveresize_window(&wm, &event, &client, &surface,
+    hi_handle_net_moveresize_window(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_configure_window == 0u,
@@ -1435,21 +1435,21 @@ static void s_test_moveresize_window_iconified_noop(void)
 
 
 /* hi_handle_net_moveresize_window: an X/Y move applies the requested
- * position and outdates the client/surface/desktop */
+ * position and outdates the client/stage/desktop */
 static void s_test_moveresize_window_move_only(void)
 {
     wm_td wm;
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
@@ -1459,7 +1459,7 @@ static void s_test_moveresize_window_move_only(void)
     event.data.data32[1] = 50u;
     event.data.data32[2] = 60u;
 
-    hi_handle_net_moveresize_window(&wm, &event, &client, &surface,
+    hi_handle_net_moveresize_window(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_configure_window == 1u,
@@ -1470,10 +1470,10 @@ static void s_test_moveresize_window_move_only(void)
     TAP_OK(s_call_decoration_layout_sync == 0u,
             "a move without a size change never re-syncs the" \
             " decoration layout");
-    TAP_OK(client.is_outdated && surface.is_outdated &&
+    TAP_OK(client.is_outdated && stage.is_outdated &&
             desktop.is_outdated,
             "a _NET_MOVERESIZE_WINDOW move outdates the client," \
-            " surface, and desktop");
+            " stage, and desktop");
 }
 
 
@@ -1485,14 +1485,14 @@ static void s_test_moveresize_window_resize_syncs_decoration(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
@@ -1504,7 +1504,7 @@ static void s_test_moveresize_window_resize_syncs_decoration(void)
     event.data.data32[3] = 300u;
     event.data.data32[4] = 200u;
 
-    hi_handle_net_moveresize_window(&wm, &event, &client, &surface,
+    hi_handle_net_moveresize_window(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_decoration_layout_sync == 1u,
@@ -1521,14 +1521,14 @@ static void s_test_moveresize_window_clamps_minimum(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
@@ -1536,7 +1536,7 @@ static void s_test_moveresize_window_clamps_minimum(void)
     event.data.data32[0] = (uint32_t) WM_MOVERESIZE_FLAG_WIDTH;
     event.data.data32[3] = 1u; /* Below WM_MIN_WINDOW_DIMENSION */
 
-    hi_handle_net_moveresize_window(&wm, &event, &client, &surface,
+    hi_handle_net_moveresize_window(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_EQ_INT((int) client.layout.geometry.cur.dim.w,
@@ -1546,7 +1546,7 @@ static void s_test_moveresize_window_clamps_minimum(void)
 }
 
 
-/* hi_handle_net_showing_desktop: a null surface, or no live X
+/* hi_handle_net_showing_desktop: a null stage, or no live X
  * connection, is a no-op */
 static void s_test_showing_desktop_null_guard(void)
 {
@@ -1555,21 +1555,21 @@ static void s_test_showing_desktop_null_guard(void)
     hi_handle_net_showing_desktop(NULL, true);
 
     TAP_OK(s_call_lookup_current_desktop == 0u,
-            "a null surface never reaches the current-desktop lookup");
+            "a null stage never reaches the current-desktop lookup");
 }
 
 
-/* hi_handle_net_showing_desktop: a surface with no resolvable current
+/* hi_handle_net_showing_desktop: a stage with no resolvable current
  * desktop is a no-op */
 static void s_test_showing_desktop_no_desktop(void)
 {
-    surface_td surface;
+    stage_td stage;
 
     s_test_reset_state();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_lookup_current_desktop_result = NULL;
 
-    hi_handle_net_showing_desktop(&surface, true);
+    hi_handle_net_showing_desktop(&stage, true);
 
     TAP_OK(s_call_stacking_count == 0u,
             "an unresolvable current desktop never reaches the" \
@@ -1581,16 +1581,16 @@ static void s_test_showing_desktop_no_desktop(void)
  * show or hide */
 static void s_test_showing_desktop_empty_desktop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_test_reset_state();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_lookup_current_desktop_result = &desktop;
     s_stacking_count_result = 0u;
 
-    hi_handle_net_showing_desktop(&surface, true);
+    hi_handle_net_showing_desktop(&stage, true);
 
     TAP_OK(s_call_stacking_walk == 0u,
             "an empty desktop's showing-desktop request never walks" \
@@ -1602,31 +1602,31 @@ static void s_test_showing_desktop_empty_desktop(void)
  * clients and never touches input focus via unhide */
 static void s_test_showing_desktop_hides(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_test_reset_state();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
-    surface.is_showing_desktop = false;
-    surface.desktop_cur = 2u;
+    stage.is_showing_desktop = false;
+    stage.desktop_cur = 2u;
     s_lookup_current_desktop_result = &desktop;
     s_stacking_count_result = 1u;
     s_stacking_walk_clients[0] = &client;
     s_stacking_walk_client_count = 1u;
 
-    hi_handle_net_showing_desktop(&surface, true);
+    hi_handle_net_showing_desktop(&stage, true);
 
-    TAP_OK(s_call_surface_clients_hide == 1u,
+    TAP_OK(s_call_stage_clients_hide == 1u,
             "showing the desktop (from not already showing it)" \
-            " hides the surface's clients exactly once");
+            " hides the stage's clients exactly once");
     TAP_OK(s_call_set_input_focus == 1u,
             "showing the desktop sends input focus to the root" \
             " window exactly once");
-    TAP_OK(surface.is_outdated && desktop.is_outdated,
-            "hi_handle_net_showing_desktop outdates the surface and" \
+    TAP_OK(stage.is_outdated && desktop.is_outdated,
+            "hi_handle_net_showing_desktop outdates the stage and" \
             " desktop when done");
 }
 
@@ -1635,21 +1635,21 @@ static void s_test_showing_desktop_hides(void)
  * clients rather than hiding them, with no focus repositioning */
 static void s_test_showing_desktop_unhides(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_test_reset_state();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
-    surface.is_showing_desktop = true;
-    surface.desktop_cur = 2u;
+    stage.is_showing_desktop = true;
+    stage.desktop_cur = 2u;
     s_lookup_current_desktop_result = &desktop;
     s_stacking_count_result = 1u;
 
-    hi_handle_net_showing_desktop(&surface, false);
+    hi_handle_net_showing_desktop(&stage, false);
 
-    TAP_OK(s_call_surface_clients_show == 1u,
-            "un-showing the desktop restores the surface's clients" \
+    TAP_OK(s_call_stage_clients_show == 1u,
+            "un-showing the desktop restores the stage's clients" \
             " exactly once");
     TAP_OK(s_call_set_input_focus == 0u,
             "un-showing the desktop never repositions input focus");
@@ -1657,64 +1657,64 @@ static void s_test_showing_desktop_unhides(void)
 
 
 /* hi_handle_net_showing_desktop: a redundant show request, issued
- * while the surface already reports showing the desktop and every
+ * while the stage already reports showing the desktop and every
  * client is already hidden from that earlier request, leaves
  * 'is_showing_desktop' true rather than resetting it to false */
 static void s_test_showing_desktop_redundant_show_stays_showing(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_test_reset_state();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
     client.properties.flags = CLIENT_FLAG_HIDDEN;
-    surface.is_showing_desktop = true;
-    surface.desktop_cur = 2u;
+    stage.is_showing_desktop = true;
+    stage.desktop_cur = 2u;
     s_lookup_current_desktop_result = &desktop;
     s_stacking_count_result = 1u;
     s_stacking_walk_clients[0] = &client;
     s_stacking_walk_client_count = 1u;
 
-    hi_handle_net_showing_desktop(&surface, true);
+    hi_handle_net_showing_desktop(&stage, true);
 
-    TAP_OK(surface.is_showing_desktop,
+    TAP_OK(stage.is_showing_desktop,
             "a redundant show request leaves 'is_showing_desktop'" \
             " true instead of resetting it to false");
 }
 
 
 /* hi_handle_net_showing_desktop: a redundant restore request, issued
- * while the surface already reports not showing the desktop, neither
+ * while the stage already reports not showing the desktop, neither
  * hides nor unhides anything */
 static void s_test_showing_desktop_redundant_restore_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
     s_test_reset_state();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
-    surface.is_showing_desktop = false;
-    surface.desktop_cur = 2u;
+    stage.is_showing_desktop = false;
+    stage.desktop_cur = 2u;
     s_lookup_current_desktop_result = &desktop;
     s_stacking_count_result = 1u;
     s_stacking_walk_clients[0] = &client;
     s_stacking_walk_client_count = 1u;
 
-    hi_handle_net_showing_desktop(&surface, false);
+    hi_handle_net_showing_desktop(&stage, false);
 
-    TAP_OK(s_call_surface_clients_hide == 0u,
-            "a redundant restore request never hides the surface's" \
+    TAP_OK(s_call_stage_clients_hide == 0u,
+            "a redundant restore request never hides the stage's" \
             " clients");
-    TAP_OK(s_call_surface_clients_show == 0u,
+    TAP_OK(s_call_stage_clients_show == 0u,
             "...nor does it restore them, since there is nothing to" \
             " restore");
-    TAP_OK(!surface.is_showing_desktop,
+    TAP_OK(!stage.is_showing_desktop,
             "...and 'is_showing_desktop' stays false");
 }
 
@@ -1726,24 +1726,24 @@ static void s_test_restack_window_null_guards(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
 
-    hi_handle_net_restack_window(NULL, &event, &client, &surface,
+    hi_handle_net_restack_window(NULL, &event, &client, &stage,
             &desktop);
-    hi_handle_net_restack_window(&wm, NULL, &client, &surface,
+    hi_handle_net_restack_window(&wm, NULL, &client, &stage,
             &desktop);
-    hi_handle_net_restack_window(&wm, &event, NULL, &surface,
+    hi_handle_net_restack_window(&wm, &event, NULL, &stage,
             &desktop);
 
     TAP_OK(s_call_configure_window == 0u,
@@ -1760,14 +1760,14 @@ static void s_test_restack_window_with_sibling(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
@@ -1775,7 +1775,7 @@ static void s_test_restack_window_with_sibling(void)
     event.data.data32[1] = 0x300u; /* Sibling window */
     event.data.data32[2] = WM_RESTACK_DETAIL_BELOW;
 
-    hi_handle_net_restack_window(&wm, &event, &client, &surface,
+    hi_handle_net_restack_window(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK((s_last_configure_window_mask &
@@ -1786,8 +1786,8 @@ static void s_test_restack_window_with_sibling(void)
                 (uint16_t) XCB_CONFIG_WINDOW_STACK_MODE) != 0u,
             "every restack request also sets the stack-mode" \
             " configure mask bit");
-    TAP_OK(surface.is_outdated && desktop.is_outdated,
-            "a restack request outdates the surface and desktop");
+    TAP_OK(stage.is_outdated && desktop.is_outdated,
+            "a restack request outdates the stage and desktop");
 }
 
 
@@ -1799,21 +1799,21 @@ static void s_test_restack_window_unknown_detail_defaults_above(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[2] = 999u; /* Not any recognized detail */
 
-    hi_handle_net_restack_window(&wm, &event, &client, &surface,
+    hi_handle_net_restack_window(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_EQ_INT((int) s_last_configure_window_value0,
@@ -1831,25 +1831,25 @@ static void s_test_fullscreen_monitors_null_guards(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
 
     hi_handle_net_wm_fullscreen_monitors(NULL, &event, &client,
-            &surface, &desktop);
+            &stage, &desktop);
     hi_handle_net_wm_fullscreen_monitors(&wm, NULL, &client,
-            &surface, &desktop);
+            &stage, &desktop);
     hi_handle_net_wm_fullscreen_monitors(&wm, &event, NULL,
-            &surface, &desktop);
+            &stage, &desktop);
 
     TAP_OK(s_call_change_property == 0u,
             "a null wm, event, or client never publishes fullscreen" \
@@ -1866,14 +1866,14 @@ static void s_test_fullscreen_monitors_publishes_and_reapplies(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
@@ -1885,7 +1885,7 @@ static void s_test_fullscreen_monitors_publishes_and_reapplies(void)
     event.data.data32[3] = 0u;
 
     hi_handle_net_wm_fullscreen_monitors(&wm, &event, &client,
-            &surface, &desktop);
+            &stage, &desktop);
 
     TAP_OK(s_call_change_property == 1u,
             "a well-formed request publishes the fullscreen" \
@@ -1893,9 +1893,9 @@ static void s_test_fullscreen_monitors_publishes_and_reapplies(void)
     TAP_OK(s_call_fullscreen == 1u,
             "an already-fullscreen client re-applies fullscreen so" \
             " the new monitor spans take effect");
-    TAP_OK(surface.is_outdated && desktop.is_outdated,
+    TAP_OK(stage.is_outdated && desktop.is_outdated,
             "handling _NET_WM_FULLSCREEN_MONITORS outdates the" \
-            " surface and desktop");
+            " stage and desktop");
 }
 
 
@@ -1907,14 +1907,14 @@ static void s_test_fullscreen_monitors_non_fullscreen_client(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
@@ -1922,7 +1922,7 @@ static void s_test_fullscreen_monitors_non_fullscreen_client(void)
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
 
     hi_handle_net_wm_fullscreen_monitors(&wm, &event, &client,
-            &surface, &desktop);
+            &stage, &desktop);
 
     TAP_OK(s_call_fullscreen == 0u,
             "a non-fullscreen client's monitor spans are published" \
@@ -1930,7 +1930,7 @@ static void s_test_fullscreen_monitors_non_fullscreen_client(void)
 }
 
 
-/* hi_handle_net_wm_moveresize: null wm/event/client/surface/screen/
+/* hi_handle_net_wm_moveresize: null wm/event/client/stage/screen/
  * config is a no-op */
 static void s_test_wm_moveresize_null_guards(void)
 {
@@ -1938,34 +1938,34 @@ static void s_test_wm_moveresize_null_guards(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_client_message_event_t event;
 
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
-    surface.screen = NULL; /* No screen resolved yet */
+    stage.screen = NULL; /* No screen resolved yet */
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[2] = XCB_EWMH_WM_MOVERESIZE_MOVE;
 
-    hi_handle_net_wm_moveresize(NULL, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(NULL, &event, &client, &stage,
             &desktop);
-    hi_handle_net_wm_moveresize(&wm, NULL, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, NULL, &client, &stage,
             &desktop);
-    hi_handle_net_wm_moveresize(&wm, &event, NULL, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, NULL, &stage,
             &desktop);
     hi_handle_net_wm_moveresize(&wm, &event, &client, NULL,
             &desktop);
-    hi_handle_net_wm_moveresize(&wm, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, &client, &stage,
             &desktop); /* Null screen */
 
     TAP_OK(s_call_drag_start == 0u,
-            "a null wm, event, client, surface, or screen never" \
+            "a null wm, event, client, stage, or screen never" \
             " starts a drag");
 }
 
@@ -1978,7 +1978,7 @@ static void s_test_wm_moveresize_cancel(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_screen_t screen;
     xcb_client_message_event_t event;
@@ -1986,17 +1986,17 @@ static void s_test_wm_moveresize_cancel(void)
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[2] = XCB_EWMH_WM_MOVERESIZE_CANCEL;
     s_drag_is_active_result = true;
 
-    hi_handle_net_wm_moveresize(&wm, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_drag_cancel == 1u,
@@ -2004,9 +2004,9 @@ static void s_test_wm_moveresize_cancel(void)
             " exactly once");
 
     s_test_reset_state();
-    surface.screen = &screen;
+    stage.screen = &screen;
     s_drag_is_active_result = false;
-    hi_handle_net_wm_moveresize(&wm, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_drag_cancel == 0u,
@@ -2023,7 +2023,7 @@ static void s_test_wm_moveresize_keyboard_ignored(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_screen_t screen;
     xcb_client_message_event_t event;
@@ -2031,16 +2031,16 @@ static void s_test_wm_moveresize_keyboard_ignored(void)
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[2] = XCB_EWMH_WM_MOVERESIZE_MOVE_KEYBOARD;
 
-    hi_handle_net_wm_moveresize(&wm, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_drag_start == 0u && s_call_drag_start_directed == 0u,
@@ -2057,7 +2057,7 @@ static void s_test_wm_moveresize_move_starts_drag(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_screen_t screen;
     xcb_client_message_event_t event;
@@ -2065,10 +2065,10 @@ static void s_test_wm_moveresize_move_starts_drag(void)
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
@@ -2076,7 +2076,7 @@ static void s_test_wm_moveresize_move_starts_drag(void)
     event.data.data32[1] = 200u;
     event.data.data32[2] = XCB_EWMH_WM_MOVERESIZE_MOVE;
 
-    hi_handle_net_wm_moveresize(&wm, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_drag_start == 1u,
@@ -2096,7 +2096,7 @@ static void s_test_wm_moveresize_unresizable_gated(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_screen_t screen;
     xcb_client_message_event_t event;
@@ -2104,17 +2104,17 @@ static void s_test_wm_moveresize_unresizable_gated(void)
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     client.properties.flags = 0u; /* Not resizable */
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[2] = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT;
 
-    hi_handle_net_wm_moveresize(&wm, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_drag_start_directed == 0u,
@@ -2131,7 +2131,7 @@ static void s_test_wm_moveresize_resize_starts_directed_drag(void)
     xcb_ewmh_connection_t ewmh;
     config_td config;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     xcb_screen_t screen;
     xcb_client_message_event_t event;
@@ -2139,17 +2139,17 @@ static void s_test_wm_moveresize_resize_starts_directed_drag(void)
     s_test_reset_state();
     memset(&ewmh, 0, sizeof(ewmh));
     memset(&config, 0, sizeof(config));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[2] = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT;
 
-    hi_handle_net_wm_moveresize(&wm, &event, &client, &surface,
+    hi_handle_net_wm_moveresize(&wm, &event, &client, &stage,
             &desktop);
 
     TAP_OK(s_call_drag_start_directed == 1u,
@@ -2171,10 +2171,10 @@ int main(void)
     s_test_wm_state_remaining_atoms();
     s_test_wm_state_unrecognized_atom();
     s_test_current_desktop_null_guards();
-    s_test_current_desktop_no_surface();
+    s_test_current_desktop_no_stage();
     s_test_current_desktop_switches();
     s_test_desktop_viewport_null_guards();
-    s_test_desktop_viewport_no_surface();
+    s_test_desktop_viewport_no_stage();
     s_test_desktop_viewport_moves();
     s_test_wm_desktop_null_guards();
     s_test_wm_desktop_same_or_missing_target();

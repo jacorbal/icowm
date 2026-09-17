@@ -29,8 +29,8 @@
 #include <client.h>
 #include <desktop.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -45,13 +45,13 @@
  * @param client  Client to describe
  * @param desktop Desktop it belongs to (for the response's
  *                @c "desktop_id" field)
- * @param surface Surface it belongs to (for the response's
- *                @c "surface_id" field)
+ * @param stage Stage it belongs to (for the response's
+ *                @c "stage_id" field)
  *
  * @note Complexity: @e O(1)
  */
 static void s_append_client_summary(cJSON *array, const client_td *client,
-        const desktop_td *desktop, const surface_td *surface)
+        const desktop_td *desktop, const stage_td *stage)
 {
     cJSON *const entry = cJSON_CreateObject();
     const char *name = (client->info.name != NULL &&
@@ -64,7 +64,7 @@ static void s_append_client_summary(cJSON *array, const client_td *client,
     cJSON_AddNumberToObject(entry, "id", (double) client->id);
     cJSON_AddStringToObject(entry, "name", name);
     cJSON_AddNumberToObject(entry, "desktop_id", (double) desktop->id);
-    cJSON_AddNumberToObject(entry, "surface_id", (double) surface->id);
+    cJSON_AddNumberToObject(entry, "stage_id", (double) stage->id);
     cJSON_AddNumberToObject(entry, "x", (double) geom->pos.x);
     cJSON_AddNumberToObject(entry, "y", (double) geom->pos.y);
     cJSON_AddNumberToObject(entry, "w", (double) geom->dim.w);
@@ -84,7 +84,7 @@ static void s_append_client_summary(cJSON *array, const client_td *client,
  */
 struct s_query_ctx_s {
     cJSON *array;                   /**< Array being appended to */
-    const surface_td *surface;      /**< Surface the walk is on */
+    const stage_td *stage;      /**< Stage the walk is on */
 };
 
 
@@ -112,10 +112,10 @@ static void s_desktop_summary_visit(desktop_td *desktop, void *data)
 
     cJSON_AddNumberToObject(entry, "id", (double) desktop->id);
     cJSON_AddStringToObject(entry, "name", desktop->name);
-    cJSON_AddNumberToObject(entry, "surface_id",
-            (double) ctx->surface->id);
+    cJSON_AddNumberToObject(entry, "stage_id",
+            (double) ctx->stage->id);
     cJSON_AddBoolToObject(entry, "current",
-            (ctx->surface->desktop_cur == desktop->id) ? 1 : 0);
+            (ctx->stage->desktop_cur == desktop->id) ? 1 : 0);
     cJSON_AddItemToArray(ctx->array, entry);
 }
 
@@ -143,7 +143,7 @@ static void s_client_summary_visit(desktop_td *desktop, void *data)
 
         if (client != NULL && !client_is_locked(client)) {
             s_append_client_summary(ctx->array, client, desktop,
-                    ctx->surface);
+                    ctx->stage);
         }
     }
 }
@@ -167,7 +167,7 @@ cJSON *ipc_action_get_version(const wm_td *wm, const cJSON *args)
 }
 
 
-/* "list_desktops": every desktop on every managed surface */
+/* "list_desktops": every desktop on every managed stage */
 cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
 {
     struct s_query_ctx_s desktop_ctx;
@@ -181,16 +181,16 @@ cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
     }
     array = cJSON_AddArrayToObject(resp, "desktops");
 
-    for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
+    for (list_item_td *node = list_head(wm_stages(wm)); node != NULL;
             node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
+        stage_td *const stage = (stage_td *) list_data(node);
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
         desktop_ctx.array = array;
-        desktop_ctx.surface = surface;
-        surface_desktop_walk_all(surface, s_desktop_summary_visit,
+        desktop_ctx.stage = stage;
+        stage_desktop_walk_all(stage, s_desktop_summary_visit,
                 &desktop_ctx);
     }
 
@@ -199,7 +199,7 @@ cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
 
 
 /* "list_clients": every managed, focusable client on every desktop
- * of every managed surface */
+ * of every managed stage */
 cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
 {
     struct s_query_ctx_s client_ctx;
@@ -213,16 +213,16 @@ cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
     }
     array = cJSON_AddArrayToObject(resp, "clients");
 
-    for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
+    for (list_item_td *node = list_head(wm_stages(wm)); node != NULL;
             node = list_next(node)) {
-        const surface_td *const surface = (surface_td *) list_data(node);
+        const stage_td *const stage = (stage_td *) list_data(node);
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
         client_ctx.array = array;
-        client_ctx.surface = surface;
-        surface_desktop_walk_all(surface, s_client_summary_visit,
+        client_ctx.stage = stage;
+        stage_desktop_walk_all(stage, s_client_summary_visit,
                 &client_ctx);
     }
 
@@ -230,7 +230,7 @@ cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
 }
 
 
-/* "get_focused": the active client of every managed surface */
+/* "get_focused": the active client of every managed stage */
 cJSON *ipc_action_get_focused(const wm_td *wm, const cJSON *args)
 {
     cJSON *resp;
@@ -243,16 +243,16 @@ cJSON *ipc_action_get_focused(const wm_td *wm, const cJSON *args)
     }
     array = cJSON_AddArrayToObject(resp, "focused");
 
-    for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
+    for (list_item_td *node = list_head(wm_stages(wm)); node != NULL;
             node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
+        stage_td *const stage = (stage_td *) list_data(node);
         desktop_td *desktop;
         cJSON *entry;
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
-        desktop = lookup_current_desktop(surface);
+        desktop = lookup_current_desktop(stage);
         if (desktop == NULL) {
             continue;
         }
@@ -260,8 +260,8 @@ cJSON *ipc_action_get_focused(const wm_td *wm, const cJSON *args)
         if (entry == NULL) {
             continue;
         }
-        cJSON_AddNumberToObject(entry, "surface_id",
-                (double) surface->id);
+        cJSON_AddNumberToObject(entry, "stage_id",
+                (double) stage->id);
         if (desktop->client_active_id != XCB_WINDOW_NONE) {
             cJSON_AddNumberToObject(entry, "client_id",
                     (double) desktop->client_active_id);

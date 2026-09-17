@@ -42,7 +42,7 @@
 #include <client.h>
 #include <config.h>
 #include <render/text.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <menu/dialog.h>
@@ -124,8 +124,8 @@ static int s_confirm_timeout_last_shown = -1;
  *
  * @param connection XCB connection, needed to measure text in each
  *                   candidate font
- * @param config     Theme providing button fonts and padding
- * @param layout     Layout structure containing input text and
+ * @param config Theme providing button fonts and padding
+ * @param layout Layout structure containing input text and
  *                   receiving the computed dialog geometry
  */
 static void s_confirm_compute_layout(xcb_connection_t *connection,
@@ -520,7 +520,7 @@ static void s_confirm_defer_click(xcb_connection_t *connection,
 
 /* Open the confirm dialog */
 void menu_confirm_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *prompt,
         const char *cancel_label, const char *confirm_label,
         void (*on_confirm)(xcb_connection_t *),
@@ -534,8 +534,8 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     xcb_get_input_focus_cookie_t foc_cookie;
     xcb_get_input_focus_reply_t *foc_reply;
 
-    if (connection == NULL || surface == NULL || config == NULL ||
-            surface->screen == NULL) {
+    if (connection == NULL || stage == NULL || config == NULL ||
+            stage->screen == NULL) {
         return;
     }
 
@@ -594,7 +594,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
 
     s_confirm_compute_layout(connection, config, &s_confirm_layout);
 
-    menu_dialog_center(connection, surface, s_confirm_layout.w,
+    menu_dialog_center(connection, stage, s_confirm_layout.w,
             s_confirm_layout.h, &x, &y);
 
     /* XCB requires attribute values to be listed in ascending bit order
@@ -618,7 +618,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             s_confirm_window,
-            surface->screen->root,
+            stage->screen->root,
             x, y,
             s_confirm_layout.w, s_confirm_layout.h,
             (uint16_t) config->theme.dialog.border.width,

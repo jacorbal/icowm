@@ -313,7 +313,7 @@ static bool s_client_hide_still_applies(const client_td *client)
 static void s_ccmd_client_hide_one(client_td *client)
 {
     xcb_window_t target;
-    surface_td *surface;
+    stage_td *stage;
 
     /* An iconified client is already hidden by way of being iconified
      * (see 's_ccmd_client_iconify_one', which calls 'client_hide'
@@ -336,9 +336,9 @@ static void s_ccmd_client_hide_one(client_td *client)
         return;
     }
 
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (surface != NULL && surface->is_showing_desktop) {
-        surface->is_showing_desktop = false;
+    stage = wm_get_stage_by_id(client->screen_id);
+    if (stage != NULL && stage->is_showing_desktop) {
+        stage->is_showing_desktop = false;
     }
 
     target = ccmd_target_win(client);

@@ -31,7 +31,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -42,40 +42,40 @@
 /**
  * @brief Find the client that owns the given XSync alarm
  *
- * Scans every surface, desktop, and client looking for a
+ * Scans every stage, desktop, and client looking for a
  * @c hints_ewmh.sync.alarm match.  Alarms are only ever created for
  * clients that advertise @c _NET_WM_SYNC_REQUEST, so most clients are
  * skipped immediately via their zeroed @p hints_ewmh.sync.alarm.
  *
- * @param surfaces List of managed surfaces
- * @param alarm    XSync alarm XID from the @c AlarmNotify event
+ * @param stages List of managed stages
+ * @param alarm  XSync alarm XID from the @c AlarmNotify event
  *
  * @return The owning client, or @c NULL if none matches
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients across all surfaces and desktops
+ *       clients across all stages and desktops
  *
  * @see @c client_init
  */
-static client_td *s_find_client_by_alarm(list_td *surfaces,
+static client_td *s_find_client_by_alarm(list_td *stages,
         uint32_t alarm)
 {
-    if (surfaces == NULL || alarm == 0u) {
+    if (stages == NULL || alarm == 0u) {
         return NULL;
     }
 
-    for (list_item_td *snode = list_head(surfaces);
+    for (list_item_td *snode = list_head(stages);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
-        if (surface == NULL || surface->desktops == NULL ||
-                cdlist_size(surface->desktops) == 0) {
+        if (stage == NULL || stage->desktops == NULL ||
+                cdlist_size(stage->desktops) == 0) {
             continue;
         }
 
-        dnode = cdlist_head(surface->desktops);
+        dnode = cdlist_head(stage->desktops);
         dinitial = dnode;
         if (dnode == NULL) {
             continue;
@@ -111,9 +111,9 @@ void handler_sync_event(const wm_td *wm, xcb_generic_event_t *event)
     uint8_t alarm_notify_type;
     xcb_sync_alarm_notify_event_t *alarm_event;
     client_td *client;
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
 
-    if (wm == NULL || event == NULL || surfaces == NULL ||
+    if (wm == NULL || event == NULL || stages == NULL ||
             !wm_sync_available(wm)) {
         return;
     }
@@ -127,7 +127,7 @@ void handler_sync_event(const wm_td *wm, xcb_generic_event_t *event)
     }
 
     alarm_event = (xcb_sync_alarm_notify_event_t *) event;
-    client = s_find_client_by_alarm(surfaces,
+    client = s_find_client_by_alarm(stages,
             (uint32_t) alarm_event->alarm);
     if (client == NULL) {
         LOGGER_TRACE("'AlarmNotify' for unknown alarm=0x%x; ignoring",

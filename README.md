@@ -24,7 +24,7 @@ Basic features are:
     Output profiles, namely resolution, position, rotation, and the
     primary designation, are defined in a dedicated `randr.json` file,
     and XRandR's screen-change and output-change notifications are
-    attended to within the main event loop, such that surface geometry,
+    attended to within the main event loop, such that stage geometry,
     work areas, and managed clients are all reflowed automatically,
     without any need of a restart.
 

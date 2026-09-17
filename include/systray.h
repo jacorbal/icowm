@@ -6,7 +6,7 @@
  * Implements the freedesktop.org "System Tray Protocol Specification"
  * (selection acquisition, dock requests) together with just enough of
  * XEMBED to host icon windows, gated by @p config.systray.is_enabled.
- * A single tray is created on the first managed surface; the
+ * A single tray is created on the first managed stage; the
  * @p systray.position configuration key picks which screen corner it
  * docks in.
  *
@@ -28,7 +28,7 @@
  * @see @c systray/handle.h, @c systray/icon.h, @c systray/clock.h
  *
  * @defgroup systray System tray
- * @ingroup surface
+ * @ingroup stage
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -62,9 +62,9 @@
  * @brief Acquire the tray selection and create the dock window
  *
  * A no-op when @p wm->config->base.systray.is_enabled is @c false, when
- * @p wm has no managed surfaces yet, or when another systray manager
+ * @p wm has no managed stages yet, or when another systray manager
  * already owns the @c _NET_SYSTEM_TRAY_Sn selection on the first
- * surface's screen.
+ * stage's screen.
  *
  * @param wm Window manager state
  *
@@ -137,7 +137,7 @@ xcb_window_t systray_below_window(void);
 
 /**
  * @brief Return the space this window manager's systray currently
- *        reserves for itself on @p surface, via
+ *        reserves for itself on @p stage, via
  *        @c _NET_WM_STRUT_PARTIAL / @c _NET_WM_STRUT published on its
  *        own dock window
  *
@@ -148,30 +148,30 @@ xcb_window_t systray_below_window(void);
  * panel or dock gets by publishing a strut of its own, per the
  * specification's recommendation.
  *
- * The tray is a single, not-per-surface instance (@p config.systray is
+ * The tray is a single, not-per-stage instance (@p config.systray is
  * one global setting; see @p systray_state_s's comment for why), docked
- * on exactly one surface at a time.  Tthis returns @c NULL for every
- * other surface, so a multi-screen setup never reserves the tray's
+ * on exactly one stage at a time.  Tthis returns @c NULL for every
+ * other stage, so a multi-screen setup never reserves the tray's
  * space on a screen it does not actually occupy.
  *
- * @param surface Surface to query the tray's reservation for
+ * @param stage Stage to query the tray's reservation for
  *
  * @return A pointer to the tray's currently reserved strut when
- *         @p surface is the one it is docked on and it is currently
+ *         @p stage is the one it is docked on and it is currently
  *         visible (mapped, non-empty, owning the tray selection); on
- *         every other surface, or while unmapped, @c NULL rather than
+ *         every other stage, or while unmapped, @c NULL rather than
  *         a strut whose sides are all zero, so a caller need not treat
- *         "no dice, not this surface" and "reserving nothing" as the
+ *         "no dice, not this stage" and "reserving nothing" as the
  *         same case
  *
  * @note Complexity: @e O(1)
  */
 const struct strut_partial_s
-    *systray_get_reserved_strut(const surface_td *surface);
+    *systray_get_reserved_strut(const stage_td *stage);
 
 /**
  * @brief Return the tray's current on-screen rectangle on
- *        @p surface
+ *        @p stage
  *
  * A synchronous @a xcb_get_geometry round trip, unlike every other
  * accessor in this header.  Nothing about the tray's current
@@ -185,20 +185,20 @@ const struct strut_partial_s
  * final dropped position after a drag), not anything called on every
  * frame of a render or drag loop.
  *
- * @param surface Surface to query the tray's rectangle on
+ * @param stage    Stage to query the tray's rectangle on
  * @param out_tray Receives the tray's current rectangle,
  *                root-relative (same coordinate space every top-level
  *                window this project creates, icon windows included,
  *                already shares)
  *
- * @return @c true and @p out_tray filled in when @p surface is the
+ * @return @c true and @p out_tray filled in when @p stage is the
  *         one the tray is docked on and it is currently showing
  *         there; @c false otherwise, with @p out_tray left untouched
  *
  * @note Complexity: @e O(1), plus one synchronous round trip to the
  *       X server
  */
-bool systray_get_geometry(const surface_td *surface,
+bool systray_get_geometry(const stage_td *stage,
         struct geometry_s *restrict out_tray);
 
 /**
@@ -261,7 +261,7 @@ void systray_restack(void);
  * currently owned (e.g., disabled by configuration, or another tray
  * manager is active), so it never shows on screen in either case;
  * otherwise sizes and moves it to the configured corner of the
- * surface and arranges icons in a single horizontal row inside it.
+ * stage and arranges icons in a single horizontal row inside it.
  *
  * Redraws only from whatever text and icon state is already cached;
  * never recomputes the clock or re-polls the battery itself, so

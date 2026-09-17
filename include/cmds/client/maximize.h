@@ -57,9 +57,9 @@ bool ccmd_client_refill_maximized_geometry(client_td *client);
  * A maximized client's geometry, grown or shrunk in place, is only ever
  * right immediately after actually maximizing it: anything that later
  * changes what its workarea resolves to (a panel mapped or unmapped,
- * @c desktops.margins reloaded, or the surface's strutless-maximization
- * mode toggled through @a surface_action_maximize_toggle_strutless in
- * @c surface.h) leaves it still filling wherever the old workarea was,
+ * @c desktops.margins reloaded, or the stage's strutless-maximization
+ * mode toggled through @a stage_action_maximize_toggle_strutless in
+ * @c stage.h) leaves it still filling wherever the old workarea was,
  * not the new one, until something re-applies its maximize geometry
  * from scratch.
  *

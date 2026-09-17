@@ -11,7 +11,7 @@
  * like @c xsettingsd provides, gated by @c config.xsettings.is_enabled.
  *
  * @defgroup xsettings XSETTINGS protocol
- * @ingroup surface
+ * @ingroup stage
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -48,9 +48,9 @@
  * @brief Acquire the XSETTINGS selection and publish the settings
  *
  * A no-op when @c wm->config->theme.xsettings.is_enabled is @c false,
- * when @p wm has no managed surfaces yet, or when another settings
+ * when @p wm has no managed stages yet, or when another settings
  * manager already owns the @c _XSETTINGS_Sn selection on the first
- * surface's screen.
+ * stage's screen.
  *
  * @param wm Window manager state
  *

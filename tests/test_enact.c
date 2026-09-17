@@ -2,7 +2,7 @@
  * @file tests/test_enact.c
  *
  * @brief Test battery for the window-manager-level (as opposed to
- *        client, desktop, or surface) actions in enact.c
+ *        client, desktop, or stage) actions in enact.c
  *
  * Exercises 'enact_wm_exit', 'enact_wm_restart', and 'enact_wm_
  * configuration_reload' (enact.c) linked against nothing from the

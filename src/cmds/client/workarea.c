@@ -24,8 +24,8 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <utils/geom.h>
 #include <wm.h>
 
@@ -40,7 +40,7 @@ bool ccmd_client_resolve_workarea(client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y,
         uint16_t *restrict out_w, uint16_t *restrict out_h)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     const desktop_td *desktop;
     monitor_td monitor;
     struct geometry_s clipped;
@@ -50,14 +50,14 @@ bool ccmd_client_resolve_workarea(client_td *client,
         return false;
     }
 
-    if (!ccmd_client_monitor(client, &surface, &monitor)) {
+    if (!ccmd_client_monitor(client, &stage, &monitor)) {
         return false;
     }
 
     did = (client->desktop_id == WM_DESKTOP_ID_ALL)
-        ? surface->desktop_cur
+        ? stage->desktop_cur
         : client->desktop_id;
-    desktop = surface_desktop_get(surface, did);
+    desktop = stage_desktop_get(stage, did);
     if (desktop == NULL || desktop->workarea.dim.w == 0u ||
             desktop->workarea.dim.h == 0u) {
         return false;

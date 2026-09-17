@@ -31,7 +31,7 @@
 #include <config.h>
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 #include <harness/tap.h>
 #include <policy/focus.h>
 
@@ -91,26 +91,26 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
     cJSON_Delete(fields);
 }
 
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
-    (void) out_surface;
+    (void) out_stage;
     (void) out_desktop;
     return NULL;
 }
 
-/** Recording stand-in for @a scmd_surface_viewport_center_on_client
- *  (cmds/surface.c): 'focus_apply' brings the client into view before
+/** Recording stand-in for @a scmd_stage_viewport_center_on_client
+ *  (cmds/stage.c): 'focus_apply' brings the client into view before
  *  handing it the keyboard, and this file has no viewport to pan */
 static int s_call_viewport_center;
 static client_td *s_last_centered;
 
-void scmd_surface_viewport_center_on_client(surface_td *surface,
+void scmd_stage_viewport_center_on_client(stage_td *stage,
         client_td *client)
 {
-    (void) surface;
+    (void) stage;
 
     s_call_viewport_center++;
     s_last_centered = client;
@@ -168,11 +168,11 @@ static void s_test_reflects_configured_policy(void)
  * box and the '_NET_ACTIVE_WINDOW' handler all get it at once */
 static void s_test_apply_brings_the_client_into_view(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     /* ICCCM input model: focus_apply refuses a client that could
@@ -181,7 +181,7 @@ static void s_test_apply_brings_the_client_into_view(void)
 
     s_call_viewport_center = 0;
     s_last_centered = NULL;
-    focus_apply(NULL, &surface, &desktop, &client, false, NULL);
+    focus_apply(NULL, &stage, &desktop, &client, false, NULL);
 
     TAP_EQ_INT(s_call_viewport_center, 1,
             "focusing a client asks the viewport to bring it into"

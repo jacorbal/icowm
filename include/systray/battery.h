@@ -101,21 +101,21 @@
  * even sitting at 100% on AC, so going by the percentage alone is more
  * reliable across backends.
  *
- * @param backend_type       Which kernel interface to read
- * @param backend_number     Which battery to read when a system has
+ * @param backend_type   Which kernel interface to read
+ * @param backend_number Which battery to read when a system has
  *                           more than one (0-indexed); ignored for
  *                           @c CONFIG_BATTERY_BACKEND_APM, which only
  *                           ever exposes one aggregate battery
- * @param threshold_charged  Percentage at/above which the status
+ * @param threshold_charged Percentage at/above which the status
  *                           reads "Full" instead of a percentage
- * @param threshold_low      Percentage at/below which a single '!' is
+ * @param threshold_low Percentage at/below which a single '!' is
  *                           appended while on battery power
  * @param threshold_critical Percentage at/below which two '!' are
  *                           appended instead of one, while on battery
  *                           power
- * @param out                Buffer to receive the formatted, null
+ * @param out Buffer to receive the formatted, null
  *                           terminated status text
- * @param out_size           Size of @p out in bytes
+ * @param out_size Size of @p out in bytes
  *
  * @note Complexity: @e O(1), a small, fixed number of short file reads
  *       regardless of system state

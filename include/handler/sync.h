@@ -43,7 +43,7 @@
  * @param event Raw XCB event from the main loop
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients across every desktop and surface
+ *       clients across every desktop and stage
  *
  * @see @c ccmd_client_resize_flush_pending
  */

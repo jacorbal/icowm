@@ -51,13 +51,13 @@
 
 /* Project includes */
 #include <client.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <wm.h>
 
@@ -139,7 +139,7 @@ drag_state_td s_drag = {
  * symmetrical function here.
  *
  * @param connection X connection
- * @param client Client to move off screen
+ * @param client     Client to move off screen
  *
  * @note No-op if @p connection or @p client is null
  * @note Complexity: @e O(1)
@@ -565,7 +565,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     drag_overlay_hide(connection);
     s_drag.is_active = true;
     s_drag.client = client;
-    scmd_surface_viewport_drag_exclude(client);
+    scmd_stage_viewport_drag_exclude(client);
     s_drag.desktop = desktop;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.operation = operation;
@@ -702,7 +702,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         }
         s_drag.is_active = false;
         s_drag.client = NULL;
-        scmd_surface_viewport_drag_exclude(NULL);
+        scmd_stage_viewport_drag_exclude(NULL);
         return;
     }
     free(grab_reply);
@@ -872,7 +872,7 @@ void drag_update(xcb_connection_t *connection,
 
 /* Finish the drag on a button-release event */
 void drag_end(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         struct position_s root_pos)
 {
     if (!s_drag.is_active) {
@@ -906,8 +906,8 @@ void drag_end(xcb_connection_t *connection,
                 /* Treat as a click: restore and focus */
                 client_td *const ic = s_drag.client;
                 enact_client_restore(ic);
-                if (surface != NULL && desktop != NULL) {
-                    focus_apply(NULL, surface, desktop, ic, true, NULL);
+                if (stage != NULL && desktop != NULL) {
+                    focus_apply(NULL, stage, desktop, ic, true, NULL);
                 }
             } else {
                 int16_t new_icon_x =
@@ -923,8 +923,8 @@ void drag_end(xcb_connection_t *connection,
                  * the tray's text missing in that exact span,
                  * even though the icon itself stayed correctly
                  * stacked below it throughout. */
-                if (surface != NULL &&
-                        systray_get_geometry(surface, &tray)) {
+                if (stage != NULL &&
+                        systray_get_geometry(stage, &tray)) {
                     pushed_out_of_tray =
                         place_icon_avoid_systray_overlap(
                                 &new_icon_x, &new_icon_y,
@@ -1065,7 +1065,7 @@ void drag_end(xcb_connection_t *connection,
     s_drag.is_active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
-    scmd_surface_viewport_drag_exclude(NULL);
+    scmd_stage_viewport_drag_exclude(NULL);
     s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.was_icon_mapped = false;
@@ -1122,7 +1122,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
     }
     s_drag.client = NULL;
-    scmd_surface_viewport_drag_exclude(NULL);
+    scmd_stage_viewport_drag_exclude(NULL);
     s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
 

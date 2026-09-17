@@ -39,8 +39,8 @@
 /* Enact includes */
 #include <enact/client.h>
 
-/* Surface includes */
-#include <surface/viewport.h>
+/* Stage includes */
+#include <stage/viewport.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -53,7 +53,7 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -69,26 +69,26 @@ static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
 
 
 /**
- * @brief Mark a client, its desktop, and its surface as outdated
+ * @brief Mark a client, its desktop, and its stage as outdated
  *        together
  *
  * Shared by every titlebar-click and scroll case in
  * @c s_mouse_hit_titlebar_buttons that changes the client's state and
  * needs the next render pass to pick it up.
  *
- * @param client  Client whose visual state just changed, or
+ * @param client Client whose visual state just changed, or
  *                @c NULL to skip
  * @param desktop Desktop to mark outdated, or @c NULL to skip
- * @param surface Surface to mark outdated, or @c NULL to skip
+ * @param stage   Stage to mark outdated, or @c NULL to skip
  *
  * @note Complexity: @e O(1)
  */
 static void s_mark_outdated(client_td *client, desktop_td *desktop,
-        surface_td *surface)
+        stage_td *stage)
 {
     wm_outdate_client(client);
     if (desktop != NULL) { desktop->is_outdated = true; }
-    if (surface != NULL) { surface->is_outdated = true; }
+    if (stage != NULL) { stage->is_outdated = true; }
 }
 
 
@@ -198,15 +198,15 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
  *
  * @param connection Active XCB connection (unused directly but kept for
  *                   symmetry)
- * @param client     The client whose titlebar was clicked
- * @param desktop    The desktop that owns @p client
- * @param surface    Current surface
- * @param event      Incoming button-press event
+ * @param client  The client whose titlebar was clicked
+ * @param desktop The desktop that owns @p client
+ * @param stage   Current stage
+ * @param event   Incoming button-press event
  *
  * @return @c true when the click was consumed by a button
  */
 static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
-        client_td *client, desktop_td *desktop, surface_td *surface,
+        client_td *client, desktop_td *desktop, stage_td *stage,
         xcb_button_press_event_t *event)
 {
     struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
@@ -263,15 +263,15 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
 
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_maximizable(client);
-    hide_pin = surface != NULL && surface->desktop_count <= 1u;
+    hide_pin = stage != NULL && stage->desktop_count <= 1u;
 
     /* Same idea as 'hide_pin' above, gated on the pannable viewport
      * size instead of the desktop count: a sticky client stays put
-     * across a viewport pan, so the button is pointless on a surface
+     * across a viewport pan, so the button is pointless on a stage
      * whose viewport is not even wide enough or tall enough to pan
-     * across, and a missing 'surface'/'config' answers the same as
+     * across, and a missing 'stage'/'config' answers the same as
      * a genuinely 1x1 one, hiding the button rather than guessing. */
-    hide_sticky = !surface_viewport_has_room(surface);
+    hide_sticky = !stage_viewport_has_room(stage);
 
     /* Same layout the render pass just painted from, computed first
      * (not just when the click Y already looks close) since it is what
@@ -297,7 +297,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
                     (int16_t) ex, btn_size, &button)) {
             s_titlebar_button_action(button, client,
                     can_maximize, event);
-            s_mark_outdated(client, desktop, surface);
+            s_mark_outdated(client, desktop, stage);
             return true;
         }
     }
@@ -306,7 +306,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_4) {
         if (!client_is_shaded(client)) {
             enact_client_shade(client);
-            s_mark_outdated(client, desktop, surface);
+            s_mark_outdated(client, desktop, stage);
         }
         return true;
     }
@@ -314,7 +314,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_5) {
         if (client_is_shaded(client)) {
             enact_client_unshade(client);
-            s_mark_outdated(client, desktop, surface);
+            s_mark_outdated(client, desktop, stage);
         }
         return true;
     }
@@ -325,15 +325,15 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
 
 /* Titlebar interaction (buttons + drag + double-click) */
 bool im_press_titlebar(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
-        client_td *client, desktop_td *desktop, surface_td *surface,
+        list_td *stages, xcb_button_press_event_t *event,
+        client_td *client, desktop_td *desktop, stage_td *stage,
         const config_td *config)
 {
     bool hit_btn;
     bool drag_started = false;
 
     hit_btn = s_mouse_hit_titlebar_buttons(connection, client, desktop,
-            surface, event);
+            stage, event);
 
     if (!hit_btn &&
             (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
@@ -351,7 +351,7 @@ bool im_press_titlebar(xcb_connection_t *connection,
             s_last_titlebar_press_time = 0;
             s_last_titlebar_press_win = XCB_NONE;
             enact_client_toggle_shade(client);
-            s_mark_outdated(client, desktop, surface);
+            s_mark_outdated(client, desktop, stage);
         } else {
             /* Single left-click: start move drag */
             if (!client_is_maximized(client) &&
@@ -361,10 +361,10 @@ bool im_press_titlebar(xcb_connection_t *connection,
 
                 root_pos.x = event->root_x;
                 root_pos.y = event->root_y;
-                screen_dim.w = (surface != NULL)
-                    ? surface->properties.dim.w : 0u;
-                screen_dim.h = (surface != NULL)
-                    ? surface->properties.dim.h : 0u;
+                screen_dim.w = (stage != NULL)
+                    ? stage->properties.dim.w : 0u;
+                screen_dim.h = (stage != NULL)
+                    ? stage->properties.dim.h : 0u;
                 drag_start(connection, event->root, client, desktop,
                         CLIENT_OPERATION_MOVING,
                         event->time,
@@ -382,20 +382,20 @@ bool im_press_titlebar(xcb_connection_t *connection,
     if (!hit_btn &&
             (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_2) {
         enact_client_lower(client);
-        s_mark_outdated(client, desktop, surface);
+        s_mark_outdated(client, desktop, stage);
     }
 
     /* Right-click on titlebar drag area (no button hit): window menu */
     if (!hit_btn &&
             (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3) {
-        if (surface != NULL && desktop != NULL) {
-            wincmenu_show(connection, surface, desktop, client,
+        if (stage != NULL && desktop != NULL) {
+            wincmenu_show(connection, stage, desktop, client,
                     (struct position_s) { event->root_x, event->root_y },
                     config);
         }
     }
 
-    (void) surfaces;
+    (void) stages;
 
     return drag_started;
 }

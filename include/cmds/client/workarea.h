@@ -30,11 +30,11 @@
  * @brief Resolve the on-screen workarea for whichever monitor a client
  *        currently sits on
  *
- * Resolves @p client's surface and desktop from the global @c wm
+ * Resolves @p client's stage and desktop from the global @c wm
  * singleton, then clips the desktop's workarea (already adjusted for
  * panel/dock struts) down to whichever physical monitor @p client's own
  * center point currently falls on.  A client pinned to every desktop
- * uses its surface's currently shown desktop instead, since it has no
+ * uses its stage's currently shown desktop instead, since it has no
  * single desktop of its own.
  *
  * Used by both positioning (centering, moving to a corner) and
@@ -48,12 +48,12 @@
  * @param out_h  Receives the workarea's height
  *
  * @retval  true on success
- * @retval false if any part of the lookup fails (surface not found,
+ * @retval false if any part of the lookup fails (stage not found,
  *               desktop not found, no workarea known yet, or the
  *               clipped area is empty); callers fall back to
  *               @a ccmd_screen_dim's raw screen size in that case
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
 bool ccmd_client_resolve_workarea(client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y,

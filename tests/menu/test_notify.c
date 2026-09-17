@@ -47,7 +47,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 #include <types/pair.h>
 
 /* Local includes */
@@ -357,17 +357,17 @@ static config_td s_make_config(void)
 }
 
 
-static surface_td s_make_surface(uint32_t w, uint32_t h)
+static stage_td s_make_stage(uint32_t w, uint32_t h)
 {
-    surface_td surface;
+    stage_td stage;
     static xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
-    surface.properties.dim.w = w;
-    surface.properties.dim.h = h;
-    return surface;
+    stage.screen = &screen;
+    stage.properties.dim.w = w;
+    stage.properties.dim.h = h;
+    return stage;
 }
 
 
@@ -499,47 +499,47 @@ static void s_test_ms_remaining_counts_down(void)
 
 
 /* notify_popup_show_centered is a no-op on any null argument, or when
- * surface->screen is null, and creates no window in that case */
+ * stage->screen is null, and creates no window in that case */
 static void s_test_show_null_guards(void)
 {
     struct notify_popup_state_s state;
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
     memset(&state, 0, sizeof(state));
-    surface = s_make_surface(800u, 600u);
+    stage = s_make_stage(800u, 600u);
     cfg = s_make_config();
 
-    notify_popup_show_centered(NULL, &surface, &state, "hi", &cfg);
+    notify_popup_show_centered(NULL, &stage, &state, "hi", &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null connection creates no window");
 
     notify_popup_show_centered(s_fake_connection, NULL, &state, "hi",
             &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
-            "a null surface creates no window");
+            "a null stage creates no window");
 
-    notify_popup_show_centered(s_fake_connection, &surface, NULL, "hi",
+    notify_popup_show_centered(s_fake_connection, &stage, NULL, "hi",
             &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null state creates no window");
 
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             NULL, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "null text creates no window");
 
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             "hi", NULL);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null config creates no window");
 
-    surface.screen = NULL;
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    stage.screen = NULL;
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             "hi", &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
-            "a surface with no screen creates no window");
+            "a stage with no screen creates no window");
 }
 
 
@@ -548,16 +548,16 @@ static void s_test_show_null_guards(void)
 static void s_test_show_creates_and_maps_window(void)
 {
     struct notify_popup_state_s state;
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
     memset(&state, 0, sizeof(state));
-    surface = s_make_surface(800u, 600u);
+    stage = s_make_stage(800u, 600u);
     cfg = s_make_config();
     s_measure_reply = 50u;
 
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             "Desktop 2", &cfg);
 
     TAP_EQ_STR(state.text, "Desktop 2",
@@ -581,20 +581,20 @@ static void s_test_show_creates_and_maps_window(void)
 static void s_test_show_closes_previous_popup_first(void)
 {
     struct notify_popup_state_s state;
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
     xcb_window_t first_window;
 
     s_reset();
     memset(&state, 0, sizeof(state));
-    surface = s_make_surface(800u, 600u);
+    stage = s_make_stage(800u, 600u);
     cfg = s_make_config();
 
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             "first", &cfg);
     first_window = state.window;
 
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             "second", &cfg);
 
     TAP_EQ_INT(s_call_xcb_window_destroy, 1,
@@ -618,22 +618,22 @@ static void s_test_show_closes_previous_popup_first(void)
 static void s_test_show_handles_short_and_long_text(void)
 {
     struct notify_popup_state_s state;
-    surface_td surface;
+    stage_td stage;
     config_td cfg;
 
     s_reset();
     memset(&state, 0, sizeof(state));
-    surface = s_make_surface(800u, 600u);
+    stage = s_make_stage(800u, 600u);
     cfg = s_make_config();
 
     s_measure_reply = 5u;
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             "a", &cfg);
     TAP_OK(state.window != XCB_WINDOW_NONE,
             "a very short label still produces an open popup");
 
     s_measure_reply = 500u;
-    notify_popup_show_centered(s_fake_connection, &surface, &state,
+    notify_popup_show_centered(s_fake_connection, &stage, &state,
             "a very long desktop name indeed", &cfg);
     TAP_OK(state.window != XCB_WINDOW_NONE,
             "a very wide label still produces an open popup");

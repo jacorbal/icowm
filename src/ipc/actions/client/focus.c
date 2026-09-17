@@ -19,7 +19,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -33,9 +33,9 @@
  * @note Complexity: @e O(1)
  */
 static void s_close(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_close(client);
 }
 
@@ -46,9 +46,9 @@ static void s_close(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_kill(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_kill(client);
 }
 
@@ -60,9 +60,9 @@ static void s_kill(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_restore(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_restore(client);
 }
 
@@ -73,9 +73,9 @@ static void s_restore(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_focus(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_focus(client);
 }
 
@@ -87,9 +87,9 @@ static void s_focus(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_unfocus(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_unfocus(client);
 }
 

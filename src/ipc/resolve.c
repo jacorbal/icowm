@@ -27,8 +27,8 @@
 #include <client.h>
 #include <desktop.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -37,50 +37,50 @@
 #include <ipc/resolve.h>
 
 
-/* Resolve which surface a request refers to */
-surface_td *ipc_resolve_surface(const wm_td *wm, const cJSON *args)
+/* Resolve which stage a request refers to */
+stage_td *ipc_resolve_stage(const wm_td *wm, const cJSON *args)
 {
-    uint32_t surface_id;
+    uint32_t stage_id;
 
-    if (ipc_args_get_uint(args, "surface_id", &surface_id)) {
-        return wm_get_surface_by_id(surface_id);
+    if (ipc_args_get_uint(args, "stage_id", &stage_id)) {
+        return wm_get_stage_by_id(stage_id);
     }
 
-    if (wm_surfaces(wm) == NULL || list_is_empty(wm_surfaces(wm))) {
+    if (wm_stages(wm) == NULL || list_is_empty(wm_stages(wm))) {
         return NULL;
     }
-    return (surface_td *) list_data(list_head(wm_surfaces(wm)));
+    return (stage_td *) list_data(list_head(wm_stages(wm)));
 }
 
 
 /* Resolve which desktop a request refers to, on top of
- * ipc_resolve_surface */
+ * ipc_resolve_stage */
 desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
-        bool desktop_id_required, surface_td **out_surface,
+        bool desktop_id_required, stage_td **out_stage,
         cJSON **out_error)
 {
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     uint32_t desktop_id;
 
-    surface = ipc_resolve_surface(wm, args);
-    if (surface == NULL) {
-        *out_error = ipc_response_error("no such surface");
+    stage = ipc_resolve_stage(wm, args);
+    if (stage == NULL) {
+        *out_error = ipc_response_error("no such stage");
         return NULL;
     }
 
     if (ipc_args_get_uint(args, "desktop_id", &desktop_id)) {
-        if (desktop_id >= surface->desktop_count) {
+        if (desktop_id >= stage->desktop_count) {
             *out_error =
-                ipc_response_error("no such desktop on that surface");
+                ipc_response_error("no such desktop on that stage");
             return NULL;
         }
-        desktop = surface_desktop_get(surface, desktop_id);
+        desktop = stage_desktop_get(stage, desktop_id);
     } else if (desktop_id_required) {
         *out_error = ipc_response_error("missing or invalid 'desktop_id'");
         return NULL;
     } else {
-        desktop = lookup_current_desktop(surface);
+        desktop = lookup_current_desktop(stage);
     }
 
     if (desktop == NULL) {
@@ -88,14 +88,14 @@ desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
         return NULL;
     }
 
-    *out_surface = surface;
+    *out_stage = stage;
     return desktop;
 }
 
 
 /* Resolve which client a request refers to */
 client_td *ipc_resolve_client(const wm_td *wm, const cJSON *args,
-        surface_td **out_surface, desktop_td **out_desktop,
+        stage_td **out_stage, desktop_td **out_desktop,
         cJSON **out_error)
 {
     uint32_t client_id;
@@ -106,8 +106,8 @@ client_td *ipc_resolve_client(const wm_td *wm, const cJSON *args,
         return NULL;
     }
 
-    client = lookup_find_client(wm_surfaces(wm), (xcb_window_t) client_id,
-            out_surface, out_desktop);
+    client = lookup_find_client(wm_stages(wm), (xcb_window_t) client_id,
+            out_stage, out_desktop);
     if (client == NULL) {
         *out_error = ipc_response_error("no such client");
         return NULL;

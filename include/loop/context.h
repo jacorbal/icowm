@@ -42,8 +42,8 @@ typedef struct loop_ctx_s {
     /** Window-manager singleton this loop runs for */
     wm_td *wm;
 
-    /** All managed surfaces, i.e., @a wm_surfaces of @p wm */
-    list_td *surfaces;
+    /** All managed stages, i.e., @a wm_stages of @p wm */
+    list_td *stages;
 
     /** Active configuration, i.e., @a wm_config of @p wm */
     const config_td *config;

@@ -35,13 +35,13 @@
  * @brief Handle XRandR extension events
  *
  * Processes monitor/screen-change notifications and schedules geometry
- * and repaint refresh work for affected surfaces.
+ * and repaint refresh work for affected stages.
  *
  * @param wm    Window manager state
  * @param event Raw XCB event from the main loop
  *
  * @note Complexity: @e O(b * s * k), where @e b is the number of key
- *       bindings, @e s is the number of surfaces, and @e k is the
+ *       bindings, @e s is the number of stages, and @e k is the
  *       number of keycodes per keysym
  */
 void handler_randr_event(wm_td *wm, xcb_generic_event_t *event);

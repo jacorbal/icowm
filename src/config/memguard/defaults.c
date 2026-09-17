@@ -185,7 +185,7 @@ void config_set_default_values_memguard(config_td *config)
     config->base.systray.margins.left = 0u;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
     config->base.systray.monitor.anchor =
-        CONFIG_SYSTRAY_MONITOR_SURFACE;
+        CONFIG_SYSTRAY_MONITOR_STAGE;
     config->base.systray.monitor.index = 0u;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;

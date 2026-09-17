@@ -59,7 +59,7 @@
  * @param json_path   Path to the JSON file
  * @param out_entries Receives the allocated entry array (caller must
  *                    free with @a menujson_free)
- * @param out_count   Receives the number of top-level entries
+ * @param out_count Receives the number of top-level entries
  *
  * @return Status of the operation
  * @retval  true on success

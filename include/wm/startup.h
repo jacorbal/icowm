@@ -46,8 +46,8 @@
  *       the extension is present at all
  * @note The extension data itself belongs to the connection and goes
  *       with @a xcb_disconnect
- * @note Complexity: @e O(s*k), where @e s is the amount of surfaces,
- *       and @e k is the amount of CRTCs per surface
+ * @note Complexity: @e O(s*k), where @e s is the amount of stages,
+ *       and @e k is the amount of CRTCs per stage
  */
 int wm_startup_randr_init(wm_td *wm);
 

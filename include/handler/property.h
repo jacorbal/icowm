@@ -37,20 +37,20 @@
  * Refreshes the client name when @c WM_NAME or @c _NET_WM_NAME changes.
  * When @c _NET_WM_STRUT_PARTIAL or @c _NET_WM_STRUT changes, re-reads
  * the strut values into @c client->layout.strut_partial and calls
- * @c desktop_update_workarea on all desktops of the owning surface so
+ * @c desktop_update_workarea on all desktops of the owning stage so
  * that maximize and placement policies use the updated work area.
  *
  * @param wm         Pointer to the window manager itself
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Property notify event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_property_notify(const wm_td *wm,
         xcb_connection_t *connection,
-        list_td *surfaces, xcb_property_notify_event_t *event);
+        list_td *stages, xcb_property_notify_event_t *event);
 
 
 #endif  /* ! HANDLER_PROPERTY_H */

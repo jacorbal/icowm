@@ -40,13 +40,13 @@
 #include <defs/cycle.h>
 
 /* Render includes */
-#include <render/surface.h>
+#include <render/stage.h>
 
 /* Project includes */
 #include <config.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <input/mouse/event.h>
@@ -66,7 +66,7 @@
  * out by hand.
  *
  * @param connection   XCB connection
- * @param surfaces     Surface list (for root lookup)
+ * @param stages       Stage list (for root lookup)
  * @param event        Incoming button-press event
  * @param config       Active configuration
  * @param owns_window  The menu type's @c X_owns_window
@@ -76,20 +76,20 @@
  * @note Complexity: @e O(1)
  */
 static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config,
         bool (*owns_window)(xcb_window_t),
-        bool (*handle_click)(xcb_connection_t *, surface_td *,
+        bool (*handle_click)(xcb_connection_t *, stage_td *,
                 xcb_window_t, int, const config_td *),
         void (*close)(void))
 {
-    surface_td *const surface = lookup_surface_for_root(surfaces,
+    stage_td *const stage = lookup_stage_for_root(stages,
             event->root);
     bool owns_event = owns_window(event->event);
 
     if (owns_event || owns_window(event->child)) {
         xcb_window_t mw = (owns_event) ? event->event : event->child;
-        (void) handle_click(connection, surface, mw,
+        (void) handle_click(connection, stage, mw,
                 (int) event->root_y, config);
     } else {
         (void) close();
@@ -102,20 +102,20 @@ static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
 /* Close any open overlay (popup, dialogs, cycle menu, menus) when
  * a mouse button is pressed elsewhere */
 bool im_press_close_overlays(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config)
 {
     /* A popup closes on any click, and the click goes through */
     if (popup_is_open()) {
-        surface_td *const surface = lookup_surface_for_root(surfaces,
+        stage_td *const stage = lookup_stage_for_root(stages,
                 event->root);
 
         popup_close(connection);
         /* Marked rather than painted: the click below may well
          * change something else on this same turn, and one repaint
          * covers both */
-        if (surface != NULL) {
-            surface->is_outdated = true;
+        if (stage != NULL) {
+            stage->is_outdated = true;
         }
         /* Do NOT consume: allow the click to proceed to the client */
         return false;
@@ -160,12 +160,18 @@ bool im_press_close_overlays(xcb_connection_t *connection,
     if (cycle_is_open()) {
         if (event->event == cycle_window() ||
                 event->child == cycle_window()) {
-            if ((int) event->event_y >= WM_CYCLE_MENU_PAD_Y) {
+            const int pad_y = (config != NULL)
+                ? (int) config->theme.menu.padding.vertical
+                : WM_CYCLE_MENU_PAD_Y;
+
+            if ((int) event->event_y >= pad_y) {
                 unsigned int row = (unsigned int)(
-                        ((int) event->event_y - WM_CYCLE_MENU_PAD_Y) /
+                        ((int) event->event_y - pad_y) /
                         WM_CYCLE_MENU_ROW_HEIGHT);
+
+                row += (unsigned int) cycle_scroll_offset();
                 cycle_navigate_to(row);
-                cycle_confirm(connection, surfaces, config);
+                cycle_confirm(connection, stages, config);
             } else {
                 cycle_destroy(connection);
             }
@@ -183,7 +189,7 @@ bool im_press_close_overlays(xcb_connection_t *connection,
     if (search_is_open()) {
         if (event->event == search_window() ||
                 event->child == search_window()) {
-            search_handle_click(connection, surfaces,
+            search_handle_click(connection, stages,
                     (int16_t) event->event_x, (int16_t) event->event_y,
                     config);
         } else {
@@ -196,28 +202,28 @@ bool im_press_close_overlays(xcb_connection_t *connection,
 
     /* Context menus: window menu, root menu, window list, icon menu */
     if (wincmenu_is_open()) {
-        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
+        s_mouse_handle_open_ctxmenu_click(connection, stages, event,
                 config, wincmenu_owns_window, wincmenu_handle_click,
                 wincmenu_close);
         return true;
     }
 
     if (rootmenu_is_open()) {
-        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
+        s_mouse_handle_open_ctxmenu_click(connection, stages, event,
                 config, rootmenu_owns_window, rootmenu_handle_click,
                 rootmenu_close);
         return true;
     }
 
     if (winlist_is_open()) {
-        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
+        s_mouse_handle_open_ctxmenu_click(connection, stages, event,
                 config, winlist_owns_window, winlist_handle_click,
                 winlist_close);
         return true;
     }
 
     if (iconmenu_is_open()) {
-        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
+        s_mouse_handle_open_ctxmenu_click(connection, stages, event,
                 config, iconmenu_owns_window, iconmenu_handle_click,
                 iconmenu_close);
         return true;

@@ -26,8 +26,8 @@
 #include <client.h>
 #include <config.h>
 #include <render/text.h>
-#include <surface.h>
-#include <surface/viewport.h>
+#include <stage.h>
+#include <stage/viewport.h>
 #include <wm.h>
 
 /* Utils includes */
@@ -49,14 +49,14 @@
  * the client cannot be resized, instead of drawing a button that would
  * do nothing if clicked.
  *
- * @param button         Which titlebar button is being colored
- * @param is_focused     Whether owning client is currently focused
- * @param is_pinned      Whether owning client has the pin flag set
- * @param is_sticky      Whether owning client has the sticky flag set
- * @param is_layered     Whether the client layer is above or below
+ * @param button     Which titlebar button is being colored
+ * @param is_focused Whether owning client is currently focused
+ * @param is_pinned  Whether owning client has the pin flag set
+ * @param is_sticky  Whether owning client has the sticky flag set
+ * @param is_layered Whether the client layer is above or below
  *                       normal
- * @param can_maximize   Whether the maximize button is enabled
- * @param color_active   Color used when a state-reflecting button's
+ * @param can_maximize Whether the maximize button is enabled
+ * @param color_active Color used when a state-reflecting button's
  *                       state is on
  * @param color_inactive Color used otherwise
  * @param bg_fill        Background color used for a disabled
@@ -296,9 +296,9 @@ static void s_btn_shape_hide(xcb_connection_t *connection,
 /**
  * @brief Send one button to the function that draws its shape
  *
- * @param connection  Active XCB connection
- * @param target      Drawable the button lands on
- * @param gc          Context already set to the button's color, with
+ * @param connection Active XCB connection
+ * @param target     Drawable the button lands on
+ * @param gc         Context already set to the button's color, with
  *                    a line width matching the box's inset
  * @param button      Which button is being drawn
  * @param box         Geometry of the button
@@ -395,19 +395,19 @@ static struct s_btn_box_s s_desktop_titlebar_button_box(int16_t x,
  * regardless of focus; maximize and fullscreen fall back to the
  * background color when @p can_maximize is @c false.
  *
- * @param connection   Active XCB connection
- * @param target       Drawable the buttons land on: the titlebar
+ * @param connection Active XCB connection
+ * @param target     Drawable the buttons land on: the titlebar
  *                     window itself, or an off-screen buffer
  *                     @c render_client_titlebar_repaint_content copies onto
  *                     it in one piece once every button is drawn
- * @param btn_y        Y position every button shares, from
+ * @param btn_y Y position every button shares, from
  *                     @c client_titlebar_layout
- * @param title_h      Titlebar height, which the button side is
+ * @param title_h Titlebar height, which the button side is
  *                     derived from
- * @param left         Left-side button layout from
+ * @param left Left-side button layout from
  *                     @c client_titlebar_layout
- * @param left_n       Number of entries in @p left
- * @param right        Right-side button layout from
+ * @param left_n Number of entries in @p left
+ * @param right  Right-side button layout from
  *                     @c client_titlebar_layout
  * @param right_n      Number of entries in @p right
  * @param is_focused   Whether the owning client is currently focused
@@ -569,7 +569,7 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
     bool can_maximize;
     bool hide_pin;
     bool hide_sticky;
-    const surface_td *surface;
+    const stage_td *stage;
     uint32_t bg_color;
     xcb_pixmap_t buffer;
     xcb_drawable_t target;
@@ -580,13 +580,13 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
         return;
     }
 
-    surface = wm_get_surface_by_id(client->screen_id);
-    hide_pin = surface != NULL && surface->desktop_count <= 1u;
+    stage = wm_get_stage_by_id(client->screen_id);
+    hide_pin = stage != NULL && stage->desktop_count <= 1u;
 
     /* See the matching comment in 'src/input/mouse/event/titlebar.c'
      * ('s_mouse_hit_titlebar_buttons') for why this checks the pannable
      * viewport size rather than 'desktop_count' */
-    hide_sticky = !surface_viewport_has_room(surface);
+    hide_sticky = !stage_viewport_has_room(stage);
     bg_color = (is_focused)
         ? theme->window.active.color.background
         : theme->window.inactive.color.background;
@@ -606,9 +606,9 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
                 (const uint32_t[]) { bg_color });
     }
 
-    buffer = (surface != NULL)
+    buffer = (stage != NULL)
         ? xcb_offscreen_buffer_create(connection,
-                surface->screen->root_depth, client->titlebar,
+                stage->screen->root_depth, client->titlebar,
                 inner_w, title_h)
         : XCB_NONE;
     target = (buffer != XCB_NONE) ? buffer : client->titlebar;

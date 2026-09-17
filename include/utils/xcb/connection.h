@@ -8,7 +8,7 @@
  * are held here for the same reason and are set together.
  *
  * Kept here rather than carried from one place to the next: each was a
- * member of the client, the desktop and the surface alike, all holding
+ * member of the client, the desktop and the stage alike, all holding
  * the same pointer, and a parameter of every function that had to
  * reach one of them.
  *

@@ -39,15 +39,15 @@ sudo make install
 
 This puts, under `/usr/local` by default:
 
-| Path                               | What it holds                   |
-|------------------------------------|---------------------------------|
-| `bin/icowm`, `bin/icowm-msg`       | the two programs                |
-| `share/man/man1`, `share/man/man5` | the manual pages                |
+| Path                               | What it holds |
+|------------------------------------|---|
+| `bin/icowm`, `bin/icowm-msg`       | the two programs |
+| `share/man/man1`, `share/man/man5` | the manual pages |
 | `share/xsessions/icowm.desktop`    | the session entry a display manager reads to offer IcoWM at login |
 | `share/applications/icowm.desktop` | lets GNOME-style tooling discover IcoWM as an available window manager; never shown in an application launcher itself |
 | `share/locale/<lang>`              | the compiled message catalogues |
 | `share/icons/hicolor`              | the application icon, scalable and symbolic |
-| `share/icowm`                      | a configuration to copy from    |
+| `share/icowm`                      | a configuration to copy from |
 | `share/doc/icowm`                  | `README.md`, `LICENSE`, `COMPLIANCE.md` & the four guides under `doc/` |
 
 To install somewhere other than `/usr/local`:
@@ -97,16 +97,16 @@ pages for what each file holds.
 Build options
 -------------
 
-| Option         | Effect                                           |
-|----------------|--------------------------------------------------|
-| `CC=clang`     | build with a different compiler                  |
-| `DEBUG=1`      | debugging symbols, no optimization               |
-| `DEBUG=2`      | the above, plus AddressSanitizer                 |
-| `STRIP=0`      | keep symbols in a release build                  |
+| Option         | Effect |
+|----------------|---|
+| `CC=clang`     | build with a different compiler |
+| `DEBUG=1`      | debugging symbols, no optimization |
+| `DEBUG=2`      | the above, plus AddressSanitizer |
+| `STRIP=0`      | keep symbols in a release build |
 | `COMPACT=1`    | smaller fixed arrays, for a memory-tight machine |
-| `make analyze` | a static analysis pass, with `gcc`               |
-| `make test`    | build and run the test suites                    |
-| `make help`    | every target and option                          |
+| `make analyze` | a static analysis pass, with `gcc` |
+| `make test`    | build and run the test suites |
+| `make help`    | every target and option |
 
 Symbols are discarded by default, and a debug build keeps them
 regardless of `STRIP`.

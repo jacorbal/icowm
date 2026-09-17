@@ -44,19 +44,19 @@
  * not from @p modifier.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the menu
+ * @param stage      Stage on which to center the menu
  * @param desktop    Desktop whose client list will be shown
  * @param is_icon    When @c true, list iconified clients; otherwise
  *                   list non-iconified clients
- * @param preselect  Offset from the active client (+1 next, -1 prev)
- * @param modifier   Unused; kept for source compatibility with every
+ * @param preselect Offset from the active client (+1 next, -1 prev)
+ * @param modifier  Unused; kept for source compatibility with every
  *                   existing caller
- * @param cfg        Active configuration (for theme colors)
+ * @param cfg Active configuration (for theme colors)
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
  */
 void cycle_init(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop,
+        stage_td *stage, desktop_td *desktop,
         bool is_icon, int preselect, uint16_t modifier,
         const config_td *cfg);
 
@@ -134,13 +134,13 @@ void cycle_notice_client_destroyed(const client_td *client);
  * menus, focuses the selected client.  Closes the menu afterwards.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param cfg        Active configuration
  *
  * @note Complexity: @e O(1)
  */
 void cycle_confirm(xcb_connection_t *connection,
-        list_td *surfaces,
+        list_td *stages,
         const config_td *cfg);
 
 /**
@@ -190,6 +190,21 @@ bool cycle_is_open(void);
  * @note Complexity: @e O(1)
  */
 xcb_window_t cycle_window(void);
+
+/**
+ * @brief Return how many rows the cycle menu has scrolled past
+ *
+ * The row a click lands on, computed from the pixel Y coordinate
+ * alone, is relative to whichever row is currently drawn at the top
+ * of the visible list, not to the full, unscrolled list the menu is
+ * built from; this is what a caller resolving a click into an
+ * absolute row index has to add back in.
+ *
+ * @return That offset, @c 0 when every row fits without scrolling
+ *
+ * @note Complexity: @e O(1)
+ */
+int cycle_scroll_offset(void);
 
 /**
  * @brief Return the currently highlighted client in the cycle menu

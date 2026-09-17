@@ -113,9 +113,9 @@ void path_simplify(char *restrict path);
  * @param final_fallback Path to use verbatim if neither the
  *                       environment variable nor (when applicable)
  *                       @c ($HOME) resolved to anything
- * @param out            Destination buffer for the resolved, simplified
+ * @param out Destination buffer for the resolved, simplified
  *                       path
- * @param out_size       Size of @p out in bytes
+ * @param out_size Size of @p out in bytes
  *
  * @note Complexity: @e O(n), where @e n is the length of the resolved
  *       path

@@ -13,7 +13,7 @@
  *
  * Example usage:
  * @code{.c}
- * dialog_info_show(connection, surface, config,
+ * dialog_info_show(connection, stage, config,
  *         "Cannot launch 'xterm': command not found",
  *         MENU_MSG_LEVEL_WARNING);
  * @endcode
@@ -53,7 +53,7 @@
  * Any previously open message dialog is replaced.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the dialog
+ * @param stage      Stage on which to center the dialog
  * @param config     Active configuration (theme colors and font)
  * @param message    Null-terminated message text to display
  * @param level      Alert severity level (@c MENU_MSG_LEVEL_NONE,
@@ -64,7 +64,7 @@
  * @note Complexity: @e O(1)
  */
 void dialog_info_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level);
 
 /**

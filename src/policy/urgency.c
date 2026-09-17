@@ -35,9 +35,9 @@
 #include <desktop.h>
 #include <render/desktop.h>
 #include <render/icon.h>
-#include <render/surface.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <render/stage.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Local includes */
 #include <policy/urgency.h>
@@ -129,9 +129,9 @@ static long s_ms_since(const struct timespec *since)
  * The blink phase itself must keep advancing consistently regardless of
  * which desktop the urgent client happens to sit on, or how often this
  * is called, so this deliberately still looks at every desktop of every
- * surface, not only each surface's currently visible one.
+ * stage, not only each stage's currently visible one.
  *
- * @param surfaces All managed surfaces
+ * @param stages All managed stages
  *
  * @return @c true when at least one urgent client was found
  *
@@ -142,22 +142,22 @@ static long s_ms_since(const struct timespec *since)
  *      where the actual, comparatively expensive repainting happens
  *      instead
  */
-static bool s_any_client_urgent(list_td *surfaces)
+static bool s_any_client_urgent(list_td *stages)
 {
-    if (surfaces == NULL) {
+    if (stages == NULL) {
         return false;
     }
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        const surface_td *const surface = (surface_td *) list_data(snode);
+        const stage_td *const stage = (stage_td *) list_data(snode);
         bool is_any_urgent = false;
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
 
-        surface_desktop_walk_all(surface, s_urgent_search_visit,
+        stage_desktop_walk_all(stage, s_urgent_search_visit,
                 &is_any_urgent);
         if (is_any_urgent) {
             return true;
@@ -173,7 +173,7 @@ static bool s_any_client_urgent(list_td *surfaces)
  *        match the blink phase that just took effect
  *
  * Deliberately narrow in both scope and mechanism.  Marking whole
- * surfaces and desktops outdated instead, and leaving the ordinary
+ * stages and desktops outdated instead, and leaving the ordinary
  * full-render path to pick that up, repaints every client on a desktop
  * alongside the urgent one.  Called at anything faster than the blink
  * cadence, that full-desktop repaint fires far more often than the
@@ -186,36 +186,36 @@ static bool s_any_client_urgent(list_td *surfaces)
  * @a urgency_blink_tick now, this instead calls
  * @a desktop_render_one_client / @a ri_render_client_icon directly, one
  * at a time, for only the specific client(s) that are both urgent and
- * on a desktop currently visible on some surface (an urgent client
+ * on a desktop currently visible on some stage (an urgent client
  * sitting on a desktop nobody is looking at right now has nothing to
  * visibly repaint at all.  Its clients are not even mapped, leaving
  * every other client on that same desktop untouched).
  *
- * @param surfaces All managed surfaces
+ * @param stages All managed stages
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       each surface's currently visible desktop
+ *       each stage's currently visible desktop
  *
  * @see @a desktop_render_clients's comment
  */
-static void s_repaint_urgent_clients(list_td *surfaces)
+static void s_repaint_urgent_clients(list_td *stages)
 {
-    if (surfaces == NULL) {
+    if (stages == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
         desktop_td *desktop;
         void *elem;
         bool repainted_any = false;
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
 
-        desktop = surface_desktop_get(surface, surface->desktop_cur);
+        desktop = stage_desktop_get(stage, stage->desktop_cur);
         if (desktop == NULL || desktop->clients == NULL) {
             continue;
         }
@@ -240,7 +240,7 @@ static void s_repaint_urgent_clients(list_td *surfaces)
         }
 
         if (repainted_any) {
-            surface_render_flush(surface);
+            stage_render_flush(stage);
         }
     }
 }
@@ -254,14 +254,14 @@ bool urgency_blink_is_on(void)
 
 
 /* Advance the blink cycle and repaint whatever it changed */
-void urgency_blink_tick(list_td *surfaces, const config_td *config)
+void urgency_blink_tick(list_td *stages, const config_td *config)
 {
     bool had_urgent = s_has_urgent;
     uint32_t interval_ms = (config != NULL)
         ? config->a11y.urgency.blink_interval_ms
         : WM_URGENCY_BLINK_INTERVAL_MS;
 
-    s_has_urgent = s_any_client_urgent(surfaces);
+    s_has_urgent = s_any_client_urgent(stages);
 
     /* Sound the accessibility bell right on the transition into
      * urgency, never again on every later tick while it stays urgent,
@@ -270,7 +270,7 @@ void urgency_blink_tick(list_td *surfaces, const config_td *config)
      * setting */
     if (!had_urgent && s_has_urgent && config != NULL &&
             config->a11y.urgency.sound_bell &&
-            surfaces != NULL && !list_is_empty(surfaces)) {
+            stages != NULL && !list_is_empty(stages)) {
         xcb_connection_t *const connection = xcb_connection_get();
 
         if (connection != NULL) {
@@ -291,7 +291,7 @@ void urgency_blink_tick(list_td *surfaces, const config_td *config)
     if (s_ms_since(&s_last_toggle) >= (long) interval_ms) {
         s_blink_on = !s_blink_on;
         (void) clock_gettime(CLOCK_MONOTONIC, &s_last_toggle);
-        s_repaint_urgent_clients(surfaces);
+        s_repaint_urgent_clients(stages);
     }
 }
 

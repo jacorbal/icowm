@@ -3,7 +3,7 @@
 Description of every field a theme file may set, its type, accepted
 values, and built-in default value, covering the visual appearance of
 windows, desktop icons, the systray, menus, and every other themeable
-surface IcoWM draws.
+stage IcoWM draws.
 
 ---
 
@@ -76,26 +76,26 @@ follow, takes the same string.  §13 sets out its two accepted forms.
 
 #### `window.titlebar`
 
-| Key                   | Type             | Default            | Description |
-|-----------------------|------------------|--------------------|-------------|
-| `height`              | integer          | `22`               | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s value.                                   |
-| `alignment`           | string           | `"center"`         | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`.                                                                                                                                         |
-| `padding.horizontal`  | integer          | `2`                | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text.                                                                                                             |
-| `padding.vertical`    | integer          | `2`                | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
-| `buttons.left`        | array of strings | `['pin', 'sticky', 'layer']` | Buttons drawn left-to-right starting at the frame's left edge.                                                                                                                                                                                |
-| `buttons.right`       | array of strings | `['close', 'maximize', 'shade', 'iconize']` | Buttons drawn right-to-left starting at the frame's right edge.                                                                                                                                                                                          |
-| `buttons.size`        | integer          | `12`               | Side of one button, in pixels.  Chosen here rather than derived from `height`: making the titlebar taller is a decision about the bar and does not resize the buttons in it.  Held to at least `4`, and to at most `height` less two, so a button always leaves a pixel of bar above and below it.  Rounded down to an even number, an odd side putting the shapes' diagonals on half pixels. |
-| `buttons.use-symbols` | boolean          | `true`             | Whether each button draws the symbol of its own action: crossed diagonals for `close`, a hollow square for `maximize`, four corners for `fullscreen`, a low bar for `iconize`, a high one for `shade`, a struck-through square for `hide`.  With this `false` every button is the plain filled square, which is what a theme wants when its own colors do the telling apart, or at a `size` too small for a symbol to survive.  `pin`, `sticky` and `layer` are the plain square either way: their color already reports their state. |
-| `buttons.color.on`    | string           | `"#142335"`        | Color for a button whose state is currently engaged: pinned, sticky, a non-normal layer, or simply the window being focused for every other button.                                                                                                     |
-| `buttons.color.off`   | string           | `"#4E6076"`        | Color for a button otherwise, i.e., not engaged.                                                                                                                                                                                                         |
+| Key                   | Type             | Default                                     | Description |
+|-----------------------|------------------|---------------------------------------------|-------------|
+| `height`              | integer          | `22`                                        | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s value. |
+| `alignment`           | string           | `"center"`                                  | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
+| `padding.horizontal`  | integer          | `2`                                         | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
+| `padding.vertical`    | integer          | `2`                                         | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
+| `buttons.left`        | array of strings | `['pin', 'sticky', 'layer']`                | Buttons drawn left-to-right starting at the frame's left edge. |
+| `buttons.right`       | array of strings | `['close', 'maximize', 'shade', 'iconize']` | Buttons drawn right-to-left starting at the frame's right edge. |
+| `buttons.size`        | integer          | `12`                                        | Side of one button, in pixels.  Chosen here rather than derived from `height`: making the titlebar taller is a decision about the bar and does not resize the buttons in it.  Held to at least `4`, and to at most `height` less two, so a button always leaves a pixel of bar above and below it.  Rounded down to an even number, an odd side putting the shapes' diagonals on half pixels. |
+| `buttons.use-symbols` | boolean          | `true`                                      | Whether each button draws the symbol of its own action: crossed diagonals for `close`, a hollow square for `maximize`, four corners for `fullscreen`, a low bar for `iconize`, a high one for `shade`, a struck-through square for `hide`.  With this `false` every button is the plain filled square, which is what a theme wants when its own colors do the telling apart, or at a `size` too small for a symbol to survive.  `pin`, `sticky` and `layer` are the plain square either way: their color already reports their state. |
+| `buttons.color.on`    | string           | `"#142335"`                                 | Color for a button whose state is currently engaged: pinned, sticky, a non-normal layer, or simply the window being focused for every other button. |
+| `buttons.color.off`   | string           | `"#4E6076"`                                 | Color for a button otherwise, i.e., not engaged. |
 
 Accepted button names, for both `buttons.left` and `buttons.right`, are:
 `"pin"`, `"sticky"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`,
 `"maximize"`, `"fullscreen"`, `"close"`.  The pin button is only ever
-drawn on a surface with more than one desktop, and the sticky button
-only on a surface whose desktop grid is wider or taller than a single
+drawn on a stage with more than one desktop, and the sticky button
+only on a stage whose desktop grid is wider or taller than a single
 cell; both stay in the theme's list either way, and simply drop out of
-the titlebar on a surface too small for them to mean anything.  A button
+the titlebar on a stage too small for them to mean anything.  A button
 omitted from both lists is simply never drawn and never clickable; there
 is no separate setting to hide a button.  The same name can only
 usefully appear once across both lists (whichever list is processed for
@@ -171,8 +171,8 @@ the target's position by however many pixels `cycle.border.width`
 happens to be, regardless of what `window.active`/`inactive` (or
 `icon.active`/`inactive`) themselves are configured to.
 
-| Key                  | Type    | Default     | Description             |
-|----------------------|---------|-------------|-------------------------|
+| Key                  | Type    | Default     | Description |
+|----------------------|---------|-------------|-------------|
 | `cycle.border.color` | string  | `"#E3C76E"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
 | `cycle.border.width` | integer | `4`         | Border width in pixels. |
 
@@ -633,8 +633,8 @@ next to it with its independent font and colors, so the two can be told
 apart at a glance the same way `label` and `input` can be given
 different backgrounds below.
 
-| Key                             | Type    | Default        | Description  |
-|---------------------------------|---------|----------------|--------------|
+| Key                             | Type    | Default        | Description |
+|---------------------------------|---------|----------------|-------------|
 | `prompt.label.font`             | string  | `"fixed bold"` | Font for the "Run:" prompt. |
 | `prompt.label.color.background` | string  | `"#9AAEC8"`    | Prompt background. |
 | `prompt.label.color.foreground` | string  | `"#1B222E"`    | Prompt text. |

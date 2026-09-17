@@ -2,10 +2,10 @@
  * @file enact.c
  *
  * @brief Window-manager-level actions that do not belong to the client,
- *        desktop, or surface domain
+ *        desktop, or stage domain
  *
- * Every client-, desktop-, and surface-level action lives in
- * @c enact/client.c, @c enact/desktop.c, and @c enact/surface.c
+ * Every client-, desktop-, and stage-level action lives in
+ * @c enact/client.c, @c enact/desktop.c, and @c enact/stage.c
  * instead; this file only declares the domain they share.
  */
 /*

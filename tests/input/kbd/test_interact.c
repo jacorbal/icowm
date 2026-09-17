@@ -14,7 +14,7 @@
  * 'tests/menu/context/test_winlist.c' uses for the identical lookup
  * pair, letting every scenario below exercise 'ik_get_active_client'
  * s own null-checks and desktop-to-client resolution without a real
- * surface/desktop/client tree.  'enact_client_move', 'cctl_launch_
+ * stage/desktop/client tree.  'enact_client_move', 'cctl_launch_
  * dispatch', and 'run_init' are recording stand-ins: each is a heavy
  * side-effecting primitive belonging to its own subsystem (real
  * client movement, process launching, a drawn dialog), so this file
@@ -73,7 +73,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Menu includes */
@@ -124,9 +124,9 @@ static bool s_lookup_client_ok;
  * @brief Test-controlled stand-in for @a lookup_current_desktop
  * @note Complexity: @e O(1)
  */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return (s_lookup_desktop_ok) ? &s_desktop : NULL;
 }
 
@@ -135,14 +135,14 @@ desktop_td *lookup_current_desktop(surface_td *surface)
  * @brief Test-controlled stand-in for @a lookup_find_client
  * @note Complexity: @e O(1)
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
     if (out_desktop != NULL) {
         *out_desktop = (s_lookup_client_ok) ? &s_desktop : NULL;
@@ -241,21 +241,21 @@ void enact_client_move(client_td *client, struct position_s pos)
 }
 
 
-void cctl_launch_dispatch(surface_td *surface, const char *restrict prog,
+void cctl_launch_dispatch(stage_td *stage, const char *restrict prog,
         const char *restrict class_name)
 {
-    (void) surface;
+    (void) stage;
     (void) class_name;
     s_call_cctl_launch_dispatch++;
     s_last_launch_prog = prog;
 }
 
 
-void run_init(xcb_connection_t *connection, surface_td *surface,
+void run_init(xcb_connection_t *connection, stage_td *stage,
         const config_td *cfg)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) cfg;
     s_call_run_init++;
 }
@@ -386,32 +386,32 @@ xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
 
 /* ik_get_active_client */
 
-static void s_test_get_active_client_null_surface(void)
+static void s_test_get_active_client_null_stage(void)
 {
     client_td *result;
-    surface_td *cs_out = (surface_td *) 1;
+    stage_td *cs_out = (stage_td *) 1;
     desktop_td *cd_out = (desktop_td *) 1;
 
     s_reset();
     result = ik_get_active_client(NULL, NULL, &cs_out, &cd_out);
 
-    TAP_NULL(result, "a null surface yields no active client");
-    TAP_NULL(cs_out, "a null surface clears the surface out-param");
-    TAP_NULL(cd_out, "a null surface clears the desktop out-param");
+    TAP_NULL(result, "a null stage yields no active client");
+    TAP_NULL(cs_out, "a null stage clears the stage out-param");
+    TAP_NULL(cd_out, "a null stage clears the desktop out-param");
 }
 
 
 static void s_test_get_active_client_no_desktop(void)
 {
     client_td *result;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
-    memset(&fake_surface, 0, sizeof(fake_surface));
-    result = ik_get_active_client(&fake_surface, NULL, NULL, NULL);
+    memset(&fake_stage, 0, sizeof(fake_stage));
+    result = ik_get_active_client(&fake_stage, NULL, NULL, NULL);
 
     TAP_NULL(result,
-            "no current desktop for the surface yields no active" \
+            "no current desktop for the stage yields no active" \
             " client");
 }
 
@@ -419,12 +419,12 @@ static void s_test_get_active_client_no_desktop(void)
 static void s_test_get_active_client_no_active_window(void)
 {
     client_td *result;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 0);
-    result = ik_get_active_client(&fake_surface, NULL, NULL, NULL);
+    result = ik_get_active_client(&fake_stage, NULL, NULL, NULL);
 
     TAP_NULL(result,
             "a desktop with no active window (id 0) yields no" \
@@ -435,12 +435,12 @@ static void s_test_get_active_client_no_active_window(void)
 static void s_test_get_active_client_found(void)
 {
     client_td *result;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 42);
-    result = ik_get_active_client(&fake_surface, NULL, NULL, NULL);
+    result = ik_get_active_client(&fake_stage, NULL, NULL, NULL);
 
     TAP_OK(result == &s_client,
             "a desktop with a nonzero active window resolves the" \
@@ -453,14 +453,14 @@ static void s_test_get_active_client_found(void)
 static void s_test_handle_launch_terminal(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     strcpy(cfg.base.programs.terminal, "xterm");
 
-    ik_handle_launch(IK_LAUNCH_TERMINAL, &fake_surface, &cfg);
+    ik_handle_launch(IK_LAUNCH_TERMINAL, &fake_stage, &cfg);
 
     TAP_EQ_INT(s_call_cctl_launch_dispatch, 1,
             "IK_LAUNCH_TERMINAL dispatches exactly once");
@@ -473,16 +473,16 @@ static void s_test_handle_launch_terminal(void)
 static void s_test_handle_launch_launcher_prompt_disabled(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     s_sleep_past_launch_pacing();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     cfg.base.prompt.is_enabled = false;
     strcpy(cfg.base.programs.launcher, "dmenu_run");
 
-    ik_handle_launch(IK_LAUNCH_LAUNCHER, &fake_surface, &cfg);
+    ik_handle_launch(IK_LAUNCH_LAUNCHER, &fake_stage, &cfg);
 
     TAP_EQ_INT(s_call_run_init, 0,
             "IK_LAUNCH_LAUNCHER never opens the run-box when" \
@@ -496,14 +496,14 @@ static void s_test_handle_launch_launcher_prompt_disabled(void)
 static void s_test_handle_launch_launcher_prompt_enabled(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     cfg.base.prompt.is_enabled = true;
 
-    ik_handle_launch(IK_LAUNCH_LAUNCHER, &fake_surface, &cfg);
+    ik_handle_launch(IK_LAUNCH_LAUNCHER, &fake_stage, &cfg);
 
     TAP_EQ_INT(s_call_run_init, 1,
             "IK_LAUNCH_LAUNCHER opens the run-box exactly once when" \
@@ -517,19 +517,19 @@ static void s_test_handle_launch_launcher_prompt_enabled(void)
 static void s_test_handle_launch_pacing_blocks_rapid_repeat(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     s_sleep_past_launch_pacing();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     strcpy(cfg.base.programs.editor, "vi");
 
-    ik_handle_launch(IK_LAUNCH_EDITOR, &fake_surface, &cfg);
+    ik_handle_launch(IK_LAUNCH_EDITOR, &fake_stage, &cfg);
     TAP_EQ_INT(s_call_cctl_launch_dispatch, 1,
             "the first IK_LAUNCH_EDITOR call within pacing dispatches");
 
-    ik_handle_launch(IK_LAUNCH_EDITOR, &fake_surface, &cfg);
+    ik_handle_launch(IK_LAUNCH_EDITOR, &fake_stage, &cfg);
     TAP_EQ_INT(s_call_cctl_launch_dispatch, 1,
             "an immediate second call is paced out by" \
             " KBD_LAUNCH_MIN_INTERVAL_MS and does not dispatch again");
@@ -540,12 +540,12 @@ static void s_test_handle_launch_pacing_blocks_rapid_repeat(void)
 
 static void s_test_handle_move_no_active_client_is_noop(void)
 {
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
 
-    ik_handle_move(IK_MOVE_LEFT, &fake_surface, NULL, NULL);
+    ik_handle_move(IK_MOVE_LEFT, &fake_stage, NULL, NULL);
 
     TAP_EQ_INT(s_call_enact_client_move, 0,
             "with no active client ik_handle_move never calls" \
@@ -556,15 +556,15 @@ static void s_test_handle_move_no_active_client_is_noop(void)
 static void s_test_handle_move_maximized_is_noop(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     s_client.properties.state = (uint16_t) CLIENT_STATE_MAXIMIZED;
 
-    ik_handle_move(IK_MOVE_LEFT, &fake_surface, NULL, &cfg);
+    ik_handle_move(IK_MOVE_LEFT, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_call_enact_client_move, 0,
             "a fully maximized client is never moved by keyboard");
@@ -574,17 +574,17 @@ static void s_test_handle_move_maximized_is_noop(void)
 static void s_test_handle_move_step(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     cfg.base.windows.move_step = 10;
     s_client.layout.geometry.cur.pos.x = 100;
     s_client.layout.geometry.cur.pos.y = 100;
 
-    ik_handle_move(IK_MOVE_RIGHT, &fake_surface, NULL, &cfg);
+    ik_handle_move(IK_MOVE_RIGHT, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_call_enact_client_move, 1,
             "IK_MOVE_RIGHT calls enact_client_move exactly once");
@@ -599,18 +599,18 @@ static void s_test_handle_move_step(void)
 static void s_test_handle_move_corner_with_workarea(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     cfg.base.windows.move_step = 10;
     s_client.layout.geometry.cur.dim.w = 200;
     s_client.layout.geometry.cur.dim.h = 100;
     s_set_workarea(0, 0, 800, 600);
 
-    ik_handle_move(IK_MOVE_BOTTOM_RIGHT, &fake_surface, NULL, &cfg);
+    ik_handle_move(IK_MOVE_BOTTOM_RIGHT, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_last_move_pos.x, 800 - 200,
             "IK_MOVE_BOTTOM_RIGHT lands x at the workarea's right" \
@@ -625,12 +625,12 @@ static void s_test_handle_move_corner_with_workarea(void)
 
 static void s_test_handle_resize_no_active_client_is_noop(void)
 {
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
 
-    ik_handle_resize(IK_RESIZE_RIGHT, &fake_surface, NULL, NULL);
+    ik_handle_resize(IK_RESIZE_RIGHT, &fake_stage, NULL, NULL);
 
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
             "with no active client ik_handle_resize never applies" \
@@ -641,15 +641,15 @@ static void s_test_handle_resize_no_active_client_is_noop(void)
 static void s_test_handle_resize_non_resizable_is_noop(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     s_client.properties.flags = 0;
 
-    ik_handle_resize(IK_RESIZE_RIGHT, &fake_surface, NULL, &cfg);
+    ik_handle_resize(IK_RESIZE_RIGHT, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
             "a non-resizable client is never resized by keyboard");
@@ -659,16 +659,16 @@ static void s_test_handle_resize_non_resizable_is_noop(void)
 static void s_test_handle_resize_fullscreen_is_noop(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     s_client.properties.flags = CLIENT_FLAG_RESIZABLE;
     s_client.properties.state = (uint16_t) CLIENT_STATE_FULLSCREEN;
 
-    ik_handle_resize(IK_RESIZE_RIGHT, &fake_surface, NULL, &cfg);
+    ik_handle_resize(IK_RESIZE_RIGHT, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
             "a fullscreen client is never resized by keyboard");
@@ -678,17 +678,17 @@ static void s_test_handle_resize_fullscreen_is_noop(void)
 static void s_test_handle_resize_maximized_axis_locked(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     s_client.properties.flags = CLIENT_FLAG_RESIZABLE;
     s_client.properties.state =
             (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
 
-    ik_handle_resize(IK_RESIZE_RIGHT, &fake_surface, NULL, &cfg);
+    ik_handle_resize(IK_RESIZE_RIGHT, &fake_stage, NULL, &cfg);
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
             "resizing the horizontally-maximized axis is refused");
 
@@ -699,7 +699,7 @@ static void s_test_handle_resize_maximized_axis_locked(void)
             (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
     s_client.layout.geometry.cur.dim.h = 100;
 
-    ik_handle_resize(IK_RESIZE_DOWN, &fake_surface, NULL, &cfg);
+    ik_handle_resize(IK_RESIZE_DOWN, &fake_stage, NULL, &cfg);
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 1,
             "the still-free vertical axis resizes even while the" \
             " horizontal one is maximized");
@@ -709,11 +709,11 @@ static void s_test_handle_resize_maximized_axis_locked(void)
 static void s_test_handle_resize_right_grows_by_step(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     s_client.properties.flags = CLIENT_FLAG_RESIZABLE;
     cfg.base.windows.resize_step = 20;
@@ -722,7 +722,7 @@ static void s_test_handle_resize_right_grows_by_step(void)
     s_client.layout.geometry.cur.pos.x = 50;
     s_client.layout.geometry.cur.pos.y = 50;
 
-    ik_handle_resize(IK_RESIZE_RIGHT, &fake_surface, NULL, &cfg);
+    ik_handle_resize(IK_RESIZE_RIGHT, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 1,
             "IK_RESIZE_RIGHT applies geometry exactly once");
@@ -737,11 +737,11 @@ static void s_test_handle_resize_right_grows_by_step(void)
 static void s_test_handle_resize_left_shrinks_and_shifts_x(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     s_client.properties.flags = CLIENT_FLAG_RESIZABLE;
     cfg.base.windows.resize_step = 20;
@@ -755,7 +755,7 @@ static void s_test_handle_resize_left_shrinks_and_shifts_x(void)
      * for this case) while sliding x right by the same amount so the
      * right edge stays fixed in place; it is 'IK_RESIZE_RIGHT' above
      * that grows the frame outward from a fixed left edge instead */
-    ik_handle_resize(IK_RESIZE_LEFT, &fake_surface, NULL, &cfg);
+    ik_handle_resize(IK_RESIZE_LEFT, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_last_apply_geometry.dim.w, 280,
             "IK_RESIZE_LEFT shrinks the frame width by" \
@@ -769,11 +769,11 @@ static void s_test_handle_resize_left_shrinks_and_shifts_x(void)
 static void s_test_handle_resize_shaded_client_unshades_first(void)
 {
     config_td cfg;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&cfg, 0, sizeof(cfg));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_set_lookup(true, true, 7);
     s_client.properties.flags = (uint16_t)
             (CLIENT_FLAG_RESIZABLE | CLIENT_FLAG_SHADED);
@@ -781,7 +781,7 @@ static void s_test_handle_resize_shaded_client_unshades_first(void)
     s_client.layout.geometry.old.dim.h = 200;
     s_client.layout.geometry.cur.dim.w = 300;
 
-    ik_handle_resize(IK_RESIZE_DOWN, &fake_surface, NULL, &cfg);
+    ik_handle_resize(IK_RESIZE_DOWN, &fake_stage, NULL, &cfg);
 
     TAP_EQ_INT(s_call_ccmd_client_unshade, 1,
             "resizing a shaded client along the vertical axis" \
@@ -793,7 +793,7 @@ int main(void)
 {
     TAP_PLAN(32);
 
-    s_test_get_active_client_null_surface();
+    s_test_get_active_client_null_stage();
     s_test_get_active_client_no_desktop();
     s_test_get_active_client_no_active_window();
     s_test_get_active_client_found();

@@ -3,11 +3,12 @@
 # Included from the project's own root Makefile (see 'include
 # tests/Makefile.mk' there), not meant to be invoked on its own: every
 # variable used below ('CC', 'CCSTD', 'I_DIR', 'S_DIR', 'O_DIR',
-# 'TESTS_DIR', 'JSON_CFLAGS', 'JSON_LFLAGS', 'XCB_CFLAGS') is defined in
-# that root Makefile, already in scope by the time this file is
-# processed.  Kept as its own file purely to keep the root Makefile
-# itself short and focused on building IcoWM proper; nothing here
-# changes how 'make test' behaves from the project root.
+# 'TESTS_DIR', 'JSON_CFLAGS', 'JSON_LFLAGS', 'XCB_CFLAGS',
+# 'XCB_LFLAGS') is defined in that root Makefile, already in scope by
+# the time this file is processed.  Kept as its own file purely to
+# keep the root Makefile itself short and focused on building IcoWM
+# proper; nothing here changes how 'make test' behaves from the
+# project root.
 
 .PHONY: test
 
@@ -52,13 +53,13 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/test_memguard \
     $(O_DIR)/tests/systray/test_text \
     $(O_DIR)/tests/systray/test_battery \
-    $(O_DIR)/tests/render/test_surface \
+    $(O_DIR)/tests/render/test_stage \
     $(O_DIR)/tests/client/test_state \
     $(O_DIR)/tests/client/test_gravity \
     $(O_DIR)/tests/client/test_geom \
     $(O_DIR)/tests/client/test_props \
     $(O_DIR)/tests/test_client \
-    $(O_DIR)/tests/test_surface_lifecycle \
+    $(O_DIR)/tests/test_stage_lifecycle \
     $(O_DIR)/tests/cmds/client/test_flags \
     $(O_DIR)/tests/cmds/client/test_state \
     $(O_DIR)/tests/cmds/client/test_layer \
@@ -75,11 +76,11 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/rules/test_apply \
     $(O_DIR)/tests/policy/test_placement \
     $(O_DIR)/tests/policy/test_tiling \
-    $(O_DIR)/tests/surface/test_desktop_grid \
-    $(O_DIR)/tests/surface/test_monitor_direction \
-    $(O_DIR)/tests/surface/test_desktop_add_remove \
-    $(O_DIR)/tests/surface/test_pinned_transfer \
-    $(O_DIR)/tests/surface/test_viewport \
+    $(O_DIR)/tests/stage/test_desktop_grid \
+    $(O_DIR)/tests/stage/test_monitor_direction \
+    $(O_DIR)/tests/stage/test_desktop_add_remove \
+    $(O_DIR)/tests/stage/test_pinned_transfer \
+    $(O_DIR)/tests/stage/test_viewport \
     $(O_DIR)/tests/render/viewport/test_mesh \
     $(O_DIR)/tests/enact/test_send_to_desktop \
     $(O_DIR)/tests/desktop/test_workarea \
@@ -109,12 +110,12 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/cmds/client/test_move \
     $(O_DIR)/tests/cmds/client/test_resize \
     $(O_DIR)/tests/cmds/client/test_ewmh \
-    $(O_DIR)/tests/cmds/test_surface_desktop_switch \
-    $(O_DIR)/tests/cmds/test_surface_viewport_pan \
-    $(O_DIR)/tests/surface/test_workareas \
-    $(O_DIR)/tests/surface/actions/test_randr \
+    $(O_DIR)/tests/cmds/test_stage_desktop_switch \
+    $(O_DIR)/tests/cmds/test_stage_viewport_pan \
+    $(O_DIR)/tests/stage/test_workareas \
+    $(O_DIR)/tests/stage/actions/test_randr \
     $(O_DIR)/tests/policy/test_ping \
-    $(O_DIR)/tests/enact/test_surface \
+    $(O_DIR)/tests/enact/test_stage \
     $(O_DIR)/tests/ipc/actions/client/test_flags \
     $(O_DIR)/tests/ipc/actions/client/test_focus \
     $(O_DIR)/tests/ipc/actions/client/test_geom \
@@ -124,7 +125,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/ipc/actions/client/test_visibility \
     $(O_DIR)/tests/ipc/actions/test_wm \
     $(O_DIR)/tests/ipc/actions/test_scratchpad \
-    $(O_DIR)/tests/ipc/actions/test_surface_action \
+    $(O_DIR)/tests/ipc/actions/test_stage_action \
     $(O_DIR)/tests/ipc/actions/test_desktop \
     $(O_DIR)/tests/ipc/actions/test_query \
     $(O_DIR)/tests/enact/test_client \
@@ -337,7 +338,7 @@ $(O_DIR)/tests/ipc/test_readable: $(TESTS_DIR)/ipc/test_readable.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
 
 $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
-		$(S_DIR)/surface/desktops.c \
+		$(S_DIR)/stage/desktops.c \
 		$(S_DIR)/wm/client.c \
 		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/cmds/client/ewmh.c \
@@ -431,9 +432,9 @@ $(O_DIR)/tests/systray/test_battery: $(TESTS_DIR)/systray/test_battery.c \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
-$(O_DIR)/tests/render/test_surface: $(TESTS_DIR)/render/test_surface.c \
+$(O_DIR)/tests/render/test_stage: $(TESTS_DIR)/render/test_stage.c \
 		$(S_DIR)/utils/xcb/connection.c \
-		$(S_DIR)/render/surface.c \
+		$(S_DIR)/render/stage.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
@@ -473,9 +474,9 @@ $(O_DIR)/tests/test_client: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
-$(O_DIR)/tests/test_surface_lifecycle: \
-		$(TESTS_DIR)/test_surface_lifecycle.c \
-		$(S_DIR)/surface.c \
+$(O_DIR)/tests/test_stage_lifecycle: \
+		$(TESTS_DIR)/test_stage_lifecycle.c \
+		$(S_DIR)/stage.c \
 		$(S_DIR)/adt/cdlist.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
@@ -622,52 +623,52 @@ $(O_DIR)/tests/policy/test_tiling: $(TESTS_DIR)/policy/test_tiling.c \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
 
-$(O_DIR)/tests/surface/test_desktop_grid: \
-		$(TESTS_DIR)/surface/test_desktop_grid.c \
-		$(S_DIR)/surface/desktops.c \
+$(O_DIR)/tests/stage/test_desktop_grid: \
+		$(TESTS_DIR)/stage/test_desktop_grid.c \
+		$(S_DIR)/stage/desktops.c \
 		$(S_DIR)/adt/cdlist.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 # Unlike every other test binary above, this one links the genuine
 # libxcb-randr ($(XCB_LFLAGS), defined in the root Makefile) rather
-# than a hand-written stand-in for its own functions: surface/
+# than a hand-written stand-in for its own functions: stage/
 # monitors.c as a whole (the only actual dependency of the one
-# function this file tests, surface_monitor_direction) also compiles
-# surface_monitor_refresh_all alongside it in the same translation unit,
+# function this file tests, stage_monitor_direction) also compiles
+# stage_monitor_refresh_all alongside it in the same translation unit,
 # and that one genuinely calls into RandR.  Its own reply structs are
 # XCB-protocol-generated, not something safe to reconstruct a stand-in
 # for by hand the way this project's own, much simpler functions
 # (like atom_name, stood in for below) are; linking the real library
 # instead is the safer choice, even though this test itself never
-# actually calls surface_monitor_refresh_all, or triggers a real RandR
+# actually calls stage_monitor_refresh_all, or triggers a real RandR
 # round trip, at all.
-$(O_DIR)/tests/surface/test_monitor_direction: \
-		$(TESTS_DIR)/surface/test_monitor_direction.c \
+$(O_DIR)/tests/stage/test_monitor_direction: \
+		$(TESTS_DIR)/stage/test_monitor_direction.c \
 		$(S_DIR)/utils/xcb/connection.c \
-		$(S_DIR)/surface/monitors.c \
+		$(S_DIR)/stage/monitors.c \
 		$(S_DIR)/utils/xcb/reply.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
-$(O_DIR)/tests/surface/test_desktop_add_remove: \
-		$(TESTS_DIR)/surface/test_desktop_add_remove.c \
+$(O_DIR)/tests/stage/test_desktop_add_remove: \
+		$(TESTS_DIR)/stage/test_desktop_add_remove.c \
 		$(S_DIR)/utils/xcb/connection.c \
-		$(S_DIR)/surface/switch.c \
+		$(S_DIR)/stage/switch.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \
-		$(S_DIR)/surface/desktops.c \
+		$(S_DIR)/stage/desktops.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
-$(O_DIR)/tests/surface/test_pinned_transfer: \
-		$(TESTS_DIR)/surface/test_pinned_transfer.c \
-		$(S_DIR)/surface/actions/client.c \
+$(O_DIR)/tests/stage/test_pinned_transfer: \
+		$(TESTS_DIR)/stage/test_pinned_transfer.c \
+		$(S_DIR)/stage/actions/client.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/adt/cdlist.c \
@@ -675,9 +676,9 @@ $(O_DIR)/tests/surface/test_pinned_transfer: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
-$(O_DIR)/tests/surface/test_viewport: \
-		$(TESTS_DIR)/surface/test_viewport.c \
-		$(S_DIR)/surface/viewport.c
+$(O_DIR)/tests/stage/test_viewport: \
+		$(TESTS_DIR)/stage/test_viewport.c \
+		$(S_DIR)/stage/viewport.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
@@ -953,30 +954,30 @@ $(O_DIR)/tests/cmds/client/test_ewmh: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
-$(O_DIR)/tests/cmds/test_surface_desktop_switch: \
-		$(TESTS_DIR)/cmds/test_surface_desktop_switch.c \
-		$(S_DIR)/cmds/surface.c \
-		$(S_DIR)/surface/viewport.c
+$(O_DIR)/tests/cmds/test_stage_desktop_switch: \
+		$(TESTS_DIR)/cmds/test_stage_desktop_switch.c \
+		$(S_DIR)/cmds/stage.c \
+		$(S_DIR)/stage/viewport.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
-$(O_DIR)/tests/cmds/test_surface_viewport_pan: \
-		$(TESTS_DIR)/cmds/test_surface_viewport_pan.c \
-		$(S_DIR)/cmds/surface.c \
-		$(S_DIR)/surface/viewport.c
+$(O_DIR)/tests/cmds/test_stage_viewport_pan: \
+		$(TESTS_DIR)/cmds/test_stage_viewport_pan.c \
+		$(S_DIR)/cmds/stage.c \
+		$(S_DIR)/stage/viewport.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
-$(O_DIR)/tests/surface/test_workareas: \
-		$(TESTS_DIR)/surface/test_workareas.c \
-		$(S_DIR)/surface/workareas.c \
+$(O_DIR)/tests/stage/test_workareas: \
+		$(TESTS_DIR)/stage/test_workareas.c \
+		$(S_DIR)/stage/workareas.c \
 		$(S_DIR)/adt/cdlist.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
-$(O_DIR)/tests/surface/actions/test_randr: \
-		$(TESTS_DIR)/surface/actions/test_randr.c \
-		$(S_DIR)/surface/actions/randr.c \
+$(O_DIR)/tests/stage/actions/test_randr: \
+		$(TESTS_DIR)/stage/actions/test_randr.c \
+		$(S_DIR)/stage/actions/randr.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
@@ -992,9 +993,9 @@ $(O_DIR)/tests/policy/test_ping: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
-$(O_DIR)/tests/enact/test_surface: \
-		$(TESTS_DIR)/enact/test_surface.c \
-		$(S_DIR)/enact/surface.c
+$(O_DIR)/tests/enact/test_stage: \
+		$(TESTS_DIR)/enact/test_stage.c \
+		$(S_DIR)/enact/stage.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS) $(JSON_LFLAGS)
 
@@ -1122,9 +1123,9 @@ $(O_DIR)/tests/ipc/actions/test_scratchpad: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) $(XCB_LFLAGS)
 
-$(O_DIR)/tests/ipc/actions/test_surface_action: \
-		$(TESTS_DIR)/ipc/actions/test_surface_action.c \
-		$(S_DIR)/ipc/actions/surface.c \
+$(O_DIR)/tests/ipc/actions/test_stage_action: \
+		$(TESTS_DIR)/ipc/actions/test_stage_action.c \
+		$(S_DIR)/ipc/actions/stage.c \
 		$(S_DIR)/ipc/resolve.c \
 		$(S_DIR)/ipc/args.c \
 		$(S_DIR)/ipc/response.c \
@@ -1152,7 +1153,7 @@ $(O_DIR)/tests/ipc/actions/test_query: \
 		$(S_DIR)/ipc/actions/query.c \
 		$(S_DIR)/ipc/response.c \
 		$(S_DIR)/lookup.c \
-		$(S_DIR)/surface/desktops.c \
+		$(S_DIR)/stage/desktops.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c
@@ -1669,7 +1670,7 @@ $(O_DIR)/tests/handler/test_colormap: \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/ohtbl.c \
 		$(S_DIR)/handler/colormap.c \
-		$(S_DIR)/surface/desktops.c
+		$(S_DIR)/stage/desktops.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

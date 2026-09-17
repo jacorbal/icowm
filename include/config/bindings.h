@@ -99,7 +99,7 @@ struct config_bindings_s {
             /**
              * @brief Toggles whether panel/tray struts are set aside
              *        when maximizing or placing a window on this
-             *        surface (strutless maximization)
+             *        stage (strutless maximization)
              *
              * Empty by default, unlike every other binding in this
              * struct: no key combination is bound to it out of the
@@ -107,8 +107,8 @@ struct config_bindings_s {
              * root menu's entry reach it until a user opts in
              * with their binding here.
              *
-             * @see @a surface_action_maximize_toggle_strutless
-             *      (surface.h)
+             * @see @a stage_action_maximize_toggle_strutless
+             *      (stage.h)
              */
             char toggle_strutless_maximize[CONFIG_MAX_LENGTH_BINDING];
         } wm;
@@ -128,10 +128,10 @@ struct config_bindings_s {
          */
         struct {
             /**
-             * @brief Adds or removes the surface's last desktop
+             * @brief Adds or removes the stage's last desktop
              *
-             * @see @a enact_surface_desktop_add,
-             *      @a enact_surface_desktop_remove (enact.h)
+             * @see @a enact_stage_desktop_add,
+             *      @a enact_stage_desktop_remove (enact.h)
              */
             char add[CONFIG_MAX_LENGTH_BINDING];
             char remove[CONFIG_MAX_LENGTH_BINDING];
@@ -253,7 +253,7 @@ struct config_bindings_s {
                 /**
                  * @brief Move the focused client to the monitor
                  *        north/south/east/west of the current one
-                 *        on its own surface
+                 *        on its own stage
                  *
                  * Unlike @c desktop just above, never wraps around
                  * at all, and has no equivalent of
@@ -262,7 +262,7 @@ struct config_bindings_s {
                  * @a ccmd_client_move_to_monitor_north in
                  * @c cmds/client/geom.h, and its three siblings,
                  * for the fuller reasoning.  A no-op on a
-                 * surface with one monitor or none, or when no
+                 * stage with one monitor or none, or when no
                  * monitor lies in the given direction at all.
                  */
                 struct {
@@ -300,7 +300,7 @@ struct config_bindings_s {
          * within the current one the physical screen is looking, a
          * no-op on any desktop whose @c viewport is a single screen.
          *
-         * @see @a enact_surface_viewport_pan_north in @c enact.h, and
+         * @see @a enact_stage_viewport_pan_north in @c enact.h, and
          *      its three siblings
          */
         struct {
@@ -325,7 +325,7 @@ struct config_bindings_s {
              * siblings) because @c switch is a reserved word and
              * cannot name a member.
              *
-             * @see @a enact_surface_viewport_switch_north in
+             * @see @a enact_stage_viewport_switch_north in
              *      @c enact.h, and its three siblings
              */
             struct {
@@ -346,7 +346,7 @@ struct config_bindings_s {
              * screen is looking, a no-op past the configured
              * @c viewport grid's own page count.
              *
-             * @see @a enact_surface_viewport_goto in @c enact.h
+             * @see @a enact_stage_viewport_goto in @c enact.h
              */
             struct {
                 char page[10][CONFIG_MAX_LENGTH_BINDING];

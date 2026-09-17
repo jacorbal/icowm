@@ -38,7 +38,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -46,13 +46,13 @@
 #include <menu/dialog/message.h>
 
 
-/** Fake, non-null XCB connection/surface handles, standing in for live
+/** Fake, non-null XCB connection/stage handles, standing in for live
  *  ones wherever fortune.c merely forwards them onward without ever
  *  dereferencing them itself */
 static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
-static surface_td s_fake_surface;
+static stage_td s_fake_stage;
 
 /** Recording stand-in's own call counter and captured arguments,
  *  reset by s_reset between scenarios */
@@ -78,11 +78,11 @@ static void s_reset(void)
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     s_call_show++;
     (void) strncpy(s_show_text, (message != NULL) ? message : "",
@@ -112,15 +112,15 @@ static void s_test_null_guards(void)
     s_make_config(&config, "printf hello");
 
     s_reset();
-    dialog_fortune_show(NULL, &s_fake_surface, &config);
+    dialog_fortune_show(NULL, &s_fake_stage, &config);
     TAP_EQ_INT(s_call_show, 0, "fortune_show: NULL connection is a no-op");
 
     s_reset();
     dialog_fortune_show(s_fake_connection, NULL, &config);
-    TAP_EQ_INT(s_call_show, 0, "fortune_show: NULL surface is a no-op");
+    TAP_EQ_INT(s_call_show, 0, "fortune_show: NULL stage is a no-op");
 
     s_reset();
-    dialog_fortune_show(s_fake_connection, &s_fake_surface, NULL);
+    dialog_fortune_show(s_fake_connection, &s_fake_stage, NULL);
     TAP_EQ_INT(s_call_show, 0, "fortune_show: NULL config is a no-op");
 }
 
@@ -134,7 +134,7 @@ static void s_test_successful_command_shows_trimmed_output(void)
     s_make_config(&config, "printf 'a fortune awaits\\n'");
     s_reset();
 
-    dialog_fortune_show(s_fake_connection, &s_fake_surface, &config);
+    dialog_fortune_show(s_fake_connection, &s_fake_stage, &config);
 
     TAP_EQ_INT(s_call_show, 1,
             "fortune_show: shows the dialog exactly once on success");
@@ -157,7 +157,7 @@ static void s_test_trims_trailing_whitespace_variety(void)
             "printf 'line one\\nline two \\t\\r\\n\\n'");
     s_reset();
 
-    dialog_fortune_show(s_fake_connection, &s_fake_surface, &config);
+    dialog_fortune_show(s_fake_connection, &s_fake_stage, &config);
 
     TAP_EQ_STR(s_show_text, "line one\nline two",
             "fortune_show: trims every trailing newline/CR/space/tab,"
@@ -175,7 +175,7 @@ static void s_test_nonexistent_command_falls_back(void)
     s_make_config(&config, "this_command_does_not_exist_anywhere_12345");
     s_reset();
 
-    dialog_fortune_show(s_fake_connection, &s_fake_surface, &config);
+    dialog_fortune_show(s_fake_connection, &s_fake_stage, &config);
 
     TAP_EQ_INT(s_call_show, 1,
             "fortune_show: still shows a dialog when the command is"
@@ -198,7 +198,7 @@ static void s_test_whitespace_only_output_falls_back(void)
 
     s_make_config(&config, "true");
     s_reset();
-    dialog_fortune_show(s_fake_connection, &s_fake_surface, &config);
+    dialog_fortune_show(s_fake_connection, &s_fake_stage, &config);
     TAP_OK(s_show_text[0] != '\0',
             "fortune_show: empty command output falls back to a"
             " non-empty message");
@@ -207,7 +207,7 @@ static void s_test_whitespace_only_output_falls_back(void)
 
     s_make_config(&config, "printf '   \\n\\t\\n  '");
     s_reset();
-    dialog_fortune_show(s_fake_connection, &s_fake_surface, &config);
+    dialog_fortune_show(s_fake_connection, &s_fake_stage, &config);
     TAP_EQ_STR(s_show_text, fallback_text,
             "fortune_show: whitespace-only output falls back to the"
             " exact same message as no output at all");

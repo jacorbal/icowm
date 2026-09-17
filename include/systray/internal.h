@@ -67,14 +67,14 @@ typedef struct {
  * @brief Module-level built-in systray state
  *
  * A single tray instance for the whole window manager, matching
- * @c config.systray being a single global (not per-surface) setting.
+ * @c config.systray being a single global (not per-stage) setting.
  *
  * @note Defined in @c systray.c
  * @note Every implementation file in @c src/systray/ accesses it
  *       through this declaration
  */
 struct systray_state_s {
-    surface_td *surface;        /**< Surface the tray docks on */
+    stage_td *stage;        /**< Stage the tray docks on */
 
     const struct config_theme_s *theme; /**< Shared pointer into
                                              @p wm->config->theme; stays

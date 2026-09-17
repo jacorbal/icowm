@@ -8,20 +8,20 @@
  * write the module's own singleton state, whose storage is defined
  * right here in background.c itself; this file links the real
  * background.c, so it never redefines that state.
- * 'lookup_current_desktop' and 'surface_desktop_get' are
+ * 'lookup_current_desktop' and 'stage_desktop_get' are
  * test-controlled stand-ins, answering whichever desktop pointer (or
  * 'NULL') the currently running scenario registered beforehand, so
  * every branch runs without a live desktop list ever needing to
- * exist.  'scmd_surface_viewport_set' (cmds/surface.c) is a recording
+ * exist.  'scmd_stage_viewport_set' (cmds/stage.c) is a recording
  * stand-in: its own clamping and client-translation logic is already
- * fully covered by tests/cmds/test_surface_viewport_pan.c, so this
+ * fully covered by tests/cmds/test_stage_viewport_pan.c, so this
  * file only asserts on the exact 'x'/'y' background.c hands it,
  * confirming the pan-follows-pointer sign convention.
  * 'lookup_find_client' and 'enact_client_unfocus' are recording
  * stand-ins for the same reason.  The raw XCB pointer-grab requests,
  * 'mouse_cursor_move', and 'mouse_plain_cursor' are stubbed directly,
  * the same convention tests/input/mouse/drag/test_drag.c already
- * uses, since no live X connection is used.  'scmd_surface_viewport_
+ * uses, since no live X connection is used.  'scmd_stage_viewport_
  * has_room' is a controllable stand-in deciding which of those two
  * cursors 'xcb_grab_pointer' is expected to have recorded.
  * 'logger_msg' is a link-only stand-in, reached only on a grab
@@ -52,12 +52,12 @@
 
 /* Project includes */
 #include <client.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 #include <desktop.h>
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -78,18 +78,18 @@ static int s_ungrab_pointer_calls;
 static xcb_cursor_t s_grab_last_cursor;
 
 /** Controllable stand-in result for the next
- *  surface_viewport_has_room call */
+ *  stage_viewport_has_room call */
 static bool s_stub_viewport_has_room;
 
 /** Controllable stand-in result for the next lookup_current_desktop
  *  call */
 static desktop_td *s_stub_current_desktop;
 
-/** Controllable stand-in result for the next surface_desktop_get
+/** Controllable stand-in result for the next stage_desktop_get
  *  call */
 static desktop_td *s_stub_desktop_get_result;
 
-/** Recorded arguments from the last scmd_surface_viewport_set call */
+/** Recorded arguments from the last scmd_stage_viewport_set call */
 static int s_viewport_set_calls;
 static int32_t s_viewport_set_last_x;
 static int32_t s_viewport_set_last_y;
@@ -205,12 +205,12 @@ xcb_cursor_t mouse_plain_cursor(void)
 
 
 /**
- * @brief Controllable stand-in for @a surface_viewport_has_room
+ * @brief Controllable stand-in for @a stage_viewport_has_room
  * @note Complexity: @e O(1)
  */
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_stub_viewport_has_room;
 }
@@ -220,21 +220,21 @@ bool surface_viewport_has_room(const surface_td *surface)
  * @brief Controllable stand-in for @a lookup_current_desktop
  * @note Complexity: @e O(1)
  */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_stub_current_desktop;
 }
 
 
 /**
- * @brief Controllable stand-in for @a surface_desktop_get
+ * @brief Controllable stand-in for @a stage_desktop_get
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
     return s_stub_desktop_get_result;
@@ -242,12 +242,12 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_set
+ * @brief Recording stand-in for @a scmd_stage_viewport_set
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y)
+void scmd_stage_viewport_set(stage_td *stage, int32_t x, int32_t y)
 {
-    (void) surface;
+    (void) stage;
 
     s_viewport_set_calls++;
     s_viewport_set_last_x = x;
@@ -259,16 +259,16 @@ void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y)
  * @brief Controllable/recording stand-in for @a lookup_find_client
  * @note Complexity: @e O(1)
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
 
     s_lookup_find_client_calls++;
     s_lookup_find_client_last_window = window;
 
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
     if (out_desktop != NULL) {
         *out_desktop = NULL;
@@ -331,14 +331,14 @@ static void s_reset(void)
 static void s_test_start_null_connection_is_noop(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_current_desktop = &desktop;
 
-    drag_background_start(NULL, &surface, 1u, 0,
+    drag_background_start(NULL, &stage, 1u, 0,
             (struct position_s) { 0, 0 });
 
     TAP_EQ_INT(s_grab_pointer_calls, 0,
@@ -348,8 +348,8 @@ static void s_test_start_null_connection_is_noop(void)
 }
 
 
-/* A null surface is a no-op, the same way */
-static void s_test_start_null_surface_is_noop(void)
+/* A null stage is a no-op, the same way */
+static void s_test_start_null_stage_is_noop(void)
 {
     s_reset();
 
@@ -357,23 +357,23 @@ static void s_test_start_null_surface_is_noop(void)
             (struct position_s) { 0, 0 });
 
     TAP_EQ_INT(s_grab_pointer_calls, 0,
-            "a null surface: no pointer grab is attempted");
+            "a null stage: no pointer grab is attempted");
     TAP_OK(!drag_background_is_active(),
-            "a null surface: the module never becomes active");
+            "a null stage: the module never becomes active");
 }
 
 
-/* A surface with no resolvable current desktop is a no-op, before
+/* A stage with no resolvable current desktop is a no-op, before
  * any pointer grab is even attempted */
 static void s_test_start_no_desktop_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_current_desktop = NULL;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 0, 0 });
 
     TAP_EQ_INT(s_grab_pointer_calls, 0,
@@ -387,15 +387,15 @@ static void s_test_start_no_desktop_is_noop(void)
 static void s_test_start_grab_reply_null_is_noop(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_current_desktop = &desktop;
     s_stub_grab_reply_null = true;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 0, 0 });
 
     TAP_OK(!drag_background_is_active(),
@@ -408,15 +408,15 @@ static void s_test_start_grab_reply_null_is_noop(void)
 static void s_test_start_grab_status_failure_is_noop(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_current_desktop = &desktop;
     s_stub_grab_status = XCB_GRAB_STATUS_ALREADY_GRABBED;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 0, 0 });
 
     TAP_OK(!drag_background_is_active(),
@@ -429,16 +429,16 @@ static void s_test_start_grab_status_failure_is_noop(void)
 static void s_test_start_success_activates_module(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     desktop.viewport_origin.x = 200;
     desktop.viewport_origin.y = 100;
     s_stub_current_desktop = &desktop;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 50, 60 });
 
     TAP_EQ_INT(s_grab_pointer_calls, 1,
@@ -467,15 +467,15 @@ static void s_test_start_success_activates_module(void)
 static void s_test_start_with_room_grabs_move_cursor(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_current_desktop = &desktop;
     s_stub_viewport_has_room = true;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 0, 0 });
 
     TAP_EQ_INT((int) s_grab_last_cursor, (int) mouse_cursor_move(),
@@ -493,15 +493,15 @@ static void s_test_start_with_room_grabs_move_cursor(void)
 static void s_test_start_without_room_grabs_plain_cursor(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_current_desktop = &desktop;
     s_stub_viewport_has_room = false;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 0, 0 });
 
     TAP_EQ_INT((int) s_grab_last_cursor, (int) mouse_plain_cursor(),
@@ -526,7 +526,7 @@ static void s_test_update_inactive_is_noop(void)
             (struct position_s) { 10, 10 });
 
     TAP_EQ_INT(s_viewport_set_calls, 0,
-            "no active drag: scmd_surface_viewport_set is never"
+            "no active drag: scmd_stage_viewport_set is never"
             " called");
 }
 
@@ -536,16 +536,16 @@ static void s_test_update_inactive_is_noop(void)
 static void s_test_update_pans_with_inverted_delta(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     desktop.viewport_origin.x = 300;
     desktop.viewport_origin.y = 150;
     s_stub_current_desktop = &desktop;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 500, 400 });
 
     /* Pointer moved +40 right, -25 up since the press */
@@ -553,7 +553,7 @@ static void s_test_update_pans_with_inverted_delta(void)
             (struct position_s) { 540, 375 });
 
     TAP_EQ_INT(s_viewport_set_calls, 1,
-            "a moved pointer: scmd_surface_viewport_set is called"
+            "a moved pointer: scmd_stage_viewport_set is called"
             " once");
     TAP_EQ_INT(s_viewport_set_last_x, 260,
             "origin.x moves opposite the pointer's own delta"
@@ -590,19 +590,19 @@ static void s_test_end_inactive_is_noop(void)
 static void s_test_end_below_threshold_unfocuses_active_client(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     client_td active_client;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&active_client, 0, sizeof(active_client));
     desktop.client_active_id = 42u;
     s_stub_current_desktop = &desktop;
     s_stub_desktop_get_result = &desktop;
     s_stub_lookup_find_client_result = &active_client;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 100, 100 });
 
     /* Released one pixel away: well under the 4px x 4px threshold */
@@ -625,8 +625,8 @@ static void s_test_end_below_threshold_unfocuses_active_client(void)
             "the desktop's focus bookkeeping is marked dirty");
     TAP_OK(desktop.is_outdated,
             "the desktop itself is marked outdated");
-    TAP_OK(surface.is_outdated,
-            "the surface itself is marked outdated");
+    TAP_OK(stage.is_outdated,
+            "the stage itself is marked outdated");
     TAP_EQ_INT(s_ungrab_pointer_calls, 1,
             "the pointer grab is released exactly once");
     TAP_OK(!drag_background_is_active(),
@@ -639,15 +639,15 @@ static void s_test_end_below_threshold_unfocuses_active_client(void)
 static void s_test_end_below_threshold_no_active_client(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     desktop.client_active_id = 0;
     s_stub_current_desktop = &desktop;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 100, 100 });
 
     drag_background_end((xcb_connection_t *) 1, NULL,
@@ -667,19 +667,19 @@ static void s_test_end_below_threshold_no_active_client(void)
 static void s_test_end_above_threshold_skips_unfocus(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     client_td active_client;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&active_client, 0, sizeof(active_client));
     desktop.client_active_id = 7u;
     s_stub_current_desktop = &desktop;
     s_stub_desktop_get_result = &desktop;
     s_stub_lookup_find_client_result = &active_client;
 
-    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+    drag_background_start((xcb_connection_t *) 1, &stage, 1u, 0,
             (struct position_s) { 0, 0 });
 
     /* Released 20px away on each axis: well past the threshold */
@@ -703,7 +703,7 @@ int main(void)
     TAP_PLAN(38);
 
     s_test_start_null_connection_is_noop();
-    s_test_start_null_surface_is_noop();
+    s_test_start_null_stage_is_noop();
     s_test_start_no_desktop_is_noop();
     s_test_start_grab_reply_null_is_noop();
     s_test_start_grab_status_failure_is_noop();

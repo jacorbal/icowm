@@ -32,7 +32,7 @@
  * Applies the client's border width (only when it actually changed, to
  * avoid needless server round trips), maps or unmaps its
  * frame/titlebar/content window as appropriate for whether @p desktop
- * is the surface's currently displayed one, and either reconfigures its
+ * is the stage's currently displayed one, and either reconfigures its
  * full geometry and decoration (when @c is_outdated) or, more cheaply,
  * only refreshes focus-sensitive decoration colors (when only
  * @p desktop's @c is_focus_dirty changed).
@@ -43,10 +43,10 @@
  * client's blink-phase change, without forcing every other client
  * on the same desktop to repaint along with it.
  *
- * @param desktop    Desktop the client belongs to
- * @param client     Client to render; assumed non-null and not
+ * @param desktop Desktop the client belongs to
+ * @param client  Client to render; assumed non-null and not
  *                   currently hidden
- * @param is_current Whether @p desktop is the surface's currently
+ * @param is_current Whether @p desktop is the stage's currently
  *                   displayed desktop
  *
  * @note Complexity: @e O(1)
@@ -61,7 +61,7 @@ void desktop_render_one_client(desktop_td *desktop,
  * clients.  Called when the desktop needs a complete refresh.
  *
  * @param desktop    Pointer to the desktop to render
- * @param is_current Whether @p desktop is the surface's currently
+ * @param is_current Whether @p desktop is the stage's currently
  *                   displayed desktop; forwarded to
  *                   @a desktop_render_clients so that clients on
  *                   a desktop that is not currently shown are never

@@ -8,7 +8,7 @@
  * @c drag/internal.h for why.  Sibling to @c drag/warp.c, which
  * switches whole desktops instead of panning within one: whichever of
  * the two a held edge actually means is decided by
- * @a scmd_surface_viewport_pan_available (@c cmds/surface.h), consulted
+ * @a scmd_stage_viewport_pan_available (@c cmds/stage.h), consulted
  * by both files independently rather than through a decision made once
  * here and handed to the other, so neither has to know the other exists
  * at all.
@@ -58,11 +58,11 @@
 #include <client/predicates.h>
 #include <desktop.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Command includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Utils includes */
 #include <utils/time/clock.h>
@@ -77,30 +77,30 @@
 
 
 /**
- * @brief Pan @p surface's current desktop one screen toward
+ * @brief Pan @p stage's current desktop one screen toward
  *        @p direction
  *
- * @param surface   Surface to pan
+ * @param stage     Stage to pan
  * @param direction Compass direction to pan toward
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       current desktop
  */
-static void s_pan_apply(surface_td *surface,
+static void s_pan_apply(stage_td *stage,
         enum compass_direction_e direction)
 {
     switch (direction) {
     case COMPASS_NORTH:
-        scmd_surface_viewport_pan_north(surface);
+        scmd_stage_viewport_pan_north(stage);
         break;
     case COMPASS_SOUTH:
-        scmd_surface_viewport_pan_south(surface);
+        scmd_stage_viewport_pan_south(stage);
         break;
     case COMPASS_EAST:
-        scmd_surface_viewport_pan_east(surface);
+        scmd_stage_viewport_pan_east(stage);
         break;
     case COMPASS_WEST:
-        scmd_surface_viewport_pan_west(surface);
+        scmd_stage_viewport_pan_west(stage);
         break;
     }
 }
@@ -112,11 +112,11 @@ static void s_pan_apply(surface_td *surface,
  *
  * A no-op for a sticky dragged client: @a s_pan_apply just above
  * already left it untouched on screen (@a s_viewport_translate_visit,
- * @c cmds/surface.c, skips any client holding @c CLIENT_FLAG_STICKY),
+ * @c cmds/stage.c, skips any client holding @c CLIENT_FLAG_STICKY),
  * so shifting the drag's own cached position here would only make it
  * visually snap on the next @c MotionNotify instead.  The dragged
  * client itself is also the one client that same translate walk always
- * skips regardless of stickiness (@a scmd_surface_viewport_drag_exclude
+ * skips regardless of stickiness (@a scmd_stage_viewport_drag_exclude
  * having named it for the whole drag's duration), so every bit of its
  * own repositioning below is this function's job alone rather than
  * shared with that walk.
@@ -195,7 +195,7 @@ static void s_pan_move_dragged(xcb_connection_t *connection,
          * drag follows that exact same precedent instead of leaving
          * the dragged client to the generic per-client translate walk
          * (which now excludes it outright, see 's_viewport_pan_
-         * excluded_client', cmds/surface.c).  A raw 'xcb_configure_
+         * excluded_client', cmds/stage.c).  A raw 'xcb_configure_
          * window' rather than 'ccmd_client_move', for the same reason
          * 's_viewport_translate_visit' itself avoids that wrapper: it
          * refuses to touch a maximized or fullscreen client at all,
@@ -257,7 +257,7 @@ static void s_pan_move_dragged(xcb_connection_t *connection,
  * accordingly */
 void drag_pan_edge_check(int16_t root_x, int16_t root_y)
 {
-    surface_td *surface;
+    stage_td *stage;
     bool at_left;
     bool at_right;
     bool at_top;
@@ -269,9 +269,9 @@ void drag_pan_edge_check(int16_t root_x, int16_t root_y)
         return;
     }
 
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->config == NULL ||
-            !surface->config->base.viewport.pan_on_edge_drag) {
+    stage = wm_get_stage_by_id(s_drag.client->screen_id);
+    if (stage == NULL || stage->config == NULL ||
+            !stage->config->base.viewport.pan_on_edge_drag) {
         s_drag.is_pan_pending = false;
         return;
     }
@@ -297,7 +297,7 @@ void drag_pan_edge_check(int16_t root_x, int16_t root_y)
         return;
     }
 
-    if (!scmd_surface_viewport_pan_available(surface, direction)) {
+    if (!scmd_stage_viewport_pan_available(stage, direction)) {
         s_drag.is_pan_pending = false;
         return;
     }
@@ -361,7 +361,7 @@ static void s_pan_pointer_target(struct position_s delta,
     /* Clamped to at most 'INT16_MAX', matching 's_warp_pointer_target'
      * ('drag/warp.c'): 'screen_w'/'screen_h' (uint32_t, no compile-time
      * bound) are not guaranteed to fit int16_t on an extreme
-     * multi-monitor surface, and this pointer position is sent to the
+     * multi-monitor stage, and this pointer position is sent to the
      * X server as one, via 'xcb_warp_pointer' below. */
     max_x = ((int32_t) s_drag.screen_w - 1 > INT16_MAX)
         ? INT16_MAX : (int32_t) s_drag.screen_w - 1;
@@ -391,7 +391,7 @@ static void s_pan_pointer_target(struct position_s delta,
 /* Perform the pending edge pan, if due */
 void drag_pan_tick(xcb_connection_t *connection)
 {
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     struct position_s origin_before;
     struct position_s delta;
@@ -419,18 +419,18 @@ void drag_pan_tick(xcb_connection_t *connection)
 
     is_icon = s_drag.drag_window != XCB_WINDOW_NONE;
 
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->screen == NULL ||
-            surface->config == NULL ||
-            !surface->config->base.viewport.pan_on_edge_drag ||
-            !scmd_surface_viewport_pan_available(surface,
+    stage = wm_get_stage_by_id(s_drag.client->screen_id);
+    if (stage == NULL || stage->screen == NULL ||
+            stage->config == NULL ||
+            !stage->config->base.viewport.pan_on_edge_drag ||
+            !scmd_stage_viewport_pan_available(stage,
                 s_drag.pan_direction)) {
         /* Live re-check: the config, or the viewport's own room to pan,
          * may have changed since this was armed. */
         return;
     }
 
-    desktop = lookup_current_desktop(surface);
+    desktop = lookup_current_desktop(stage);
     if (desktop == NULL) {
         return;
     }
@@ -440,14 +440,14 @@ void drag_pan_tick(xcb_connection_t *connection)
      * can already sit at an unaligned origin coming from a background
      * pan drag ('input/mouse/drag/background.c') or an EWMH
      * '_NET_DESKTOP_VIEWPORT' request, in which case
-     * 's_viewport_apply_origin' ('cmds/surface.c') clamps the requested
+     * 's_viewport_apply_origin' ('cmds/stage.c') clamps the requested
      * step short of a whole screen.  Recomputing it this way instead of
      * assuming the step always lands exactly a whole screen away keeps
      * the dragged client in lock-step with every other client on the
      * desktop, which that same function already moved by whatever the
      * real, possibly-clamped delta turned out to be. */
     origin_before = desktop->viewport_origin;
-    s_pan_apply(surface, s_drag.pan_direction);
+    s_pan_apply(stage, s_drag.pan_direction);
     delta.x = origin_before.x - desktop->viewport_origin.x;
     delta.y = origin_before.y - desktop->viewport_origin.y;
 
@@ -477,7 +477,7 @@ void drag_pan_tick(xcb_connection_t *connection)
         delta.y = (int32_t) new_root_y - (int32_t) s_drag.last_root_y;
         s_pan_move_dragged(connection, is_icon, delta);
 
-        xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
+        xcb_warp_pointer(connection, XCB_NONE, stage->screen->root,
                 0, 0, 0, 0, new_root_x, new_root_y);
 
         /* Matches 'last_root_x'/'last_root_y' up with the warp just

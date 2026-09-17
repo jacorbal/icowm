@@ -34,8 +34,8 @@
 #include <config.h>
 #include <i18n.h>
 #include <monitor.h>
-#include <surface.h>
-#include <surface/monitor.h>
+#include <stage.h>
+#include <stage/monitor.h>
 
 /* Local includes */
 #include <menu/dialog/inspect.h>
@@ -219,7 +219,7 @@ static void s_inspect_flag(char *buf, size_t size, const char *name)
 
 /* Show the inspector for one client */
 void dialog_inspect_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const client_td *client)
 {
     struct s_inspect_ctx_s ctx;
@@ -227,7 +227,7 @@ void dialog_inspect_show(xcb_connection_t *connection,
     char no[DIALOG_MSG_LINE_MAX_LENGTH];
     monitor_td monitor;
 
-    if (connection == NULL || surface == NULL || config == NULL ||
+    if (connection == NULL || stage == NULL || config == NULL ||
             client == NULL) {
         return;
     }
@@ -268,7 +268,7 @@ void dialog_inspect_show(xcb_connection_t *connection,
      * a window straddling two monitors is reported on the one it mostly
      * occupies, which is the one every other part of the manager
      * already treats it as being on */
-    monitor = surface_monitor_for_point(surface,
+    monitor = stage_monitor_for_point(stage,
             (struct position_s) {
                 client->layout.geometry.cur.pos.x +
                     (int32_t) (client->layout.geometry.cur.dim.w / 2u),
@@ -364,6 +364,6 @@ void dialog_inspect_show(xcb_connection_t *connection,
                 (unsigned int) client->icon_window);
     }
 
-    menu_message_dialog_show_pairs(connection, surface, config,
+    menu_message_dialog_show_pairs(connection, stage, config,
             ctx.pairs, ctx.count, MENU_MSG_LEVEL_INFO);
 }

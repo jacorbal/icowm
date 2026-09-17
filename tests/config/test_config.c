@@ -65,6 +65,29 @@ static void s_write_file(const char *dir, const char *filename,
 }
 
 
+/**
+ * @brief Remove every file @a s_write_file could have written into
+ *        @p dir, and @p dir itself
+ *
+ * Unlinking a name nobody wrote is a harmless no-op, so this covers
+ * every test here regardless of which subset it actually created.
+ */
+static void s_remove_temp_dir(const char *dir)
+{
+    char path[512];
+
+    snprintf(path, sizeof(path), "%s/config.json", dir);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/bindings.json", dir);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/randr.json", dir);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/a11y.json", dir);
+    unlink(path);
+    rmdir(dir);
+}
+
+
 /* config_init allocates a non-NULL structure already populated with
  * default values, ready to use without a config_load call */
 static void s_test_init_gives_defaults(void)
@@ -124,6 +147,7 @@ static void s_test_load_minimal_directory_succeeds(void)
             " built-in default");
 
     config_destroy(config);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -145,6 +169,7 @@ static void s_test_load_missing_base_file_fails(void)
             " to load");
 
     config_destroy(config);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -166,6 +191,7 @@ static void s_test_load_optional_files_absent_still_succeeds(void)
             " loads successfully");
 
     config_destroy(config);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -191,6 +217,7 @@ static void s_test_load_records_missing_theme(void)
             "the built-in theme is used as a fallback");
 
     config_destroy(config);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -213,6 +240,7 @@ static void s_test_missing_theme_reset_clears_it(void)
             "resetting clears the recorded missing theme");
 
     config_destroy(config);
+    s_remove_temp_dir(dir);
 }
 
 

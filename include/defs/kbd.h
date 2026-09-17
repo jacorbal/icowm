@@ -37,11 +37,11 @@
  *        pressed key against
  *
  * Named the same as the corresponding @c XK_* macro in the X11
- * protocol's @c keysymdef.h, minus the @c XK_ prefix, so any of
- * these can be looked up there directly by name if ever in doubt.
- * @c KS_FKEY_BASE is the one exception, for not a keysym in its
- * right, but the arithmetic base @c (KS_FKEY_BASE + n) resolves to
- * @c F1 through @c F12 for @c n in 1-12.
+ * protocol's @c keysymdef.h, minus the @c XK_ prefix, so any of these
+ * can be looked up there directly by name if ever in doubt.
+ * @c KS_FKEY_BASE is the one exception, not a keysym in its right, but
+ * the arithmetic base @c (KS_FKEY_BASE + n) resolves to @c F1 through
+ * @c F12 for @c n in 1-12.
  *
  * @see @a s_bindings_parse_keysym_token in @c input/kbd/bind.c
  */
@@ -110,19 +110,19 @@
  * @brief Minimum time, in milliseconds, @a ik_handle_launch requires
  *        between two program launches it actually dispatches
  *
- * Holding a @c KEYBIND_LAUNCH_* binding down repeats the same launch
- * on every one of X11's key-repeat events for as long as it stays
- * held, exactly like a plain, unmodified key would in any text field;
- * nothing about this window manager's key handling distinguishes
- * a genuine fresh press from a repeat.  Left unthrottled, this can
- * launch new processes faster than this window manager, the X server,
- * and the newly launched applications themselves can cleanly keep up
- * with; empirically, an unthrottled hold repeats roughly every 120 ms
- * on ordinary hardware, so this leaves real margin above that without
+ * Holding a @c KEYBIND_LAUNCH_* binding down repeats the same launch on
+ * every one of X11's key-repeat events for as long as it stays held,
+ * exactly like a plain, unmodified key would in any text field; nothing
+ * about this window manager's key handling distinguishes a genuine
+ * fresh press from a repeat.  Left unthrottled, this can launch new
+ * processes faster than this window manager, the X server, and the
+ * newly launched applications themselves can cleanly keep up with;
+ * empirically, an unthrottled hold repeats roughly every 120 ms on
+ * ordinary hardware, so this leaves real margin above that without
  * making a deliberate, repeated hold feel sluggish.
  *
- * Adjust this single constant to retune the pace; nothing else needs
- * to change.
+ * Adjust this single constant to retune the pace; nothing else needs to
+ * change.
  */
 #define KBD_LAUNCH_MIN_INTERVAL_MS (100u)
 

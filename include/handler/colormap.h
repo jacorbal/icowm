@@ -42,15 +42,15 @@
  * immediately rather than waiting for the next focus change.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Colormap notify event
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e c the
+ *       stages, @e d the number of desktops per stage, and @e c the
  *       number of clients per desktop
  */
 void handler_colormap_notify(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_colormap_notify_event_t *event);
+        list_td *stages, const xcb_colormap_notify_event_t *event);
 
 
 #endif  /* ! HANDLER_COLORMAP_H */

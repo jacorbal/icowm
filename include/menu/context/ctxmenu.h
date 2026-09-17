@@ -205,7 +205,7 @@ typedef struct ctxmenu_state_s {
 
     /** Cached connection, for repaints */
     const config_td *config;    /**< Cached configuration */
-    surface_td *surface;        /**< Cached activation surface */
+    stage_td *stage;            /**< Cached activation stage */
     xcb_window_t window;        /**< XCB window, or @c XCB_WINDOW_NONE */
     int entry_count;            /**< Entries in @p entries */
     int selected;               /**< Highlighted row index */
@@ -234,21 +234,21 @@ typedef struct ctxmenu_state_s {
  * @brief Create and show a context menu window
  *
  * Creates an XCB override-redirect popup window at @p pos, clamped so
- * the menu never extends beyond the work area of @p surface.  The menu
+ * the menu never extends beyond the work area of @p stage.  The menu
  * grabs the pointer.  Any previously open context menu at the same
  * nesting level is closed first.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to display the menu
+ * @param stage      Stage on which to display the menu
  * @param state      Menu state structure; @p entries and @p entry_count
  *                   must already be set by the caller
- * @param pos        Requested origin (root coordinates)
- * @param config     Active configuration (theme colors and font)
+ * @param pos    Requested origin (root coordinates)
+ * @param config Active configuration (theme colors and font)
  *
  * @note Complexity: @e O(n), where @e n is @p entry_count
  */
 void ctxmenu_show(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         struct position_s pos, const config_td *config);
 
 /**

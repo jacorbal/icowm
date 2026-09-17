@@ -37,7 +37,7 @@
  *
  * @param name Button name as it appears in a theme's
  *             @p window.titlebar.buttons.left / @p .right list
- * @param out  Receives the parsed value; untouched if @p name is not
+ * @param out Receives the parsed value; untouched if @p name is not
  *             a recognized button name
  *
  * @return @c true if @p name was recognized
@@ -91,7 +91,7 @@ static bool s_parse_titlebar_button(const char *name,
  * @param key          @c left or @c right
  * @param dest         Destination array, sized
  *                     @c CONFIG_MAX_TITLEBAR_BUTTONS
- * @param count_out    Receives the number of buttons actually loaded
+ * @param count_out Receives the number of buttons actually loaded
  *
  * @note Complexity: @e O(n * m), where @e n is the length of the
  *       JSON array and @e m is @c CONFIG_MAX_TITLEBAR_BUTTONS (the
@@ -201,7 +201,7 @@ static enum config_systray_text_valign_e s_parse_systray_text_valign(
 /**
  * @brief Load one @c { font, color: {background, foreground},
  *        border: {color, width} } block, the shape shared by every
- *        themeable surface (window active/inactive, icon
+ *        themeable stage (window active/inactive, icon
  *        active/inactive, systray)
  *
  * @param json_obj Parsed JSON object holding the block

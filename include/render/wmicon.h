@@ -156,19 +156,19 @@ typedef struct {
  * opposed to @c wmicon_draw_at's use case of one icon among several
  * sharing a single larger drawable.
  *
- * @param connection  XCB connection
- * @param ewmh        EWMH connection, for the typed @c _NET_WM_ICON
+ * @param connection XCB connection
+ * @param ewmh       EWMH connection, for the typed @c _NET_WM_ICON
  *                    property getter
- * @param window      Client's window, whose @c _NET_WM_ICON and
+ * @param window Client's window, whose @c _NET_WM_ICON and
  *                    @c WM_HINTS properties are read (not the icon
  *                    window itself)
- * @param drawable    Icon window (or other drawable) to composite onto
- * @param area_size   Side length, in pixels, of the square area the
+ * @param drawable  Icon window (or other drawable) to composite onto
+ * @param area_size Side length, in pixels, of the square area the
  *                    icon is centered in and clipped to
  * @param frame_color Default icon's frame/titlebar color, used only
  *                    when @p window has no usable icon of its own
- * @param bg_color    Default icon's body color (same caveat)
- * @param cache       This client's cache slot; read first to check for
+ * @param bg_color Default icon's body color (same caveat)
+ * @param cache    This client's cache slot; read first to check for
  *                    a usable cached @c Picture before doing any of the
  *                    fetch/premultiply/upload work, and updated
  *                    whenever that work does end up running, so the
@@ -217,16 +217,16 @@ void wmicon_draw(xcb_connection_t *connection,
  * with no theme access of its own would only risk drifting out of sync
  * with it.
  *
- * @param connection  XCB connection
- * @param ewmh        EWMH connection, for the typed @c _NET_WM_ICON
+ * @param connection XCB connection
+ * @param ewmh       EWMH connection, for the typed @c _NET_WM_ICON
  *                    property getter
- * @param window      Client's window, whose @c _NET_WM_ICON and
+ * @param window Client's window, whose @c _NET_WM_ICON and
  *                    @c WM_HINTS properties are read (not the icon
  *                    window itself)
- * @param drawable    Drawable to composite onto
- * @param pos         Offset, within @p drawable, of the icon square's
+ * @param drawable Drawable to composite onto
+ * @param pos      Offset, within @p drawable, of the icon square's
  *                    own top-left corner
- * @param area_size   Side length, in pixels, of the square area the
+ * @param area_size Side length, in pixels, of the square area the
  *                    icon is centered in and clipped to
  * @param frame_color Default icon's frame/titlebar color
  * @param bg_color    Default icon's body color

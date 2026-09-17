@@ -1,7 +1,7 @@
 /**
  * @file lookup.c
  *
- * @brief Window, client, surface, and desktop lookup implementation
+ * @brief Window, client, stage, and desktop lookup implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -24,8 +24,8 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Local includes */
 #include <lookup.h>
@@ -60,20 +60,20 @@ static bool s_lookup_client_matches_window(const client_td *client,
 }
 
 
-/* Find the surface whose root window matches 'root' */
-surface_td *lookup_surface_for_root(list_td *surfaces,
+/* Find the stage whose root window matches 'root' */
+stage_td *lookup_stage_for_root(list_td *stages,
         xcb_window_t root)
 {
-    if (surfaces == NULL) {
+    if (stages == NULL) {
         return NULL;
     }
 
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(stages);
             node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
-        if (surface != NULL && surface->screen != NULL &&
-                surface->screen->root == root) {
-            return surface;
+        stage_td *const stage = (stage_td *) list_data(node);
+        if (stage != NULL && stage->screen != NULL &&
+                stage->screen->root == root) {
+            return stage;
         }
     }
 
@@ -81,44 +81,44 @@ surface_td *lookup_surface_for_root(list_td *surfaces,
 }
 
 
-/* Return the currently active desktop for a surface */
-desktop_td *lookup_current_desktop(surface_td *surface)
+/* Return the currently active desktop for a stage */
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    if (surface == NULL) {
+    if (stage == NULL) {
         return NULL;
     }
 
-    return surface_desktop_get(surface, surface->desktop_cur);
+    return stage_desktop_get(stage, stage->desktop_cur);
 }
 
 
-/* Search all surfaces and desktops for a client by window ID */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+/* Search all stages and desktops for a client by window ID */
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
     if (out_desktop != NULL) {
         *out_desktop = NULL;
     }
 
-    if (surfaces == NULL || window == XCB_WINDOW_NONE) {
+    if (stages == NULL || window == XCB_WINDOW_NONE) {
         return NULL;
     }
 
-    for (list_item_td *snode = list_head(surfaces);
+    for (list_item_td *snode = list_head(stages);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
         cdlist_item_td *dnode;
         const cdlist_item_td *dinitial;
 
-        if (surface == NULL || surface->desktops == NULL ||
-                cdlist_size(surface->desktops) == 0) {
+        if (stage == NULL || stage->desktops == NULL ||
+                cdlist_size(stage->desktops) == 0) {
             continue;
         }
 
-        dnode = cdlist_head(surface->desktops);
+        dnode = cdlist_head(stage->desktops);
         dinitial = dnode;
         if (dnode == NULL) {
             continue;
@@ -144,8 +144,8 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
                         found != NULL &&
                         s_lookup_client_matches_window(found, window)) {
 
-                    if (out_surface != NULL) {
-                        *out_surface = surface;
+                    if (out_stage != NULL) {
+                        *out_stage = stage;
                     }
 
                     if (out_desktop != NULL) {
@@ -164,8 +164,8 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
                         continue;
                     }
 
-                    if (out_surface != NULL) {
-                        *out_surface = surface;
+                    if (out_stage != NULL) {
+                        *out_stage = stage;
                     }
 
                     if (out_desktop != NULL) {

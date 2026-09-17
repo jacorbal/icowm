@@ -43,19 +43,19 @@
  * maps all four (@p create true) or reconfigures the already-existing
  * ones (@p create false) to match.
  *
- * @param connection   XCB connection used to create or reconfigure
+ * @param connection XCB connection used to create or reconfigure
  *                     the strip windows
- * @param root         Root window the 4 strips are created as
+ * @param root Root window the 4 strips are created as
  *                     children of; unused when @p create is @c false
  * @param geom         Rectangle, in root coordinates
  * @param border_width Thickness of each strip, in pixels
  * @param color        Fill color for all 4 strips; unused when
  *                     @p create is @c false
- * @param stack_below  A window every strip is kept stacked below,
+ * @param stack_below A window every strip is kept stacked below,
  *                     or @c XCB_WINDOW_NONE for no such constraint
- * @param create       @c true to create and map the 4 strip windows,
+ * @param create @c true to create and map the 4 strip windows,
  *                     @c false to reconfigure the existing ones
- * @param windows      Caller-owned 4-element array: filled in when
+ * @param windows Caller-owned 4-element array: filled in when
  *                     @p create is @c true, read when @c false
  *
  * @note No-op if @p connection is null

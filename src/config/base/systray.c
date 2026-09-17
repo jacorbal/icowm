@@ -4,7 +4,7 @@
  * @brief Systray configuration loading
  *
  * One of the files @c config/base/ is made of;
- * @c ci_config_load_systray is also called from @c config/memguard.c
+ * @c ci_config_systray_load is also called from @c config/memguard.c
  * (declared in @c config/internal.h for exactly that reason, not just
  * for the split), since both share this exact same @c systray object
  * parsing.
@@ -32,7 +32,7 @@
 /* Load "systray" (dock position/monitor/order/layer, and its nested
  * "clock", "battery", and "text" objects) from a parsed 'config.json'
  * or 'memguard.json' */
-void ci_config_load_systray(cJSON *json,
+void ci_config_systray_load(cJSON *json,
         struct config_base_s *config_base)
 {
     cJSON *systray;
@@ -176,7 +176,7 @@ void ci_config_load_systray(cJSON *json,
                 enum config_systray_text_item_e parsed;
 
                 if (elem != NULL && cJSON_IsString(elem) &&
-                        ci_config_parse_systray_text_item(
+                        ci_config_systray_text_item_parse(
                                 elem->valuestring, &parsed)) {
                     config_base->systray.text.order[out_count] =
                         parsed;

@@ -48,7 +48,7 @@ bool urgency_blink_is_on(void);
  *
  * Meant to be called once per main-loop iteration, unconditionally, the
  * same way @p systray_clock_tick is.  Scans every client across every
- * surface and desktop for the urgent flag; a no-op when none is found.
+ * stage and desktop for the urgent flag; a no-op when none is found.
  *
  * When at least one is found and
  * @p config->a11y.urgency.blink_interval_ms (@c config.h) has elapsed
@@ -57,8 +57,8 @@ bool urgency_blink_is_on(void);
  * sounds an audible bell right on the transition into urgency when
  * @p config->a11y.urgency.sound_bell is set.
  *
- * @param surfaces All managed surfaces
- * @param config   Active configuration; a @c NULL falls back to the
+ * @param stages All managed stages
+ * @param config Active configuration; a @c NULL falls back to the
  *                 built-in and never sounds a bell
  *
  * @note The bell depends on the configuration of XBell
@@ -67,7 +67,7 @@ bool urgency_blink_is_on(void);
  *
  * @see @c WM_URGENCY_BLINK_INTERVAL_MS in @c defs/urgency.h
  */
-void urgency_blink_tick(list_td *surfaces, const config_td *config);
+void urgency_blink_tick(list_td *stages, const config_td *config);
 
 /**
  * @brief How many milliseconds until the blink cycle next needs a

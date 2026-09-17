@@ -33,11 +33,11 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <i18n.h>
-#include <surface.h>
-#include <surface/viewport.h>
+#include <stage.h>
+#include <stage/viewport.h>
 
 /* CMD includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -58,7 +58,7 @@
  * @brief Userdata structure passed to the "Send to page" callback
  */
 typedef struct {
-    surface_td *surface; /**< Surface owning the viewport */
+    stage_td *stage; /**< Stage owning the viewport */
     client_td *client;   /**< Target client */
     uint32_t col;        /**< Destination page column */
     uint32_t row;        /**< Destination page row */
@@ -92,11 +92,11 @@ static void s_cb_send_to_page(xcb_connection_t *connection,
     (void) connection;
 
     if (send == NULL || send->client == NULL ||
-            send->surface == NULL) {
+            send->stage == NULL) {
         return;
     }
 
-    enact_client_send_to_page(send->surface, send->client,
+    enact_client_send_to_page(send->stage, send->client,
             send->col, send->row);
 }
 
@@ -124,7 +124,7 @@ static void s_cb_toggle_sticky(xcb_connection_t *connection,
 
 
 /* Build the "Send to page" submenu entries for 'client' */
-int ctxmenu_submenu_page_build(surface_td *surface,
+int ctxmenu_submenu_page_build(stage_td *stage,
         desktop_td *desktop, client_td *client,
         ctxmenu_entry_td **out_entries, ctxmenu_state_td **out_state)
 {
@@ -137,13 +137,13 @@ int ctxmenu_submenu_page_build(surface_td *surface,
     char label[64];
     int n = 0;
 
-    if (surface == NULL || desktop == NULL || client == NULL ||
+    if (stage == NULL || desktop == NULL || client == NULL ||
             out_entries == NULL || out_state == NULL ||
-            !surface_viewport_has_room(surface)) {
+            !stage_viewport_has_room(stage)) {
         return 0;
     }
 
-    surface_viewport_dims(surface, &columns, &rows);
+    stage_viewport_dims(stage, &columns, &rows);
     /* A grid of one page has nowhere to send anything, so it gets no
      * submenu even where the room check above somehow said otherwise */
     if (columns * rows <= 1u) {
@@ -151,7 +151,7 @@ int ctxmenu_submenu_page_build(surface_td *surface,
     }
 
     is_sticky = client_is_sticky(client);
-    has_current = scmd_surface_viewport_client_page(surface, desktop,
+    has_current = scmd_stage_viewport_client_page(stage, desktop,
             client, &cur_col, &cur_row);
 
     memset(s_page_entries, 0, sizeof(s_page_entries));
@@ -173,7 +173,7 @@ int ctxmenu_submenu_page_build(surface_td *surface,
              * Otherwise only the page it already sits on is refused */
             s_page_entries[n].is_disabled = is_sticky ||
                 (has_current && col == cur_col && row == cur_row);
-            s_page_send_data[n].surface = surface;
+            s_page_send_data[n].stage = stage;
             s_page_send_data[n].client = client;
             s_page_send_data[n].col = col;
             s_page_send_data[n].row = row;

@@ -7,7 +7,7 @@
  * reservation sources into one rectangle: each stacked client's own
  * strut, the systray's own strut, and configured margins, with
  * margins applied only on whichever of a region's own edges actually
- * coincides with the surface's own edge.  desktop_init and the XCB
+ * coincides with the stage's own edge.  desktop_init and the XCB
  * calls it alone makes (xcb_get_setup, xcb_screen_next, xcb_setup_
  * roots_iterator) are link-only here, never exercised: every desktop
  * below is built directly, not through desktop_init.
@@ -34,7 +34,7 @@
 #include <harness/tap.h>
 #include <policy/stacking.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /** Link-only stand-ins: desktop_init's own XCB screen/setup calls,
@@ -152,20 +152,20 @@ void client_destroy(client_td *client)
 }
 
 
-/* Build a surface with a single monitor spanning the whole screen,
+/* Build a stage with a single monitor spanning the whole screen,
  * and one desktop with an empty (but real) stacking list */
-static void s_make_surface(surface_td *surface, desktop_td *desktop,
+static void s_make_stage(stage_td *stage, desktop_td *desktop,
         uint32_t screen_w, uint32_t screen_h)
 {
-    memset(surface, 0, sizeof(*surface));
+    memset(stage, 0, sizeof(*stage));
     memset(desktop, 0, sizeof(*desktop));
-    surface->properties.dim.w = screen_w;
-    surface->properties.dim.h = screen_h;
-    surface->monitor_count = 1u;
-    surface->monitors[0].x = 0;
-    surface->monitors[0].y = 0;
-    surface->monitors[0].w = screen_w;
-    surface->monitors[0].h = screen_h;
+    stage->properties.dim.w = screen_w;
+    stage->properties.dim.h = screen_h;
+    stage->monitor_count = 1u;
+    stage->monitors[0].x = 0;
+    stage->monitors[0].y = 0;
+    stage->monitors[0].w = screen_w;
+    stage->monitors[0].h = screen_h;
     /* The stacking order is no longer a list of the desktop's own:
      * it spans every managed client and filters by asking the
      * desktop's client table which of them it shows, so a test
@@ -176,11 +176,11 @@ static void s_make_surface(surface_td *surface, desktop_td *desktop,
 }
 
 
-static void s_destroy_surface(surface_td *surface, desktop_td *desktop)
+static void s_destroy_stage(stage_td *stage, desktop_td *desktop)
 {
     stacking_destroy(desktop);
     ohtbl_destroy(desktop->clients);
-    (void) surface;
+    (void) stage;
 }
 
 
@@ -188,12 +188,12 @@ static void s_destroy_surface(surface_td *surface, desktop_td *desktop)
  * the full screen, unchanged */
 static void s_test_empty_no_reservations(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
 
-    desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
+    desktop_update_workarea(&desktop, &stage, NULL, NULL, false);
 
     TAP_EQ_INT(desktop.workarea.pos.x, 0, "no reservations: x is 0");
     TAP_EQ_INT(desktop.workarea.pos.y, 0, "no reservations: y is 0");
@@ -202,26 +202,26 @@ static void s_test_empty_no_reservations(void)
     TAP_EQ_INT((long) desktop.workarea.dim.h, 600,
             "no reservations: height is the full screen");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
-/* Configured margins, with every edge coinciding with the surface
+/* Configured margins, with every edge coinciding with the stage
  * (a single full-screen monitor), reserve space on all four sides */
 static void s_test_margins_only(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     struct config_desktop_s cfg;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&cfg, 0, sizeof(cfg));
     cfg.margins.left = 10u;
     cfg.margins.right = 20u;
     cfg.margins.top = 5u;
     cfg.margins.bottom = 15u;
 
-    desktop_update_workarea(&desktop, &surface, &cfg, NULL, false);
+    desktop_update_workarea(&desktop, &stage, &cfg, NULL, false);
 
     TAP_EQ_INT(desktop.workarea.pos.x, 10, "margins: x shifts by left");
     TAP_EQ_INT(desktop.workarea.pos.y, 5, "margins: y shifts by top");
@@ -230,7 +230,7 @@ static void s_test_margins_only(void)
     TAP_EQ_INT((long) desktop.workarea.dim.h, 580,
             "margins: height shrinks by top+bottom (600-5-15)");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
@@ -238,24 +238,24 @@ static void s_test_margins_only(void)
  * independent of any configured margin */
 static void s_test_single_client_strut(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 30u;
     /* Legacy strut, start==end==0: unbounded, always applies */
     s_place_client(&desktop, &client);
 
-    desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
+    desktop_update_workarea(&desktop, &stage, NULL, NULL, false);
 
     TAP_EQ_INT(desktop.workarea.pos.y, 30,
             "a client's own top strut shifts the workarea down");
     TAP_EQ_INT((long) desktop.workarea.dim.h, 570,
             "and shrinks the height by that same amount");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
@@ -263,12 +263,12 @@ static void s_test_single_client_strut(void)
  * wins, struts are not summed together */
 static void s_test_multiple_struts_take_the_max(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td small_strut;
     client_td large_strut;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&small_strut, 0, sizeof(small_strut));
     memset(&large_strut, 0, sizeof(large_strut));
     small_strut.layout.strut_partial.sides.top = 20u;
@@ -276,12 +276,12 @@ static void s_test_multiple_struts_take_the_max(void)
     s_place_client(&desktop, &small_strut);
     s_place_client(&desktop, &large_strut);
 
-    desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
+    desktop_update_workarea(&desktop, &stage, NULL, NULL, false);
 
     TAP_EQ_INT(desktop.workarea.pos.y, 50,
             "the larger of the two top struts wins, not their sum");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
@@ -289,25 +289,25 @@ static void s_test_multiple_struts_take_the_max(void)
  * apply, added together, rather than only the larger of the two */
 static void s_test_margin_and_strut_are_additive(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     struct config_desktop_s cfg;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 30u;
     s_place_client(&desktop, &client);
     memset(&cfg, 0, sizeof(cfg));
     cfg.margins.top = 10u;
 
-    desktop_update_workarea(&desktop, &surface, &cfg, NULL, false);
+    desktop_update_workarea(&desktop, &stage, &cfg, NULL, false);
 
     TAP_EQ_INT(desktop.workarea.pos.y, 40,
             "a margin and a client strut on the same edge add" \
             " together (30+10), neither overrides the other");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
@@ -315,25 +315,25 @@ static void s_test_margin_and_strut_are_additive(void)
  * margins still apply: the two are independent reservation sources */
 static void s_test_ignore_struts_still_applies_margins(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     struct config_desktop_s cfg;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 30u;
     s_place_client(&desktop, &client);
     memset(&cfg, 0, sizeof(cfg));
     cfg.margins.top = 10u;
 
-    desktop_update_workarea(&desktop, &surface, &cfg, NULL, true);
+    desktop_update_workarea(&desktop, &stage, &cfg, NULL, true);
 
     TAP_EQ_INT(desktop.workarea.pos.y, 10,
             "ignore_struts skips the client's own strut (30), but" \
             " the configured margin (10) still applies");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
@@ -341,11 +341,11 @@ static void s_test_ignore_struts_still_applies_margins(void)
  * all is not folded in */
 static void s_test_strut_out_of_range_is_ignored(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 30u;
     /* Top strut's own horizontal span (x-range) is 900-1000, entirely
@@ -354,13 +354,13 @@ static void s_test_strut_out_of_range_is_ignored(void)
     client.layout.strut_partial.end.top = 1000;
     s_place_client(&desktop, &client);
 
-    desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
+    desktop_update_workarea(&desktop, &stage, NULL, NULL, false);
 
     TAP_EQ_INT(desktop.workarea.pos.y, 0,
             "a strut whose own span falls entirely outside the" \
             " region is not folded in at all");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
@@ -368,21 +368,21 @@ static void s_test_strut_out_of_range_is_ignored(void)
  * would, even though the systray is never a stacked client itself */
 static void s_test_systray_strut_folds_in(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     struct strut_partial_s systray;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&systray, 0, sizeof(systray));
     systray.sides.right = 40u;
 
-    desktop_update_workarea(&desktop, &surface, NULL, &systray, false);
+    desktop_update_workarea(&desktop, &stage, NULL, &systray, false);
 
     TAP_EQ_INT((long) desktop.workarea.dim.w, 760,
             "the systray's own right-edge strut shrinks the" \
             " workarea width (800-40)");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
@@ -390,58 +390,58 @@ static void s_test_systray_strut_folds_in(void)
  * dimension to 0, never negative */
 static void s_test_oversized_strut_clamps_to_zero(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 700u;
     s_place_client(&desktop, &client);
 
-    desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
+    desktop_update_workarea(&desktop, &stage, NULL, NULL, false);
 
     TAP_EQ_INT((long) desktop.workarea.dim.h, 0,
             "a strut taller than the screen clamps height to 0," \
             " not a negative value");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 
 /* Per-monitor: a margin only applies on a monitor's own edge that
- * actually coincides with the surface's own edge, not on an internal
+ * actually coincides with the stage's own edge, not on an internal
  * boundary between two side-by-side monitors */
 static void s_test_monitor_margin_only_on_screen_edge(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     struct config_desktop_s cfg;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     desktop.clients = ohtbl_init(8, 8, s_client_hash1,
             s_client_hash2, s_client_match, NULL);
     (void) stacking_create(&desktop);
-    surface.properties.dim.w = 1600u;
-    surface.properties.dim.h = 600u;
-    surface.monitor_count = 2u;
+    stage.properties.dim.w = 1600u;
+    stage.properties.dim.h = 600u;
+    stage.monitor_count = 2u;
     /* Left monitor: x=0 (at the screen's own left edge) */
-    surface.monitors[0].x = 0;
-    surface.monitors[0].y = 0;
-    surface.monitors[0].w = 800u;
-    surface.monitors[0].h = 600u;
+    stage.monitors[0].x = 0;
+    stage.monitors[0].y = 0;
+    stage.monitors[0].w = 800u;
+    stage.monitors[0].h = 600u;
     /* Right monitor: x=800 (its own left edge is an internal
      * boundary between the two monitors, not the screen's own) */
-    surface.monitors[1].x = 800;
-    surface.monitors[1].y = 0;
-    surface.monitors[1].w = 800u;
-    surface.monitors[1].h = 600u;
+    stage.monitors[1].x = 800;
+    stage.monitors[1].y = 0;
+    stage.monitors[1].w = 800u;
+    stage.monitors[1].h = 600u;
 
     memset(&cfg, 0, sizeof(cfg));
     cfg.margins.left = 20u;
 
-    desktop_update_workarea(&desktop, &surface, &cfg, NULL, false);
+    desktop_update_workarea(&desktop, &stage, &cfg, NULL, false);
 
     TAP_EQ_INT(desktop.monitor_workareas[0].pos.x, 20,
             "the left monitor's own left edge is the screen edge:" \
@@ -456,21 +456,21 @@ static void s_test_monitor_margin_only_on_screen_edge(void)
 }
 
 
-/* A NULL desktop or surface is a safe no-op */
+/* A NULL desktop or stage is a safe no-op */
 static void s_test_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
-    s_make_surface(&surface, &desktop, 800u, 600u);
+    s_make_stage(&stage, &desktop, 800u, 600u);
 
-    desktop_update_workarea(NULL, &surface, NULL, NULL, false);
+    desktop_update_workarea(NULL, &stage, NULL, NULL, false);
     TAP_OK(true, "a NULL desktop is a safe no-op, no crash");
 
     desktop_update_workarea(&desktop, NULL, NULL, NULL, false);
-    TAP_OK(true, "a NULL surface is a safe no-op, no crash");
+    TAP_OK(true, "a NULL stage is a safe no-op, no crash");
 
-    s_destroy_surface(&surface, &desktop);
+    s_destroy_stage(&stage, &desktop);
 }
 
 

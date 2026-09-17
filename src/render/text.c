@@ -292,8 +292,8 @@ static size_t s_font_config_tokenize(const char *restrict input,
  * removed from @p tokens (via @p ntok) and split at its last hyphen
  * into @p registry and @p encoding.
  *
- * @param tokens        Tokens produced by @a s_font_config_tokenize
- * @param ntok          Token count; decremented if a charset spec was
+ * @param tokens Tokens produced by @a s_font_config_tokenize
+ * @param ntok   Token count; decremented if a charset spec was
  *                      found and removed
  * @param registry      Destination for the registry part
  * @param registry_size Size of @p registry, in bytes
@@ -398,7 +398,7 @@ static int s_font_config_extract_size(
 /**
  * @brief Scan tokens for the weight and slant style keywords
  *
- * @param tokens     Tokens remaining after
+ * @param tokens Tokens remaining after
  *                   @a s_font_config_extract_size
  * @param ntok       Number of tokens in @p tokens
  * @param is_bold    Set to @c true if a 'bold' token was found
@@ -431,7 +431,7 @@ static void s_font_config_scan_style(
  * @brief Join every non-keyword token, space-separated, into the
  *        font family string
  *
- * @param tokens      Tokens remaining after
+ * @param tokens Tokens remaining after
  *                    @a s_font_config_extract_size
  * @param ntok        Number of tokens in @p tokens
  * @param family      Destination buffer for the family string
@@ -478,8 +478,8 @@ static void s_font_config_build_family(
  * combination is rendered as an XLFD wildcard pattern, with @c '*'
  * standing in for whichever fields were not specified.
  *
- * @param family     Font family, from @a s_font_config_build_family
- * @param size       Pixel size, from @a s_font_config_extract_size
+ * @param family Font family, from @a s_font_config_build_family
+ * @param size   Pixel size, from @a s_font_config_extract_size
  *                   (@c 0 for unspecified)
  * @param is_bold    Whether the 'bold' keyword was found
  * @param is_italic  Whether the 'italic' keyword was found
@@ -487,11 +487,11 @@ static void s_font_config_build_family(
  * @param registry   Charset registry, from
  *                   @a s_font_config_extract_charset (empty if
  *                   unspecified)
- * @param encoding   Charset encoding, from
+ * @param encoding Charset encoding, from
  *                   @a s_font_config_extract_charset (empty if
  *                   unspecified)
- * @param output     Buffer for the resulting XLFD pattern
- * @param outsize    Size of @p output in bytes
+ * @param output  Buffer for the resulting XLFD pattern
+ * @param outsize Size of @p output in bytes
  *
  * @note Complexity: @e O(1)
  */

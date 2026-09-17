@@ -107,7 +107,7 @@ int notify_popup_ms_remaining(const struct notify_popup_state_s *state,
  * created.  The text is cached in @p state for later repaints.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the popup
+ * @param stage      Stage on which to center the popup
  * @param state      Popup state to initialize
  * @param text       Text to display inside the popup
  * @param config     Active configuration (for theme colors and font)
@@ -115,7 +115,7 @@ int notify_popup_ms_remaining(const struct notify_popup_state_s *state,
  * @note Complexity: @e O(1)
  */
 void notify_popup_show_centered(xcb_connection_t *connection,
-        surface_td *surface, struct notify_popup_state_s *state,
+        stage_td *stage, struct notify_popup_state_s *state,
         const char *text, const config_td *config);
 
 /**

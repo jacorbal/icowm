@@ -23,10 +23,10 @@
  * xcb_ewmh_set_wm_visible_name_checked) and every cross-module
  * project symbol it reaches (client_sync_visible_name,
  * client_titlebar_layout, client_titlebar_button_size,
- * client_titlebar_button_shape_unit, surface_viewport_has_room,
+ * client_titlebar_button_shape_unit, stage_viewport_has_room,
  * text_draw_string, text_font_ascent, text_font_descent,
  * text_renderer_set_color, text_renderer_use_font,
- * text_string_measure, text_truncate_to_width, wm_get_surface_by_id)
+ * text_string_measure, text_truncate_to_width, wm_get_stage_by_id)
  * is a link-only, call-recording stand-in defined below, following
  * the pattern already established by tests/render/test_icon.c and
  * tests/render/test_wmicon.c: no real XCB library, and no real .c
@@ -70,7 +70,7 @@
 #include <logger.h>
 #include <policy/stacking.h>
 #include <render/client/titlebar.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /* ==================================================================== *
@@ -484,12 +484,12 @@ int16_t text_font_descent(void)
 
 
 /* wm.h */
-static surface_td *s_surface_by_id_result = NULL;
+static stage_td *s_stage_by_id_result = NULL;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_by_id_result;
+    (void) stage_id;
+    return s_stage_by_id_result;
 }
 
 
@@ -536,23 +536,23 @@ void viewport_mesh_cache_release_retired(xcb_connection_t *connection)
 }
 
 
-/* surface/viewport.c
+/* stage/viewport.c
  *
  * Reproduced here rather than linking that whole (separately tested)
  * file for one two-line predicate, the same way
  * tests/menu/dialog/test_confirm.c reproduces 'dlgutil_u16max'.  The
- * scenarios below drive it through a real 'config' on the surface,
+ * scenarios below drive it through a real 'config' on the stage,
  * exactly as production reaches it. */
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    if (surface == NULL || surface->config == NULL ||
-            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+    if (stage == NULL || stage->config == NULL ||
+            stage->id >= (uint32_t) CONFIG_MAX_SCREENS) {
         return false;
     }
 
-    return surface->config->base.screens[surface->id]
+    return stage->config->base.screens[stage->id]
                .viewport.columns > 1u ||
-           surface->config->base.screens[surface->id]
+           stage->config->base.screens[stage->id]
                .viewport.rows > 1u;
 }
 
@@ -841,7 +841,7 @@ static void s_reset_fixture(void)
     s_text_measure_result = 10;
     s_text_ascent_result = 12;
     s_text_descent_result = 3;
-    s_surface_by_id_result = NULL;
+    s_stage_by_id_result = NULL;
     s_get_property_calls = 0;
     s_get_property_reply_should_fail = true;
     s_get_property_pixmap_value = XCB_NONE;
@@ -909,27 +909,27 @@ static void s_test_repaint_titlebar_offscreen_buffer_path(void)
 {
     struct config_theme_s theme;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
     s_reset_fixture();
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
     screen.root_depth = 24u;
-    surface.screen = &screen;
-    surface.desktop_count = 2u;
+    stage.screen = &screen;
+    stage.desktop_count = 2u;
     client.titlebar = 0x801u;
     client.info.name = "Example";
-    s_surface_by_id_result = &surface;
+    s_stage_by_id_result = &stage;
     s_offscreen_buffer_should_fail = false;
 
     render_client_titlebar_repaint_content(s_connection_stub, &client, true,
             120u, 20u, &theme);
 
     TAP_EQ_INT(s_offscreen_buffer_calls, 1,
-            "a resolvable surface with a working offscreen-buffer"
+            "a resolvable stage with a working offscreen-buffer"
             " creation draws into that buffer first");
     TAP_EQ_INT(s_copy_area_calls, 1,
             "...then copies the finished buffer onto the titlebar in"
@@ -945,18 +945,18 @@ static void s_test_repaint_titlebar_fallback_when_buffer_fails(void)
 {
     struct config_theme_s theme;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
     s_reset_fixture();
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
-    surface.desktop_count = 1u;
+    stage.screen = &screen;
+    stage.desktop_count = 1u;
     client.titlebar = 0x802u;
-    s_surface_by_id_result = &surface;
+    s_stage_by_id_result = &stage;
     s_offscreen_buffer_should_fail = true;
 
     render_client_titlebar_repaint_content(s_connection_stub, &client, false,
@@ -974,24 +974,24 @@ static void s_test_repaint_titlebar_hide_pin_single_desktop(void)
 {
     struct config_theme_s theme;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
     s_reset_fixture();
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
-    surface.desktop_count = 1u;
+    stage.screen = &screen;
+    stage.desktop_count = 1u;
     client.titlebar = 0x803u;
-    s_surface_by_id_result = &surface;
+    s_stage_by_id_result = &stage;
 
     render_client_titlebar_repaint_content(s_connection_stub, &client, true,
             100u, 20u, &theme);
 
     TAP_OK(s_titlebar_layout_last_hide_pin,
-            "a surface with only one desktop hides the pin button:"
+            "a stage with only one desktop hides the pin button:"
             " pinning a client to a single desktop is meaningless"
             " there");
 }
@@ -1000,24 +1000,24 @@ static void s_test_repaint_titlebar_shows_pin_multi_desktop(void)
 {
     struct config_theme_s theme;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
     s_reset_fixture();
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
-    surface.desktop_count = 3u;
+    stage.screen = &screen;
+    stage.desktop_count = 3u;
     client.titlebar = 0x804u;
-    s_surface_by_id_result = &surface;
+    s_stage_by_id_result = &stage;
 
     render_client_titlebar_repaint_content(s_connection_stub, &client, true,
             100u, 20u, &theme);
 
     TAP_OK(!s_titlebar_layout_last_hide_pin,
-            "a surface with several desktops shows the pin button"
+            "a stage with several desktops shows the pin button"
             " normally");
 }
 
@@ -1025,29 +1025,29 @@ static void s_test_repaint_titlebar_hide_sticky_single_cell_viewport(void)
 {
     struct config_theme_s theme;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
     config_td config;
 
     s_reset_fixture();
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
     memset(&config, 0, sizeof(config));
-    surface.screen = &screen;
-    surface.id = 0u;
-    surface.config = &config;
+    stage.screen = &screen;
+    stage.id = 0u;
+    stage.config = &config;
     config.base.screens[0].viewport.columns = 1u;
     config.base.screens[0].viewport.rows = 1u;
     client.titlebar = 0x806u;
-    s_surface_by_id_result = &surface;
+    s_stage_by_id_result = &stage;
 
     render_client_titlebar_repaint_content(s_connection_stub, &client, true,
             100u, 20u, &theme);
 
     TAP_OK(s_titlebar_layout_last_hide_sticky,
-            "a surface whose pannable viewport is a single 1x1 screen"
+            "a stage whose pannable viewport is a single 1x1 screen"
             " hides the sticky button: nothing for a client to stay"
             " put against there");
 }
@@ -1056,29 +1056,29 @@ static void s_test_repaint_titlebar_shows_sticky_wide_viewport(void)
 {
     struct config_theme_s theme;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
     config_td config;
 
     s_reset_fixture();
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
     memset(&config, 0, sizeof(config));
-    surface.screen = &screen;
-    surface.id = 0u;
-    surface.config = &config;
+    stage.screen = &screen;
+    stage.id = 0u;
+    stage.config = &config;
     config.base.screens[0].viewport.columns = 2u;
     config.base.screens[0].viewport.rows = 1u;
     client.titlebar = 0x807u;
-    s_surface_by_id_result = &surface;
+    s_stage_by_id_result = &stage;
 
     render_client_titlebar_repaint_content(s_connection_stub, &client, true,
             100u, 20u, &theme);
 
     TAP_OK(!s_titlebar_layout_last_hide_sticky,
-            "a surface whose pannable viewport is wider than a single"
+            "a stage whose pannable viewport is wider than a single"
             " screen shows the sticky button normally");
 }
 

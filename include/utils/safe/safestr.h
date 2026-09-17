@@ -194,7 +194,7 @@ char *safe_strdup(const char *s);
  *            appended
  * @param src Pointer to the source string that will be appended to
  *            @p dst
- * @param sz  Maximum number of characters to append from @p src
+ * @param sz Maximum number of characters to append from @p src
  *
  * @return A pointer to the resulting string @p dst
  *

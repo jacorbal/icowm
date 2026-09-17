@@ -53,14 +53,14 @@
 
 /* Project includes */
 #include <client.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
 #include <logger.h>
 #include <policy/focus.h>
 #include <policy/placement/icon.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <wm.h>
 
@@ -467,10 +467,10 @@ void enact_client_move(client_td *client, struct position_s pos)
 
 
 /**
- * @brief Recording stand-in for @a scmd_surface_viewport_drag_exclude
+ * @brief Recording stand-in for @a scmd_stage_viewport_drag_exclude
  * @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_drag_exclude(client_td *client)
+void scmd_stage_viewport_drag_exclude(client_td *client)
 {
     s_viewport_drag_exclude_calls++;
     s_viewport_drag_exclude_last_client = client;
@@ -519,12 +519,12 @@ void enact_client_restore(client_td *client)
  * @brief Recording stand-in for @a focus_apply
  * @note Complexity: @e O(1)
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -538,10 +538,10 @@ void focus_apply(list_td *surfaces, surface_td *surface,
  * @brief Controllable stand-in for @a systray_get_geometry
  * @note Complexity: @e O(1)
  */
-bool systray_get_geometry(const surface_td *surface,
+bool systray_get_geometry(const stage_td *stage,
         struct geometry_s *restrict out_tray)
 {
-    (void) surface;
+    (void) stage;
 
     s_systray_get_geometry_calls++;
 
@@ -1473,12 +1473,12 @@ static void s_test_end_icon_click_restores_and_focuses(void)
 {
     struct position_s root_pos;
     client_td client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
     s_make_client(&client);
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_drag.is_active = true;
     s_drag.client = &client;
@@ -1490,7 +1490,7 @@ static void s_test_end_icon_click_restores_and_focuses(void)
     root_pos.x = 150;
     root_pos.y = 250;
 
-    drag_end((xcb_connection_t *) 1, &surface, &desktop, root_pos);
+    drag_end((xcb_connection_t *) 1, &stage, &desktop, root_pos);
 
     TAP_EQ_INT(s_enact_restore_calls, 1,
             "pointer never moved past the click threshold: the icon"
@@ -1511,11 +1511,11 @@ static void s_test_end_icon_drag_settles_final_position(void)
 {
     struct position_s root_pos;
     client_td client;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     s_make_client(&client);
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_drag.is_active = true;
     s_drag.client = &client;
     s_drag.operation = CLIENT_OPERATION_MOVING;
@@ -1530,7 +1530,7 @@ static void s_test_end_icon_drag_settles_final_position(void)
     root_pos.y = 100;
     s_stub_systray_has_geometry = false;
 
-    drag_end((xcb_connection_t *) 1, &surface, NULL, root_pos);
+    drag_end((xcb_connection_t *) 1, &stage, NULL, root_pos);
 
     TAP_EQ_INT(s_enact_restore_calls, 0,
             "the drag moved well past the click threshold: it is not"

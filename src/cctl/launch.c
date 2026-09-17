@@ -17,7 +17,7 @@
 /* Project includes */
 #include <desktop.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Default initial values */
 #include <defs/uistr.h>
@@ -36,17 +36,17 @@
 
 
 /* Build and enqueue a launch event for a desktop */
-void cctl_launch_dispatch(surface_td *surface,
+void cctl_launch_dispatch(stage_td *stage,
         const char *restrict prog, const char *restrict class_name)
 {
     desktop_td *desktop;
     int result;
 
-    if (surface == NULL || prog == NULL || prog[0] == '\0') {
+    if (stage == NULL || prog == NULL || prog[0] == '\0') {
         return;
     }
 
-    desktop = lookup_current_desktop(surface);
+    desktop = lookup_current_desktop(stage);
     if (desktop == NULL) {
         return;
     }
@@ -57,12 +57,12 @@ void cctl_launch_dispatch(surface_td *surface,
         result = desktop_action_process_launch(desktop, prog);
     }
     if (result == -2 && xcb_connection_get() != NULL &&
-            surface->config != NULL) {
+            stage->config != NULL) {
         char msg[256];
 
         (void) snprintf(msg, sizeof(msg),
                 _(STR_LAUNCH_COMMAND_NOT_FOUND_FMT), prog);
-        dialog_info_show(xcb_connection_get(), surface,
-                surface->config, msg, MENU_MSG_LEVEL_WARNING);
+        dialog_info_show(xcb_connection_get(), stage,
+                stage->config, msg, MENU_MSG_LEVEL_WARNING);
     }
 }

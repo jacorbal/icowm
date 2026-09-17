@@ -44,7 +44,7 @@
 /* Render includes */
 #include <render/desktop/background.h>
 #include <render/outdate.h>
-#include <render/surface.h>
+#include <render/stage.h>
 #include <render/viewport/mesh.h>
 #include <render/wmicon.h>
 
@@ -54,8 +54,8 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/workarea.h>
+#include <stage.h>
+#include <stage/workarea.h>
 #include <systray.h>
 #include <systray/handle.h>
 #include <wm.h>
@@ -68,10 +68,10 @@
 /* Handle a 'PROPERTY_NOTIFY' event */
 void handler_property_notify(const wm_td *wm,
         xcb_connection_t *connection,
-        list_td *surfaces, xcb_property_notify_event_t *event)
+        list_td *stages, xcb_property_notify_event_t *event)
 {
     client_td *client;
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     xcb_ewmh_get_extents_reply_t strut;
     xcb_ewmh_wm_strut_partial_t partial;
@@ -104,9 +104,9 @@ void handler_property_notify(const wm_td *wm,
      * which one it was; many of those, including ones icowm's EWMH
      * state syncing writes to the root window itself,
      * have nothing to do with the background pixmap at all. */
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const s = (surface_td *) list_data(snode);
+        stage_td *const s = (stage_td *) list_data(snode);
 
         if (s == NULL || s->screen == NULL ||
                 event->window != s->screen->root) {
@@ -119,7 +119,7 @@ void handler_property_notify(const wm_td *wm,
              * let go of it; either way whichever mesh tile is cached no
              * longer describes what belongs on screen */
             viewport_mesh_cache_invalidate();
-            surface_render_current_desktop_repaint(s);
+            stage_render_current_desktop_repaint(s);
         }
         return;
     }
@@ -139,8 +139,8 @@ void handler_property_notify(const wm_td *wm,
     systray_handle_property_notify(wm, event);
 
     desktop = NULL;
-    client = lookup_find_client(surfaces, event->window,
-            &surface, &desktop);
+    client = lookup_find_client(stages, event->window,
+            &stage, &desktop);
     if (client == NULL) {
         return;
     }
@@ -166,8 +166,8 @@ void handler_property_notify(const wm_td *wm,
         const bool name_changed = client_props_refresh_name(client);
         bool rule_acted = false;
 
-        if (surface != NULL && desktop != NULL) {
-            rule_acted = rules_apply(wm, client, &surface, &desktop,
+        if (stage != NULL && desktop != NULL) {
+            rule_acted = rules_apply(wm, client, &stage, &desktop,
                     RULES_TRIGGER_PROPERTY);
         }
 
@@ -190,7 +190,7 @@ void handler_property_notify(const wm_td *wm,
          * client outdated for a different reason, rather than updating
          * the moment this property notify itself arrives. */
         wm_outdate_client(client);
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
         return;
     }
@@ -206,7 +206,7 @@ void handler_property_notify(const wm_td *wm,
         }
 
         wm_outdate_client(client);
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
         return;
     }
@@ -230,7 +230,7 @@ void handler_property_notify(const wm_td *wm,
             event->atom == XCB_ATOM_WM_HINTS) {
         wmicon_invalidate(xcb_connection_get(), &client->icon_pixmap_cache);
         wm_outdate_client(client);
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
         return;
     }
@@ -243,11 +243,11 @@ void handler_property_notify(const wm_td *wm,
         if (event->atom == wm_window_role) {
             client_props_refresh_role(client);
         }
-        if (surface != NULL && desktop != NULL &&
-                rules_apply(wm, client, &surface, &desktop,
+        if (stage != NULL && desktop != NULL &&
+                rules_apply(wm, client, &stage, &desktop,
                     RULES_TRIGGER_PROPERTY)) {
             wm_outdate_client(client);
-            wm_outdate_surface(surface);
+            wm_outdate_stage(stage);
             wm_outdate_desktop(desktop);
         }
         return;
@@ -351,9 +351,9 @@ void handler_property_notify(const wm_td *wm,
                 (int32_t) strut.bottom;
         }
 
-        surface_workarea_refresh_all(surface);
+        stage_workarea_refresh_all(stage);
 
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
         return;
     }
@@ -373,11 +373,11 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    if (surface != NULL && desktop != NULL &&
-            rules_apply(wm, client, &surface, &desktop,
+    if (stage != NULL && desktop != NULL &&
+            rules_apply(wm, client, &stage, &desktop,
                 RULES_TRIGGER_PROPERTY)) {
         wm_outdate_client(client);
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
     }
 }
@@ -385,10 +385,10 @@ void handler_property_notify(const wm_td *wm,
 
 /* Handle a 'FOCUS_IN' event */
 void handler_focus_in(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_focus_in_event_t *event)
+        list_td *stages, const xcb_focus_in_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in focus handler", L_NARG);
@@ -404,7 +404,7 @@ void handler_focus_in(xcb_connection_t *connection,
 /* Handle a 'FOCUS_OUT' event */
 void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
 
     if (wm == NULL || event == NULL) {
         return;
@@ -412,17 +412,17 @@ void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event)
 
     if ((event->mode == XCB_NOTIFY_MODE_NORMAL ||
                 event->mode == XCB_NOTIFY_MODE_WHILE_GRABBED) &&
-            lookup_find_client(wm_surfaces(wm), event->event,
-                    &surface, NULL) != NULL &&
-            surface != NULL) {
-        surface->is_outdated = true;
+            lookup_find_client(wm_stages(wm), event->event,
+                    &stage, NULL) != NULL &&
+            stage != NULL) {
+        stage->is_outdated = true;
     }
 }
 
 
 /* Handle a 'MAPPING_NOTIFY' event */
 void handler_mapping_notify(xcb_key_symbols_t *keysyms,
-        list_td *surfaces, xcb_mapping_notify_event_t *event,
+        list_td *stages, xcb_mapping_notify_event_t *event,
         const config_td *cfg)
 {
     xcb_connection_t *connection = NULL;
@@ -444,37 +444,37 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
 
     xcb_refresh_keyboard_mapping(keysyms, event);
 
-    if (connection != NULL && surfaces != NULL) {
-        for (list_item_td *node = list_head(surfaces); node != NULL;
+    if (connection != NULL && stages != NULL) {
+        for (list_item_td *node = list_head(stages); node != NULL;
                 node = list_next(node)) {
-            surface_td *surface = (surface_td *) list_data(node);
-            if (surface == NULL || surface->screen == NULL) {
+            stage_td *stage = (stage_td *) list_data(node);
+            if (stage == NULL || stage->screen == NULL) {
                 continue;
             }
             xcb_ungrab_key(connection,
                     (xcb_keycode_t) XCB_GRAB_ANY,
-                    surface->screen->root,
+                    stage->screen->root,
                     (uint16_t) XCB_MOD_MASK_ANY);
         }
 
     }
 
-    keyboard_load(surfaces, keysyms, cfg);
+    keyboard_load(stages, keysyms, cfg);
 
     if (event->request == XCB_MAPPING_MODIFIER &&
-            connection != NULL && surfaces != NULL) {
-        for (list_item_td *node = list_head(surfaces); node != NULL;
+            connection != NULL && stages != NULL) {
+        for (list_item_td *node = list_head(stages); node != NULL;
                 node = list_next(node)) {
-            surface_td *surface = (surface_td *) list_data(node);
-            if (surface == NULL || surface->screen == NULL) {
+            stage_td *stage = (stage_td *) list_data(node);
+            if (stage == NULL || stage->screen == NULL) {
                 continue;
             }
             xcb_ungrab_button(connection,
                     (uint8_t) XCB_BUTTON_INDEX_ANY,
-                    surface->screen->root,
+                    stage->screen->root,
                     (uint16_t) XCB_MOD_MASK_ANY);
         }
 
-        mouse_load(surfaces, cfg);
+        mouse_load(stages, cfg);
     }
 }

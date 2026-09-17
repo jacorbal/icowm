@@ -52,7 +52,7 @@
 #include <config.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -79,6 +79,7 @@ static int32_t s_message_scroll_delta;
 
 static bool s_cycle_open;
 static xcb_window_t s_cycle_window;
+static int s_cycle_scroll_offset;
 static int s_cycle_navigate_to_calls;
 static unsigned int s_cycle_navigate_to_row;
 static int s_cycle_confirm_calls;
@@ -112,23 +113,23 @@ static xcb_window_t s_iconmenu_owned_window;
 static int s_iconmenu_handle_click_calls;
 static int s_iconmenu_close_calls;
 
-/** Controllable return value for the next lookup_surface_for_root */
-static surface_td *s_stub_lookup_surface;
+/** Controllable return value for the next lookup_stage_for_root */
+static stage_td *s_stub_lookup_stage;
 
 /** Recorded calls to im_allow_and_flush */
 static int s_allow_and_flush_calls;
 
 
 /**
- * @brief Stand-in for @a lookup_surface_for_root
+ * @brief Stand-in for @a lookup_stage_for_root
  * @note Complexity: @e O(1)
  */
-surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
+stage_td *lookup_stage_for_root(list_td *stages, xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
 
-    return s_stub_lookup_surface;
+    return s_stub_lookup_stage;
 }
 
 
@@ -279,6 +280,16 @@ xcb_window_t cycle_window(void)
 
 
 /**
+ * @brief Controllable stand-in for @a cycle_scroll_offset
+ * @note Complexity: @e O(1)
+ */
+int cycle_scroll_offset(void)
+{
+    return s_cycle_scroll_offset;
+}
+
+
+/**
  * @brief Recording stand-in for @a cycle_navigate_to
  * @note Complexity: @e O(1)
  */
@@ -293,11 +304,11 @@ void cycle_navigate_to(unsigned int idx)
  * @brief Recording stand-in for @a cycle_confirm
  * @note Complexity: @e O(1)
  */
-void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
+void cycle_confirm(xcb_connection_t *connection, list_td *stages,
         const config_td *cfg)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) cfg;
 
     s_cycle_confirm_calls++;
@@ -340,11 +351,11 @@ xcb_window_t search_window(void)
  * @brief Recording stand-in for @a search_handle_click
  * @note Complexity: @e O(1)
  */
-void search_handle_click(xcb_connection_t *connection, list_td *surfaces,
+void search_handle_click(xcb_connection_t *connection, list_td *stages,
         int16_t x, int16_t y, const config_td *cfg)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) x;
     (void) y;
     (void) cfg;
@@ -392,11 +403,11 @@ bool wincmenu_owns_window(xcb_window_t win)
  * @note Complexity: @e O(1)
  */
 bool wincmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) win;
     (void) root_y;
     (void) config;
@@ -444,11 +455,11 @@ bool rootmenu_owns_window(xcb_window_t win)
  * @note Complexity: @e O(1)
  */
 bool rootmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) win;
     (void) root_y;
     (void) config;
@@ -496,11 +507,11 @@ bool winlist_owns_window(xcb_window_t win)
  * @note Complexity: @e O(1)
  */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) win;
     (void) root_y;
     (void) config;
@@ -548,11 +559,11 @@ bool iconmenu_owns_window(xcb_window_t win)
  * @note Complexity: @e O(1)
  */
 bool iconmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) win;
     (void) root_y;
     (void) config;
@@ -592,6 +603,7 @@ static void s_reset(void)
 
     s_cycle_open = false;
     s_cycle_window = XCB_NONE;
+    s_cycle_scroll_offset = 0;
     s_cycle_navigate_to_calls = 0;
     s_cycle_navigate_to_row = 0u;
     s_cycle_confirm_calls = 0;
@@ -626,7 +638,7 @@ static void s_reset(void)
     s_iconmenu_handle_click_calls = 0;
     s_iconmenu_close_calls = 0;
 
-    s_stub_lookup_surface = NULL;
+    s_stub_lookup_stage = NULL;
     s_allow_and_flush_calls = 0;
 }
 
@@ -667,17 +679,17 @@ static void s_test_no_overlay_open_returns_false(void)
 
 
 /* Popup open: always closes, but never consumes the click, and marks
- * the resolved surface outdated */
+ * the resolved stage outdated */
 static void s_test_popup_always_closes_and_lets_click_through(void)
 {
     xcb_button_press_event_t event = s_make_event(1, 2, 3, 5, 5, 5, 1);
-    surface_td surface;
+    stage_td stage;
     bool consumed;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_popup_open = true;
-    s_stub_lookup_surface = &surface;
+    s_stub_lookup_stage = &stage;
 
     consumed = im_press_close_overlays((xcb_connection_t *) 1, NULL,
             &event, NULL);
@@ -685,26 +697,26 @@ static void s_test_popup_always_closes_and_lets_click_through(void)
     TAP_OK(!consumed, "popup open: click is not consumed (passes"
             " through to the client)");
     TAP_EQ_INT(s_popup_close_calls, 1, "the popup is closed");
-    TAP_OK(surface.is_outdated,
-            "the resolved surface is marked outdated");
+    TAP_OK(stage.is_outdated,
+            "the resolved stage is marked outdated");
 }
 
 
-/* Popup open, no surface resolved for the root: still closes, still
+/* Popup open, no stage resolved for the root: still closes, still
  * lets the click through, simply skips the outdated mark */
-static void s_test_popup_with_no_surface_still_closes(void)
+static void s_test_popup_with_no_stage_still_closes(void)
 {
     xcb_button_press_event_t event = s_make_event(1, 2, 3, 5, 5, 5, 1);
     bool consumed;
 
     s_reset();
     s_popup_open = true;
-    s_stub_lookup_surface = NULL;
+    s_stub_lookup_stage = NULL;
 
     consumed = im_press_close_overlays((xcb_connection_t *) 1, NULL,
             &event, NULL);
 
-    TAP_OK(!consumed, "popup open, no surface: click still not"
+    TAP_OK(!consumed, "popup open, no stage: click still not"
             " consumed");
     TAP_EQ_INT(s_popup_close_calls, 1, "the popup still closes");
 }
@@ -843,6 +855,39 @@ static void s_test_cycle_menu_click_in_row_area_confirms(void)
             "the row math resolves the intended row index");
     TAP_EQ_INT(s_cycle_confirm_calls, 1, "and the selection confirms");
     TAP_EQ_INT(s_cycle_destroy_calls, 0, "without also destroying it");
+}
+
+
+/* Cycle menu open, a theme with non-default padding and a scrolled
+ * list: the row math reads the theme's own padding instead of the
+ * fallback constant, and adds the scroll offset back in */
+static void s_test_cycle_menu_click_honors_theme_pad_and_scroll(void)
+{
+    config_td cfg;
+    xcb_button_press_event_t event;
+    bool consumed;
+
+    memset(&cfg, 0, sizeof(cfg));
+    cfg.theme.menu.padding.vertical = 6u;
+
+    event = s_make_event(9, 0, 3, 5,
+            (int16_t) (6 + WM_CYCLE_MENU_ROW_HEIGHT * 1 + 3), 5, 1);
+
+    s_reset();
+    s_cycle_open = true;
+    s_cycle_window = 9;
+    s_cycle_scroll_offset = 2;
+
+    consumed = im_press_close_overlays((xcb_connection_t *) 1, NULL,
+            &event, &cfg);
+
+    TAP_OK(consumed,
+            "cycle menu, theme pad and scroll: event consumed");
+    TAP_EQ_INT(s_cycle_navigate_to_calls, 1,
+            "navigates to the row under the click");
+    TAP_OK(s_cycle_navigate_to_row == 3u,
+            "the visible row under the click, plus the scroll" \
+            " offset, not the visible row alone");
 }
 
 
@@ -1093,17 +1138,18 @@ static void s_test_confirm_dialog_takes_priority_over_cycle(void)
 
 int main(void)
 {
-    TAP_PLAN(59);
+    TAP_PLAN(62);
 
     s_test_no_overlay_open_returns_false();
     s_test_popup_always_closes_and_lets_click_through();
-    s_test_popup_with_no_surface_still_closes();
+    s_test_popup_with_no_stage_still_closes();
     s_test_confirm_dialog_click_on_window_forwards();
     s_test_confirm_dialog_click_elsewhere_still_consumes();
     s_test_info_dialog_scroll_up();
     s_test_info_dialog_scroll_down();
     s_test_info_dialog_plain_click();
     s_test_cycle_menu_click_in_row_area_confirms();
+    s_test_cycle_menu_click_honors_theme_pad_and_scroll();
     s_test_cycle_menu_click_in_pad_area_destroys();
     s_test_cycle_menu_click_outside_destroys();
     s_test_search_click_on_window_forwards();

@@ -19,7 +19,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <menu/dialog/info.h>
@@ -28,10 +28,10 @@
 
 /* Open the informational message dialog */
 void dialog_info_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level)
 {
-    menu_message_dialog_show(connection, surface, config,
+    menu_message_dialog_show(connection, stage, config,
             message, level);
 }
 

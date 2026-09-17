@@ -23,8 +23,8 @@
 #include <types/pair.h>
 
 /* Project includes */
-#include <surface.h>
-#include <surface/monitor.h>
+#include <stage.h>
+#include <stage/monitor.h>
 
 /* Local includes */
 #include <menu/dialog.h>
@@ -66,22 +66,22 @@ void dlgutil_button_border_draw(xcb_connection_t *connection,
 
 /* Resolve the monitor a dialog should size and center itself against */
 monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
-        const surface_td *surface)
+        const stage_td *stage)
 {
     xcb_query_pointer_cookie_t cookie;
     monitor_td monitor = {.x = 0, .y = 0, .w = 0u, .h = 0u};
 
-    if (surface == NULL) {
+    if (stage == NULL) {
         return monitor;
     }
 
-    if (connection != NULL && surface->screen != NULL) {
+    if (connection != NULL && stage->screen != NULL) {
         xcb_query_pointer_reply_t *reply;
 
-        cookie = xcb_query_pointer(connection, surface->screen->root);
+        cookie = xcb_query_pointer(connection, stage->screen->root);
         reply = xcb_query_pointer_reply(connection, cookie, NULL);
         if (reply != NULL) {
-            monitor = surface_monitor_for_point(surface,
+            monitor = stage_monitor_for_point(stage,
                     (struct position_s) {
                         reply->root_x, reply->root_y
                     });
@@ -92,8 +92,8 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
     if (monitor.w == 0u || monitor.h == 0u) {
         monitor.x = 0;
         monitor.y = 0;
-        monitor.w = surface->properties.dim.w;
-        monitor.h = surface->properties.dim.h;
+        monitor.w = stage->properties.dim.w;
+        monitor.h = stage->properties.dim.h;
     }
 
     return monitor;
@@ -102,7 +102,7 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
 
 /* Center a dialog of the given size on its target monitor */
 void menu_dialog_center(xcb_connection_t *connection,
-        const surface_td *surface,
+        const stage_td *stage,
         uint16_t width, uint16_t height,
         int16_t *restrict out_x, int16_t *restrict out_y)
 {
@@ -112,13 +112,13 @@ void menu_dialog_center(xcb_connection_t *connection,
         return;
     }
 
-    if (surface == NULL) {
+    if (stage == NULL) {
         *out_x = 0;
         *out_y = 0;
         return;
     }
 
-    monitor = dlgutil_resolve_monitor(connection, surface);
+    monitor = dlgutil_resolve_monitor(connection, stage);
 
     *out_x = (int16_t) (monitor.x + (int32_t) ((monitor.w > width)
             ? (monitor.w - width) / 2u : 0u));

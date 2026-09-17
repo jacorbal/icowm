@@ -46,7 +46,7 @@
 #include <cctl/kill.h>
 #include <cctl/sn.h>
 #include <memguard.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <systray/clock.h>
 #include <wm.h>
@@ -66,7 +66,7 @@
  *
  * @param poll_timeout_ms Current timeout, in milliseconds; lowered in
  *                        place when @p candidate_ms is sooner
- * @param candidate_ms    A countdown's remaining time, or a
+ * @param candidate_ms A countdown's remaining time, or a
  *                        negative value when that countdown is not
  *                        currently active at all
  *
@@ -197,11 +197,11 @@ void loop_timers_tick(const loop_ctx_td *ctx)
     }
 
     systray_clock_tick();
-    urgency_blink_tick(ctx->surfaces, ctx->config);
-    ping_tick(ctx->surfaces);
-    cctl_sn_tick(xcb_connection_get(), ctx->surfaces);
-    mouse_hover_poll_tick(xcb_connection_get(), ctx->surfaces);
-    mouse_enter_focus_tick(ctx->surfaces, ctx->config);
+    urgency_blink_tick(ctx->stages, ctx->config);
+    ping_tick(ctx->stages);
+    cctl_sn_tick(xcb_connection_get(), ctx->stages);
+    mouse_hover_poll_tick(xcb_connection_get(), ctx->stages);
+    mouse_enter_focus_tick(ctx->stages, ctx->config);
     menu_confirm_dialog_tick(xcb_connection_get(), ctx->config);
     menu_message_dialog_tick(xcb_connection_get());
     drag_warp_tick(xcb_connection_get());
@@ -211,12 +211,12 @@ void loop_timers_tick(const loop_ctx_td *ctx)
     cctl_kill_tick();
     place_manual_tick(xcb_connection_get());
 
-    /* The memory guard runs against one surface only, and only when
+    /* The memory guard runs against one stage only, and only when
      * the window manager was started with a cap at all */
-    if (ctx->restricted_memory_mib > 0u && ctx->surfaces != NULL &&
-            !list_is_empty(ctx->surfaces)) {
+    if (ctx->restricted_memory_mib > 0u && ctx->stages != NULL &&
+            !list_is_empty(ctx->stages)) {
         memguard_tick(xcb_connection_get(),
-                (surface_td *) list_data(list_head(ctx->surfaces)),
+                (stage_td *) list_data(list_head(ctx->stages)),
                 ctx->config);
     }
 }

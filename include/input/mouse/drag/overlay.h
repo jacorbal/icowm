@@ -61,8 +61,8 @@ void drag_overlay_hide(xcb_connection_t *connection);
  * @param connection XCB connection used to manage the overlay window
  * @param is_icon    Whether the overlay should use the active icon
  *                   theme
- * @param target     Target rectangle to center the overlay within
- * @param text       Overlay text to display
+ * @param target Target rectangle to center the overlay within
+ * @param text   Overlay text to display
  *
  * @note Complexity: @e O(1)
  */

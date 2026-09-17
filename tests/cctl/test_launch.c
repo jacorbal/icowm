@@ -5,12 +5,12 @@
  *
  * cctl/launch.c holds exactly one function, cctl_launch_dispatch, no
  * file-local static helpers at all.  Every one of its own branches
- * (the null/empty surface or prog guard, the null-desktop guard once
+ * (the null/empty stage or prog guard, the null-desktop guard once
  * lookup_current_desktop is consulted, the class_name-present versus
  * class_name-absent dispatch choice, and the "command not found"
  * dialog shown only when every one of its own three conditions,
  * result == -2, a live xcb_connection_get, and a non-null
- * surface->config, all hold at once) is pure dispatch logic over
+ * stage->config, all hold at once) is pure dispatch logic over
  * arguments and small stand-in return values, none of it needing a
  * live X server itself, so every branch is covered here directly.
  *
@@ -47,7 +47,7 @@
 #include <desktop.h>
 #include <lookup.h>
 #include <menu/dialog/info.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <cctl/launch.h>
@@ -59,9 +59,9 @@ static desktop_td *s_stub_desktop;
 static int s_lookup_call_count;
 
 /** Link-only stand-in for lookup_current_desktop (lookup.c) */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_lookup_call_count++;
     return s_stub_desktop;
 }
@@ -132,12 +132,12 @@ static char s_dialog_last_message[256];
 static menu_msg_level_e s_dialog_last_level;
 
 /** Link-only stand-in for dialog_info_show (menu/dialog/info.c) */
-void dialog_info_show(xcb_connection_t *connection, surface_td *surface,
+void dialog_info_show(xcb_connection_t *connection, stage_td *stage,
         const config_td *config, const char *message,
         menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     s_dialog_call_count++;
     (void) strncpy(s_dialog_last_message, message,
@@ -173,24 +173,24 @@ static void s_stub_reset(void)
 }
 
 
-/* A null surface, a null prog, and an empty prog are each refused
+/* A null stage, a null prog, and an empty prog are each refused
  * outright, never reaching lookup_current_desktop at all */
 static void s_test_guard_clause_rejects_bad_arguments(void)
 {
-    surface_td surface;
+    stage_td stage;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_reset();
 
     cctl_launch_dispatch(NULL, "xterm", NULL);
     TAP_EQ_INT(s_lookup_call_count, 0,
-            "a null surface never reaches lookup_current_desktop");
+            "a null stage never reaches lookup_current_desktop");
 
-    cctl_launch_dispatch(&surface, NULL, NULL);
+    cctl_launch_dispatch(&stage, NULL, NULL);
     TAP_EQ_INT(s_lookup_call_count, 0,
             "a null prog never reaches lookup_current_desktop");
 
-    cctl_launch_dispatch(&surface, "", NULL);
+    cctl_launch_dispatch(&stage, "", NULL);
     TAP_EQ_INT(s_lookup_call_count, 0,
             "an empty prog never reaches lookup_current_desktop");
 }
@@ -201,16 +201,16 @@ static void s_test_guard_clause_rejects_bad_arguments(void)
  * function */
 static void s_test_null_desktop_stops_dispatch(void)
 {
-    surface_td surface;
+    stage_td stage;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_stub_reset();
     s_stub_desktop = NULL;
 
-    cctl_launch_dispatch(&surface, "xterm", NULL);
+    cctl_launch_dispatch(&stage, "xterm", NULL);
 
     TAP_EQ_INT(s_lookup_call_count, 1,
-            "a non-null surface and prog do reach"
+            "a non-null stage and prog do reach"
             " lookup_current_desktop");
     TAP_EQ_INT(s_plain_call_count, 0,
             "a null desktop never reaches"
@@ -226,16 +226,16 @@ static void s_test_null_desktop_stops_dispatch(void)
  * through unchanged */
 static void s_test_dispatch_without_class_name(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_stub_reset();
     s_stub_desktop = &desktop;
     s_plain_return_value = 0;
 
-    cctl_launch_dispatch(&surface, "xterm -e vim", NULL);
+    cctl_launch_dispatch(&stage, "xterm -e vim", NULL);
 
     TAP_EQ_INT(s_plain_call_count, 1,
             "a null class_name dispatches through"
@@ -251,7 +251,7 @@ static void s_test_dispatch_without_class_name(void)
 
     s_stub_reset();
     s_stub_desktop = &desktop;
-    cctl_launch_dispatch(&surface, "xterm", "");
+    cctl_launch_dispatch(&stage, "xterm", "");
     TAP_EQ_INT(s_plain_call_count, 1,
             "an empty class_name dispatches through"
             " desktop_action_process_launch, exactly like a null one");
@@ -266,15 +266,15 @@ static void s_test_dispatch_without_class_name(void)
  * desktop, prog, and class_name through unchanged */
 static void s_test_dispatch_with_class_name(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_stub_reset();
     s_stub_desktop = &desktop;
 
-    cctl_launch_dispatch(&surface, "firefox", "Firefox");
+    cctl_launch_dispatch(&stage, "firefox", "Firefox");
 
     TAP_EQ_INT(s_with_class_call_count, 1,
             "a non-empty class_name dispatches through"
@@ -292,25 +292,25 @@ static void s_test_dispatch_with_class_name(void)
 }
 
 
-/* A -2 result with a live connection and a non-null surface->config
+/* A -2 result with a live connection and a non-null stage->config
  * shows the "command not found" dialog, with the configured prog
  * substituted into the message */
 static void s_test_command_not_found_shows_dialog(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td config_storage;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config_storage, 0, sizeof(config_storage));
     s_stub_reset();
     s_stub_desktop = &desktop;
     s_plain_return_value = -2;
     s_stub_connection = s_fake_connection;
-    surface.config = &config_storage;
+    stage.config = &config_storage;
 
-    cctl_launch_dispatch(&surface, "typo-command", NULL);
+    cctl_launch_dispatch(&stage, "typo-command", NULL);
 
     TAP_EQ_INT(s_dialog_call_count, 1,
             "a -2 result, a live connection, and a non-null config"
@@ -325,15 +325,15 @@ static void s_test_command_not_found_shows_dialog(void)
 
 
 /* Any one of the three conditions failing on its own (a non -2
- * result, no live connection, or a null surface->config) suppresses
+ * result, no live connection, or a null stage->config) suppresses
  * the dialog entirely */
 static void s_test_command_not_found_dialog_suppressed(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     config_td config_storage;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&config_storage, 0, sizeof(config_storage));
 
@@ -343,8 +343,8 @@ static void s_test_command_not_found_dialog_suppressed(void)
     s_stub_desktop = &desktop;
     s_plain_return_value = 0;
     s_stub_connection = s_fake_connection;
-    surface.config = &config_storage;
-    cctl_launch_dispatch(&surface, "xterm", NULL);
+    stage.config = &config_storage;
+    cctl_launch_dispatch(&stage, "xterm", NULL);
     TAP_EQ_INT(s_dialog_call_count, 0,
             "a successful (non -2) result never shows the dialog");
 
@@ -353,21 +353,21 @@ static void s_test_command_not_found_dialog_suppressed(void)
     s_stub_desktop = &desktop;
     s_plain_return_value = -2;
     s_stub_connection = NULL;
-    surface.config = &config_storage;
-    cctl_launch_dispatch(&surface, "typo-command", NULL);
+    stage.config = &config_storage;
+    cctl_launch_dispatch(&stage, "typo-command", NULL);
     TAP_EQ_INT(s_dialog_call_count, 0,
             "a -2 result with no live xcb_connection_get never shows"
             " the dialog");
 
-    /* -2, live connection, but a null surface->config */
+    /* -2, live connection, but a null stage->config */
     s_stub_reset();
     s_stub_desktop = &desktop;
     s_plain_return_value = -2;
     s_stub_connection = s_fake_connection;
-    surface.config = NULL;
-    cctl_launch_dispatch(&surface, "typo-command", NULL);
+    stage.config = NULL;
+    cctl_launch_dispatch(&stage, "typo-command", NULL);
     TAP_EQ_INT(s_dialog_call_count, 0,
-            "a -2 result with a null surface->config never shows the"
+            "a -2 result with a null stage->config never shows the"
             " dialog");
 }
 

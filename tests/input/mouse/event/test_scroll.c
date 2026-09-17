@@ -11,8 +11,8 @@
  * genuinely external collaborator (the ccmd_client_* command layer,
  * desktop_action_client_send_back, focus_order_to_bottom,
  * client_focus_fallback, focus_apply, the four
- * enact_surface_desktop_switch_* entry points, and
- * lookup_surface_for_root) is a recording stand-in; client_is_maximized
+ * enact_stage_desktop_switch_* entry points, and
+ * lookup_stage_for_root) is a recording stand-in; client_is_maximized
  * and client_is_shaded are real macros over client_td.properties, left
  * untouched since they read only the fixture's own state.
  */
@@ -53,7 +53,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <render/outdate.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Input includes */
@@ -84,14 +84,14 @@ static int s_focus_fallback_calls;
 /** Recorded calls to focus_apply */
 static int s_focus_apply_calls;
 
-/** Recorded calls to each enact_surface_desktop_switch_* direction */
+/** Recorded calls to each enact_stage_desktop_switch_* direction */
 static int s_switch_north_calls;
 static int s_switch_south_calls;
 static int s_switch_east_calls;
 static int s_switch_west_calls;
 
-/** Stand-in return value for the next lookup_surface_for_root call */
-static surface_td *s_stub_lookup_surface;
+/** Stand-in return value for the next lookup_stage_for_root call */
+static stage_td *s_stub_lookup_stage;
 
 /** Recorded calls to im_sync_pinned_active and im_allow_and_flush */
 static int s_sync_pinned_calls;
@@ -189,11 +189,11 @@ void focus_order_to_bottom(const desktop_td *desktop, client_td *client)
  * @brief Recording stand-in for @a client_focus_fallback
  * @note Complexity: @e O(1)
  */
-void client_focus_fallback(desktop_td *desktop, surface_td *surface,
+void client_focus_fallback(desktop_td *desktop, stage_td *stage,
         client_td *client)
 {
     (void) desktop;
-    (void) surface;
+    (void) stage;
     (void) client;
 
     s_focus_fallback_calls++;
@@ -204,12 +204,12 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
  * @brief Recording stand-in for @a focus_apply
  * @note Complexity: @e O(1)
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -220,63 +220,63 @@ void focus_apply(list_td *surfaces, surface_td *surface,
 
 
 /**
- * @brief Recording stand-in for @a enact_surface_desktop_switch_north
+ * @brief Recording stand-in for @a enact_stage_desktop_switch_north
  * @note Complexity: @e O(1)
  */
-void enact_surface_desktop_switch_north(surface_td *surface)
+void enact_stage_desktop_switch_north(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     s_switch_north_calls++;
 }
 
 
 /**
- * @brief Recording stand-in for @a enact_surface_desktop_switch_south
+ * @brief Recording stand-in for @a enact_stage_desktop_switch_south
  * @note Complexity: @e O(1)
  */
-void enact_surface_desktop_switch_south(surface_td *surface)
+void enact_stage_desktop_switch_south(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     s_switch_south_calls++;
 }
 
 
 /**
- * @brief Recording stand-in for @a enact_surface_desktop_switch_east
+ * @brief Recording stand-in for @a enact_stage_desktop_switch_east
  * @note Complexity: @e O(1)
  */
-void enact_surface_desktop_switch_east(surface_td *surface)
+void enact_stage_desktop_switch_east(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     s_switch_east_calls++;
 }
 
 
 /**
- * @brief Recording stand-in for @a enact_surface_desktop_switch_west
+ * @brief Recording stand-in for @a enact_stage_desktop_switch_west
  * @note Complexity: @e O(1)
  */
-void enact_surface_desktop_switch_west(surface_td *surface)
+void enact_stage_desktop_switch_west(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     s_switch_west_calls++;
 }
 
 
 /**
- * @brief Stand-in for @a lookup_surface_for_root
+ * @brief Stand-in for @a lookup_stage_for_root
  * @note Complexity: @e O(1)
  */
-surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
+stage_td *lookup_stage_for_root(list_td *stages, xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
 
-    return s_stub_lookup_surface;
+    return s_stub_lookup_stage;
 }
 
 
@@ -284,10 +284,10 @@ surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
  * @brief Recording stand-in for @a im_sync_pinned_active
  * @note Complexity: @e O(1)
  */
-void im_sync_pinned_active(surface_td *surface, const desktop_td *desktop,
+void im_sync_pinned_active(stage_td *stage, const desktop_td *desktop,
         const client_td *client)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
 
@@ -323,7 +323,7 @@ static void s_reset(void)
     s_switch_south_calls = 0;
     s_switch_east_calls = 0;
     s_switch_west_calls = 0;
-    s_stub_lookup_surface = NULL;
+    s_stub_lookup_stage = NULL;
     s_sync_pinned_calls = 0;
     s_allow_and_flush_calls = 0;
 }
@@ -434,16 +434,16 @@ static void s_test_west_on_titlebar_shades_and_sends_back(void)
 {
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     xcb_button_press_event_t event = s_make_event(1, 55, 4, 10);
 
     s_reset();
     s_make_titlebar_client(&client, 55);
     client.id = 7u;
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     desktop.client_active_id = 7u;
-    s_stub_lookup_surface = &surface;
+    s_stub_lookup_stage = &stage;
 
     /* type is MOUSEBIND_DESKTOP_WEST, but scroll direction itself
      * (button 4 vs 5) does not gate the titlebar shade/unshade
@@ -488,7 +488,7 @@ static void s_test_east_on_titlebar_unshades_and_refocuses(void)
 {
     client_td client;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     xcb_button_press_event_t event = s_make_event(1, 55, 5, 10);
 
     s_reset();
@@ -496,9 +496,9 @@ static void s_test_east_on_titlebar_unshades_and_refocuses(void)
     client.id = 3u;
     client.properties.flags |= CLIENT_FLAG_SHADED;
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     desktop.client_active_id = 3u;
-    s_stub_lookup_surface = &surface;
+    s_stub_lookup_stage = &stage;
 
     im_press_scroll_binding((xcb_connection_t *) 1, NULL, &event,
             &client, &desktop, MOUSEBIND_DESKTOP_EAST, NULL);
@@ -547,15 +547,15 @@ static void s_test_scroll_over_content_runs_no_titlebar_action(void)
 
 
 /* No client under the pointer: a desktop switch happens directly, one
- * call per direction, only when a surface resolves for the root */
+ * call per direction, only when a stage resolves for the root */
 static void s_test_no_client_switches_desktop_directly(void)
 {
-    surface_td surface;
+    stage_td stage;
     xcb_button_press_event_t event = s_make_event(1, 0, 4, 10);
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    s_stub_lookup_surface = &surface;
+    memset(&stage, 0, sizeof(stage));
+    s_stub_lookup_stage = &stage;
 
     im_press_scroll_binding((xcb_connection_t *) 1, NULL, &event,
             NULL, NULL, MOUSEBIND_DESKTOP_NORTH, NULL);
@@ -579,20 +579,20 @@ static void s_test_no_client_switches_desktop_directly(void)
 }
 
 
-/* No client under the pointer, and no surface resolves for the root:
+/* No client under the pointer, and no stage resolves for the root:
  * no desktop switch call happens at all */
-static void s_test_no_client_no_surface_switches_nothing(void)
+static void s_test_no_client_no_stage_switches_nothing(void)
 {
     xcb_button_press_event_t event = s_make_event(1, 0, 4, 10);
 
     s_reset();
-    s_stub_lookup_surface = NULL;
+    s_stub_lookup_stage = NULL;
 
     im_press_scroll_binding((xcb_connection_t *) 1, NULL, &event,
             NULL, NULL, MOUSEBIND_DESKTOP_NORTH, NULL);
 
     TAP_EQ_INT(s_switch_north_calls, 0,
-            "no surface resolved for the root: no switch call happens");
+            "no stage resolved for the root: no switch call happens");
 }
 
 
@@ -610,7 +610,7 @@ int main(void)
     s_test_east_on_titlebar_skips_already_unshaded();
     s_test_scroll_over_content_runs_no_titlebar_action();
     s_test_no_client_switches_desktop_directly();
-    s_test_no_client_no_surface_switches_nothing();
+    s_test_no_client_no_stage_switches_nothing();
 
     return TAP_DONE();
 }

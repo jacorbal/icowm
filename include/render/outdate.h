@@ -3,7 +3,7 @@
  *
  * @brief Centralized redraw-outdating helpers
  *
- * Provides thin inline helpers that mark a @c surface_td or
+ * Provides thin inline helpers that mark a @c stage_td or
  * @c desktop_td as requiring a repaint on the next render cycle.
  * Centralizing the pattern here prevents ad-hoc @p is_outdated
  * assignments from spreading across unrelated modules.
@@ -25,7 +25,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /**
@@ -52,13 +52,13 @@ static inline void wm_outdate_client(client_td *c)
 
 
 /**
- * @brief Mark a surface as needing a repaint
+ * @brief Mark a stage as needing a repaint
  *
- * @param s Surface to mark outdated, or null (no-op)
+ * @param s Stage to mark outdated, or null (no-op)
  *
  * @note Complexity: @e O(1)
  */
-static inline void wm_outdate_surface(surface_td *s)
+static inline void wm_outdate_stage(stage_td *s)
 {
     if (s != NULL) {
         s->is_outdated = true;
@@ -97,13 +97,13 @@ static inline void wm_validate_client(client_td *c)
 
 
 /**
- * @brief Clear a surface's outdated flag once its repaint is done
+ * @brief Clear a stage's outdated flag once its repaint is done
  *
- * @param s Surface to validate, or null (no-op)
+ * @param s Stage to validate, or null (no-op)
  *
  * @note Complexity: @e O(1)
  */
-static inline void wm_validate_surface(surface_td *s)
+static inline void wm_validate_stage(stage_td *s)
 {
     if (s != NULL) {
         s->is_outdated = false;

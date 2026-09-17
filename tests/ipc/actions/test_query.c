@@ -4,16 +4,16 @@
  * @brief Test battery for the read-only IPC query commands
  *
  * Unlike the other files in this directory, query.c's own real
- * dependencies (surface_desktop_walk_all, surface_desktop_get,
+ * dependencies (stage_desktop_walk_all, stage_desktop_get,
  * lookup_current_desktop) are cheap, deterministic, and X-free, so
  * this file links every one of them for real rather than stubbing
- * them: src/surface/desktops.c, src/lookup.c, and the real adt/list,
- * adt/cdlist, and adt/ohtbl backing them.  Only wm_surfaces (wm.c)
+ * them: src/stage/desktops.c, src/lookup.c, and the real adt/list,
+ * adt/cdlist, and adt/ohtbl backing them.  Only wm_stages (wm.c)
  * is a controllable stand-in, the same role tests/ipc/test_resolve.c
  * already gives it, since building a real wm_td here is not possible
  * from outside wm.c (the type is opaque).  Fixture construction
  * follows tests/test_lookup.c's own established pattern for building
- * surface_td/desktop_td/client_td trees by hand.
+ * stage_td/desktop_td/client_td trees by hand.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -44,24 +44,24 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <ipc/actions/query.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
-/** Controllable stand-in for wm_surfaces (wm.c) */
-static list_td s_surfaces_list;
+/** Controllable stand-in for wm_stages (wm.c) */
+static list_td s_stages_list;
 
-list_td *wm_surfaces(const wm_td *wm)
+list_td *wm_stages(const wm_td *wm)
 {
     (void) wm;
-    return &s_surfaces_list;
+    return &s_stages_list;
 }
 
 
 /** Link-only stand-in for desktop_destroy (desktop.c): only reached
- *  from surface_desktop_rem, a function this file never calls; the
+ *  from stage_desktop_rem, a function this file never calls; the
  *  linker still needs a definition for it since it is referenced
- *  from the same translation unit as surface_desktop_walk_all, the one
+ *  from the same translation unit as stage_desktop_walk_all, the one
  *  function here actually under test */
 void desktop_destroy(desktop_td *desktop)
 {
@@ -134,11 +134,11 @@ static client_td *s_make_client(xcb_window_t id, char *name)
 }
 
 
-/** Fixtures shared by every scenario: one surface, two desktops,
+/** Fixtures shared by every scenario: one stage, two desktops,
  *  desktop 0 holding a plain client and a locked one, desktop 1
  *  holding an iconified, urgent, pinned client, and set as the
- *  surface's own current desktop */
-static surface_td *s_surface;
+ *  stage's own current desktop */
+static stage_td *s_stage;
 static desktop_td *s_desktop0;
 static desktop_td *s_desktop1;
 static client_td *s_plain_client;
@@ -151,27 +151,27 @@ static wm_td *const s_wm = (wm_td *) &s_wm_storage;
 
 static void s_reset(void)
 {
-    if (s_surface != NULL) {
-        cdlist_destroy(s_surface->desktops);
-        free(s_surface->screen);
-        free(s_surface);
+    if (s_stage != NULL) {
+        cdlist_destroy(s_stage->desktops);
+        free(s_stage->screen);
+        free(s_stage);
     }
-    list_clear(&s_surfaces_list);
-    s_surfaces_list.destroy = NULL;
+    list_clear(&s_stages_list);
+    s_stages_list.destroy = NULL;
 
-    s_surface = calloc(1, sizeof(surface_td));
-    s_surface->id = 7u;
-    s_surface->desktop_count = 2u;
-    s_surface->desktop_cur = 1u;
-    s_surface->screen = calloc(1, sizeof(xcb_screen_t));
-    s_surface->desktops = cdlist_init(s_destroy_desktop);
+    s_stage = calloc(1, sizeof(stage_td));
+    s_stage->id = 7u;
+    s_stage->desktop_count = 2u;
+    s_stage->desktop_cur = 1u;
+    s_stage->screen = calloc(1, sizeof(xcb_screen_t));
+    s_stage->desktops = cdlist_init(s_destroy_desktop);
 
     s_desktop0 = s_make_desktop(0u, "one");
     s_desktop1 = s_make_desktop(1u, "two");
     s_desktop1->client_active_id = 55u;
-    cdlist_ins_next(s_surface->desktops, cdlist_tail(s_surface->desktops),
+    cdlist_ins_next(s_stage->desktops, cdlist_tail(s_stage->desktops),
             s_desktop0);
-    cdlist_ins_next(s_surface->desktops, cdlist_tail(s_surface->desktops),
+    cdlist_ins_next(s_stage->desktops, cdlist_tail(s_stage->desktops),
             s_desktop1);
 
     s_plain_client = s_make_client(10u, (char *) "plain");
@@ -188,7 +188,7 @@ static void s_reset(void)
     s_flagged_client->properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
     ohtbl_insert(s_desktop1->clients, s_flagged_client);
 
-    list_ins_next(&s_surfaces_list, NULL, s_surface);
+    list_ins_next(&s_stages_list, NULL, s_stage);
 }
 
 
@@ -211,8 +211,8 @@ static void s_test_get_version(void)
 }
 
 
-/* "list_desktops": every desktop on every surface, each carrying its
- * own id, name, surface_id, and current flag */
+/* "list_desktops": every desktop on every stage, each carrying its
+ * own id, name, stage_id, and current flag */
 static void s_test_list_desktops(void)
 {
     cJSON *resp;
@@ -226,20 +226,20 @@ static void s_test_list_desktops(void)
 
     TAP_NOT_NULL(desktops, "list_desktops returns a desktops array");
     TAP_EQ_INT(cJSON_GetArraySize(desktops), 2,
-            "both desktops on the one surface are listed");
+            "both desktops on the one stage are listed");
 
     first = cJSON_GetArrayItem(desktops, 0);
     TAP_EQ_STR(cJSON_GetStringValue(cJSON_GetObjectItem(first, "name")),
             "one", "the first desktop's own name is reported");
     TAP_OK(!cJSON_IsTrue(cJSON_GetObjectItem(first, "current")),
-            "desktop 0 is not the surface's current desktop");
+            "desktop 0 is not the stage's current desktop");
 
     second = cJSON_GetArrayItem(desktops, 1);
     TAP_OK(cJSON_IsTrue(cJSON_GetObjectItem(second, "current")),
-            "desktop 1 is reported as the surface's current desktop");
+            "desktop 1 is reported as the stage's current desktop");
     TAP_EQ_INT((int) cJSON_GetNumberValue(
-                cJSON_GetObjectItem(second, "surface_id")), 7,
-            "each desktop entry carries its own surface's id");
+                cJSON_GetObjectItem(second, "stage_id")), 7,
+            "each desktop entry carries its own stage's id");
 
     cJSON_Delete(resp);
 }
@@ -299,7 +299,7 @@ static void s_test_list_clients(void)
 }
 
 
-/* "get_focused": one entry per surface, with a real client_id when
+/* "get_focused": one entry per stage, with a real client_id when
  * the current desktop has an active client */
 static void s_test_get_focused_with_active_client(void)
 {
@@ -312,7 +312,7 @@ static void s_test_get_focused_with_active_client(void)
     focused = cJSON_GetObjectItem(resp, "focused");
 
     TAP_EQ_INT(cJSON_GetArraySize(focused), 1,
-            "one entry for the one surface");
+            "one entry for the one stage");
     entry = cJSON_GetArrayItem(focused, 0);
     TAP_EQ_INT((int) cJSON_GetNumberValue(
                 cJSON_GetObjectItem(entry, "client_id")), 55,
@@ -332,7 +332,7 @@ static void s_test_get_focused_with_no_active_client(void)
     cJSON *client_id_field;
 
     s_reset();
-    s_surface->desktop_cur = 0u;
+    s_stage->desktop_cur = 0u;
     s_desktop0->client_active_id = XCB_WINDOW_NONE;
 
     resp = ipc_action_get_focused(s_wm, NULL);

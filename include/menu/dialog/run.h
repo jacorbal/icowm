@@ -52,20 +52,20 @@
 
 
 /**
- * @brief Open the run-box, centered on @p surface
+ * @brief Open the run-box, centered on @p stage
  *
  * Any previously open run-box is replaced.  Grabs the keyboard for as
  * long as the box stays open, the same way the fuzzy window-search
  * widget's @a search_init already does.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the box
+ * @param stage      Stage on which to center the box
  * @param cfg        Active configuration (theme colors and font)
  *
  * @note No-op if any pointer argument is null
  * @note Complexity: @e O(1)
  */
-void run_init(xcb_connection_t *connection, surface_td *surface,
+void run_init(xcb_connection_t *connection, stage_td *stage,
         const config_td *cfg);
 
 /**
@@ -106,20 +106,20 @@ bool run_owns_window(xcb_window_t win);
  * answers to.
  *
  * @param connection XCB connection
- * @param surface    Surface the box is centered on, needed to resolve
+ * @param stage      Stage the box is centered on, needed to resolve
  *                   the desktop @a desktop_action_process_launch itself
  *                   requires
- * @param keysym     Key symbol of the pressed key
- * @param modmask    Modifiers held with it, for the two that pair with
+ * @param keysym  Key symbol of the pressed key
+ * @param modmask Modifiers held with it, for the two that pair with
  *                   @c Ctrl
- * @param cfg        Active configuration
+ * @param cfg Active configuration
  *
  * @note A no-op if the run-box is not currently open
  * @note Complexity: @e O(n), where @e n is the command's length, from
  *       moving the tail on an insertion or a deletion
  */
 void run_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym, uint16_t modmask,
+        stage_td *stage, xcb_keysym_t keysym, uint16_t modmask,
         const config_td *cfg);
 
 /**

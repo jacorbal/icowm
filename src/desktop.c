@@ -47,7 +47,7 @@
 #include <logger.h>
 #include <memguard.h>
 #include <monitor.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <desktop.h>
@@ -103,7 +103,7 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
  *
  * Shared by @c desktop_update_workarea for both a stacked client's
  * @c layout.strut_partial and the systray's reservation, and for
- * both the whole surface's work area and each individual
+ * both the whole stage's work area and each individual
  * monitor's.  The two strut sources are folded identically
  * either way; each edge keeps whichever single source reserves the
  * most there, the struts are not summed together (unlike
@@ -113,11 +113,11 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
  * @param strut        Strut to fold in; a no-op when null
  * @param region_min_x Region's minimum X coordinate, for the
  *                     top/bottom range overlap check; @c 0 for the
- *                     whole surface, a monitor's @c x otherwise
+ *                     whole stage, a monitor's @c x otherwise
  * @param region_max_x Region's maximum X coordinate, same axis
  * @param region_min_y Region's minimum Y coordinate, for the
  *                     left/right range overlap check; @c 0 for the
- *                     whole surface, a monitor's @c y otherwise
+ *                     whole stage, a monitor's @c y otherwise
  * @param region_max_y Region's maximum Y coordinate, same axis
  * @param left         Running left reservation, updated in place
  * @param right        Running right reservation, updated in place
@@ -317,20 +317,20 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  * @brief Compute one work area, struts and margins folded in, scoped
  *        to a single rectangular region
  *
- * Shared by @a desktop_update_workarea for both the whole surface's
+ * Shared by @a desktop_update_workarea for both the whole stage's
  * own @c workarea and each individual monitor's entry in
  * @c monitor_workareas, the exact same reservation math either way,
- * only the region it is scoped to differing.  The whole surface for
+ * only the region it is scoped to differing.  The whole stage for
  * the former, one monitor's physical extent for the latter.
  *
- * @param desktop             Desktop whose stacking list to scan for
+ * @param desktop Desktop whose stacking list to scan for
  *                            client struts
- * @param region_x            Region's left edge, in surface coordinates
- * @param region_y            Region's top edge, in surface coordinates
- * @param region_w            Region's width
- * @param region_h            Region's height
- * @param apply_margin_left   Whether this region's left edge coincides
- *                            with a side of the surface
+ * @param region_x          Region's left edge, in stage coordinates
+ * @param region_y          Region's top edge, in stage coordinates
+ * @param region_w          Region's width
+ * @param region_h          Region's height
+ * @param apply_margin_left Whether this region's left edge coincides
+ *                            with a side of the stage
  *                            @p config_desktop's @p margins should
  *                            actually reserve on
  * @param apply_margin_right  Same, for the right edge
@@ -339,13 +339,13 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  * @param config_desktop      Active desktop-behavior configuration, for
  *                            its @p margins; a @c NULL treats every
  *                            margin as @c 0
- * @param systray_strut       The systray's current reservation;
+ * @param systray_strut The systray's current reservation;
  *                            a @c NULL value folds in nothing
- * @param ignore_struts       When @c true, neither @p systray_strut nor
+ * @param ignore_struts When @c true, neither @p systray_strut nor
  *                            any client's strut is folded in, only
  *                            whichever margins @p apply_margin_* select
  *
- * @return The resulting work area, in surface coordinates
+ * @return The resulting work area, in stage coordinates
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
@@ -409,7 +409,7 @@ static struct geometry_s s_desktop_compute_workarea(
      * early return that would never get here, so a configured margin
      * still reserves its space on an empty desktop.  Only on whichever
      * side of this region actually coincides with that same side of the
-     * whole surface, per 'apply_margin_left'/etc: an internal boundary
+     * whole stage, per 'apply_margin_left'/etc: an internal boundary
      * between two monitors is not "the screen edge" a margin is meant
      * to carve out in the first place. */
     if (config_desktop != NULL) {
@@ -603,18 +603,18 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
 /* Recompute work area from client struts */
 void desktop_update_workarea(desktop_td *desktop,
-        const surface_td *surface,
+        const stage_td *stage,
         const struct config_desktop_s *config_desktop,
         const struct strut_partial_s *systray_strut,
         bool ignore_struts)
 {
     struct dimensions_s screen_dim;
 
-    if (desktop == NULL || surface == NULL) {
+    if (desktop == NULL || stage == NULL) {
         return;
     }
 
-    screen_dim = surface->properties.dim;
+    screen_dim = stage->properties.dim;
 
     desktop->workarea = s_desktop_compute_workarea(desktop,
             0, 0, screen_dim.w, screen_dim.h,
@@ -626,9 +626,9 @@ void desktop_update_workarea(desktop_td *desktop,
             desktop->workarea.dim.w, desktop->workarea.dim.h,
             desktop->workarea.pos.x, desktop->workarea.pos.y);
 
-    desktop->monitor_workarea_count = surface->monitor_count;
-    for (uint32_t m = 0u; m < surface->monitor_count; ++m) {
-        const monitor_td *mon = &surface->monitors[m];
+    desktop->monitor_workarea_count = stage->monitor_count;
+    for (uint32_t m = 0u; m < stage->monitor_count; ++m) {
+        const monitor_td *mon = &stage->monitors[m];
         bool at_left = (mon->x == 0);
         bool at_top = (mon->y == 0);
         bool at_right = (mon->x + (int32_t) mon->w ==

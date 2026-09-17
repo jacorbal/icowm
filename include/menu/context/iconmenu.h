@@ -56,7 +56,7 @@
  * applies to the same three conditions on that menu's own copies of
  * these submenus: "Send to desktop" does not appear when the topology
  * is set to just one desktop, "Send to monitor" only appears on
- * a surface with more than one monitor, and "Send to page" only when
+ * a stage with more than one monitor, and "Send to page" only when
  * the configured viewport spans more than a single screen, except that
  * a sticky client gets none of that either, belonging as it does to no
  * one page.
@@ -73,17 +73,17 @@
  * closed first.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to display the menu
+ * @param stage      Stage on which to display the menu
  * @param desktop    Desktop that currently contains @p client
  * @param client     Target client
  * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops on
- *       the surface
+ *       the stage
  */
 void iconmenu_show(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         struct position_s pos, const config_td *config);
 
 /**
@@ -109,7 +109,7 @@ void iconmenu_repaint(xcb_window_t win);
  * @brief Handle a button-press event inside the icon context menu
  *
  * @param connection XCB connection
- * @param surface    Surface associated with the event
+ * @param stage      Stage associated with the event
  * @param win        Window that received the press
  * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
@@ -119,7 +119,7 @@ void iconmenu_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool iconmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config);
 
 /**
@@ -183,7 +183,7 @@ void iconmenu_notice_client_destroyed(const client_td *client);
  * context menu hierarchy.
  *
  * @param connection XCB connection
- * @param surface    Surface on which the menu is displayed
+ * @param stage      Stage on which the menu is displayed
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
@@ -192,7 +192,7 @@ void iconmenu_notice_client_destroyed(const client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of menu entries
  */
 bool iconmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config);
 
 /**

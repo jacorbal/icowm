@@ -46,7 +46,7 @@
 
 /* Project includes */
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -109,21 +109,21 @@ static bool s_wait_for_relinquish(xcb_connection_t *connection,
 
 
 /**
- * @brief Acquire @p surface's @c WM_S<n> selection with @p support,
+ * @brief Acquire @p stage's @c WM_S<n> selection with @p support,
  *        replacing a previous owner if asked to
  *
  * @param connection        XCB connection
  * @param support           Window to make the new selection owner
- * @param surface           Surface whose selection is acquired
+ * @param stage             Stage whose selection is acquired
  * @param replace_requested Whether to wait out and replace a previous
  *                          owner instead of refusing outright
- * @param manager_atom      Interned @c MANAGER atom, or
+ * @param manager_atom Interned @c MANAGER atom, or
  *                          @c XCB_ATOM_NONE if interning it failed
  *                          (the announcement is then skipped, this
  *                          function's success is unaffected)
  *
  * @retval  0 on success
- * @retval -1 if @p surface has no owned selection to acquire, is
+ * @retval -1 if @p stage has no owned selection to acquire, is
  *            already owned and @p replace_requested is @c false, or the
  *            previous owner does not relinquish it in time
  *
@@ -131,7 +131,7 @@ static bool s_wait_for_relinquish(xcb_connection_t *connection,
  *       cost when a previous owner must be waited out
  */
 static int s_acquire_one_screen(xcb_connection_t *connection,
-        xcb_window_t support, const surface_td *surface,
+        xcb_window_t support, const stage_td *stage,
         bool replace_requested, xcb_atom_t manager_atom)
 {
     char selection_name[16];
@@ -141,7 +141,7 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
     xcb_window_t previous_owner;
 
     (void) snprintf(selection_name, sizeof(selection_name),
-            "WM_S%u", surface->id);
+            "WM_S%u", stage->id);
     selection_atom = atom_intern(connection, selection_name, false);
     if (selection_atom == XCB_ATOM_NONE) {
         return -1;
@@ -164,13 +164,13 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
         if (!replace_requested) {
             LOGGER_FATAL("Screen %u's own '%s' selection is already" \
                     " owned by another window manager; pass '-r' to" \
-                    " replace it", surface->id, selection_name);
+                    " replace it", stage->id, selection_name);
             return -1;
         }
 
         LOGGER_NOTICE("Screen %u's own '%s' selection is already" \
                 " owned; '-r' given, waiting for the previous window" \
-                " manager to relinquish it", surface->id,
+                " manager to relinquish it", stage->id,
                 selection_name);
 
         values[0] = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
@@ -206,13 +206,13 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
         if (!s_wait_for_relinquish(connection, previous_owner)) {
             LOGGER_FATAL("Screen %u's previous window manager did" \
                     " not relinquish '%s' within %u ms",
-                    surface->id, selection_name,
+                    stage->id, selection_name,
                     (unsigned int) WM_SN_REPLACE_TIMEOUT_MS);
             return -1;
         }
 
         LOGGER_INFO("Screen %u's previous window manager relinquished" \
-                " '%s'; taking over", surface->id, selection_name);
+                " '%s'; taking over", stage->id, selection_name);
     }
 
     if (manager_atom != XCB_ATOM_NONE) {
@@ -221,14 +221,14 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
         memset(&manager_event, 0, sizeof(manager_event));
         manager_event.response_type = XCB_CLIENT_MESSAGE;
         manager_event.format = 32;
-        manager_event.window = surface->screen->root;
+        manager_event.window = stage->screen->root;
         manager_event.type = manager_atom;
         manager_event.data.data32[0] = XCB_CURRENT_TIME;
         manager_event.data.data32[1] = selection_atom;
         manager_event.data.data32[2] = support;
         manager_event.data.data32[3] = 0u;
         manager_event.data.data32[4] = 0u;
-        xcb_send_event(connection, 0, surface->screen->root,
+        xcb_send_event(connection, 0, stage->screen->root,
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY,
                 (const char *) &manager_event);
     }
@@ -242,11 +242,11 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
 int wm_startup_acquire_selection(wm_td *wm, bool replace_requested)
 {
     xcb_connection_t *connection = wm_connection(wm);
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
     xcb_atom_t manager_atom;
     xcb_window_t support;
 
-    if (wm == NULL || connection == NULL || surfaces == NULL) {
+    if (wm == NULL || connection == NULL || stages == NULL) {
         return -1;
     }
 
@@ -264,16 +264,16 @@ int wm_startup_acquire_selection(wm_td *wm, bool replace_requested)
             XCB_COPY_FROM_PARENT,
             0, NULL);
 
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(stages);
             node != NULL; node = list_next(node)) {
-        const surface_td *const surface =
-            (const surface_td *) list_data(node);
+        const stage_td *const stage =
+            (const stage_td *) list_data(node);
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
-        if (s_acquire_one_screen(connection, support, surface,
+        if (s_acquire_one_screen(connection, support, stage,
                     replace_requested, manager_atom) != 0) {
             xcb_window_destroy(support);
             xcb_flush(connection);

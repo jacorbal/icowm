@@ -11,7 +11,7 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-/* Renderincludes */
+/* Render includes */
 #include <render/text.h>
 
 /* Project includes */
@@ -59,7 +59,7 @@ static int s_row_height(ctxmenu_entry_type_e type)
  * @param icon_offset Extra width to add for an entry with an associated
  *                    @c icon_window (0 when @c theme.menu.show-pixmaps
  *                    is off); see @c ctxmenu_width_compute
- * @param max_w       Current running maximum, carried in so the two
+ * @param max_w Current running maximum, carried in so the two
  *                    passes contribute to one shared result
  *
  * @return The greater of @p max_w and every measured entry's width

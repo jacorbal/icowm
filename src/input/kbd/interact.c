@@ -59,7 +59,7 @@
 #include <enact/client.h>
 #include <cctl/launch.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Menu includes */
@@ -96,15 +96,15 @@ static struct timespec s_last_launch;
  * from the base (or minimum) size; otherwise a fixed keyboard resize
  * step is applied.
  *
- * @param client     Pointer to the client whose geometry is being
+ * @param client Pointer to the client whose geometry is being
  *                   resized; may be null, in which case @p cur_frame is
  *                   returned
  * @param step       Amount of pixels to resize every step
  * @param horizontal @c true to operate on the horizontal axis (width),
  *                   @c false for the vertical axis (height)
- * @param cur_frame  Current outer frame size (including extents) for
+ * @param cur_frame Current outer frame size (including extents) for
  *                   the selected axis
- * @param grow       @c true to grow (increase) the size, @c false to
+ * @param grow @c true to grow (increase) the size, @c false to
  *                   shrink (decrease) it
  *
  * @return The target outer frame size for the selected axis, after
@@ -347,10 +347,10 @@ static bool s_launch_pace_ok(void)
 }
 
 
-/* Resolve the currently focused client on a surface */
-client_td *ik_get_active_client(surface_td *surface,
-        list_td *surfaces,
-        surface_td **cs_out,
+/* Resolve the currently focused client on a stage */
+client_td *ik_get_active_client(stage_td *stage,
+        list_td *stages,
+        stage_td **cs_out,
         desktop_td **cd_out)
 {
     desktop_td *desktop;
@@ -358,23 +358,23 @@ client_td *ik_get_active_client(surface_td *surface,
     if (cs_out != NULL) { *cs_out = NULL; }
     if (cd_out != NULL) { *cd_out = NULL; }
 
-    if (surface == NULL) {
+    if (stage == NULL) {
         return NULL;
     }
 
-    desktop = lookup_current_desktop(surface);
+    desktop = lookup_current_desktop(stage);
     if (desktop == NULL || desktop->client_active_id == 0) {
         return NULL;
     }
 
-    return lookup_find_client(surfaces, desktop->client_active_id,
+    return lookup_find_client(stages, desktop->client_active_id,
             cs_out, cd_out);
 }
 
 
 /* Launch a configured program for the given binding type */
 void ik_handle_launch(enum ik_launch_e program,
-        surface_td *surface, const config_td *config)
+        stage_td *stage, const config_td *config)
 {
     const char *path = NULL;
 
@@ -384,7 +384,7 @@ void ik_handle_launch(enum ik_launch_e program,
             break;
         case IK_LAUNCH_LAUNCHER:
             if (config->base.prompt.is_enabled) {
-                run_init(xcb_connection_get(), surface, config);
+                run_init(xcb_connection_get(), stage, config);
                 return;
             }
             path = config->base.programs.launcher;
@@ -404,16 +404,16 @@ void ik_handle_launch(enum ik_launch_e program,
         return;
     }
 
-    cctl_launch_dispatch(surface, path, NULL);
+    cctl_launch_dispatch(stage, path, NULL);
 }
 
 
 /* Move the focused client by keyboard */
 void ik_handle_move(enum ik_move_e direction,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config)
 {
-    surface_td *cs = NULL;
+    stage_td *cs = NULL;
     client_td *client;
     int32_t move_step;
     int32_t new_x;
@@ -427,7 +427,7 @@ void ik_handle_move(enum ik_move_e direction,
     uint16_t wa_h = 0;
     bool have_workarea;
 
-    client = ik_get_active_client(surface, surfaces, &cs, NULL);
+    client = ik_get_active_client(stage, stages, &cs, NULL);
     if (client == NULL) {
         return;
     }
@@ -449,12 +449,12 @@ void ik_handle_move(enum ik_move_e direction,
     new_y = client->layout.geometry.cur.pos.y;
 
     /* The corner destinations below need the workarea of whichever
-     * monitor 'client' actually sits on, not the whole surface's
-     * raw dimensions: on a multi-monitor surface, the latter would send
+     * monitor 'client' actually sits on, not the whole stage's
+     * raw dimensions: on a multi-monitor stage, the latter would send
      * "top-right" to the far edge of the last monitor rather than the
      * current one's, and either one alone would still tuck the client
      * under a panel or the tray reserving space at that same edge.
-     * Falls back to the whole-surface computation this function already
+     * Falls back to the whole-stage computation this function already
      * used, unchanged, whenever a monitor or desktop cannot be resolved
      * for 'client' at all. */
     have_workarea = ccmd_client_resolve_workarea(client,
@@ -524,7 +524,7 @@ void ik_handle_move(enum ik_move_e direction,
 
 /* Resize the focused client by keyboard */
 void ik_handle_resize(enum ik_resize_e edge,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config)
 {
     client_td *client;
@@ -536,7 +536,7 @@ void ik_handle_resize(enum ik_resize_e edge,
     int32_t new_h;
     uint32_t aspect_h;
 
-    client = ik_get_active_client(surface, surfaces, NULL, NULL);
+    client = ik_get_active_client(stage, stages, NULL, NULL);
     if (client == NULL || !client_is_resizable(client) ||
             client_is_locked(client)) {
         return;

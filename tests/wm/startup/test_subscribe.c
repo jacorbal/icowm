@@ -6,19 +6,19 @@
  *
  * wm_startup_subscribe_randr_events has two meaningfully
  * unit-testable behaviors in isolation: its leading
- * 'if (wm == NULL || surfaces == NULL || connection == NULL) return
+ * 'if (wm == NULL || stages == NULL || connection == NULL) return
  * -1;' guard, and, once past it, an unconditional
  * 'if (!wm_randr_available(wm)) return 0;' short-circuit that this
  * file can drive either way through a real 'wm_td' with
  * 'is_randr_available' set or clear, entirely without XCB, since
  * 'wm_randr_available' (wm/instance.c) is a plain field read.  Past
- * that short-circuit, the per-surface loop calls
+ * that short-circuit, the per-stage loop calls
  * 'xcb_randr_select_input_checked' followed by
  * 'xcb_request_check', both real blocking XCB round trips against
  * a live connection, so that loop body itself is out of reach here.
  *
  * The reverse case, 'wm_randr_available(wm)' true, is not exercised
- * even with an empty surfaces list: past that check the function
+ * even with an empty stages list: past that check the function
  * unconditionally calls 'xcb_flush(connection)' before returning,
  * regardless of whether the loop above it found anything to iterate,
  * and 'connection' has to be a real, live 'xcb_connection_t' for
@@ -26,10 +26,10 @@
  * placeholder non-NULL pointer a guard-clause scenario could supply.
  *
  * wm_startup_subscribe_root_events has only its own leading
- * 'if (wm == NULL || surfaces == NULL || connection == NULL) return
+ * 'if (wm == NULL || stages == NULL || connection == NULL) return
  * -1;' guard as a unit-testable behavior in isolation: every line
  * past it, starting with 'xcb_change_window_attributes_checked'
- * inside its own per-surface loop, is a real blocking XCB round trip,
+ * inside its own per-stage loop, is a real blocking XCB round trip,
  * and even the cursor-loading tail past that loop
  * ('util_cursor_ctx_new', 'util_cursor_load', 'xcb_free_cursor')
  * needs a live connection and a live X cursor theme or core font to
@@ -155,7 +155,7 @@ static void s_test_randr_subscribe_null_connection(void)
 
     memset(&local_wm, 0, sizeof(local_wm));
     local_wm.connection = NULL;
-    local_wm.surfaces = NULL;
+    local_wm.stages = NULL;
 
     result = wm_startup_subscribe_randr_events(&local_wm);
 
@@ -165,10 +165,10 @@ static void s_test_randr_subscribe_null_connection(void)
 }
 
 
-/* A non-NULL wm with no surfaces list also fails the guard clause,
- * even with the connection field non-NULL, since wm_surfaces(wm)
+/* A non-NULL wm with no stages list also fails the guard clause,
+ * even with the connection field non-NULL, since wm_stages(wm)
  * resolving to NULL is checked independently */
-static void s_test_randr_subscribe_null_surfaces(void)
+static void s_test_randr_subscribe_null_stages(void)
 {
     wm_td local_wm;
     int result;
@@ -177,12 +177,12 @@ static void s_test_randr_subscribe_null_surfaces(void)
 
     memset(&local_wm, 0, sizeof(local_wm));
     local_wm.connection = fake_connection;
-    local_wm.surfaces = NULL;
+    local_wm.stages = NULL;
 
     result = wm_startup_subscribe_randr_events(&local_wm);
 
     TAP_EQ_INT(result, -1,
-            "a non-NULL wm with a NULL surfaces list also returns -1,"
+            "a non-NULL wm with a NULL stages list also returns -1,"
             " even with a non-NULL connection field");
 }
 
@@ -196,15 +196,15 @@ static void s_test_randr_subscribe_null_surfaces(void)
 static void s_test_randr_subscribe_unavailable_short_circuits(void)
 {
     wm_td local_wm;
-    struct list_s local_surfaces;
+    struct list_s local_stages;
     int result;
     xcb_connection_t *const placeholder_connection =
         (xcb_connection_t *) &local_wm;
 
     memset(&local_wm, 0, sizeof(local_wm));
-    memset(&local_surfaces, 0, sizeof(local_surfaces));
+    memset(&local_stages, 0, sizeof(local_stages));
     local_wm.connection = placeholder_connection;
-    local_wm.surfaces = &local_surfaces;
+    local_wm.stages = &local_stages;
     local_wm.is_randr_available = false;
 
     result = wm_startup_subscribe_randr_events(&local_wm);
@@ -222,7 +222,7 @@ int main(void)
 
     s_test_randr_subscribe_null_wm();
     s_test_randr_subscribe_null_connection();
-    s_test_randr_subscribe_null_surfaces();
+    s_test_randr_subscribe_null_stages();
     s_test_randr_subscribe_unavailable_short_circuits();
 
     return TAP_DONE();

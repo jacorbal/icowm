@@ -12,7 +12,7 @@
  * a link-only or recording stand-in, following
  * 'tests/menu/test_notify.c''s pattern; 'ccmd_client_monitor'
  * (cmds/client/screen.c) is a genuinely cross-module dependency,
- * stubbed the same way as 'surface_desktop_label' was in
+ * stubbed the same way as 'stage_desktop_label' was in
  * 'tests/menu/notify/test_desktop.c'; 'menu/draw.c' is linked for
  * real so 'popup_repaint''s forwarding through 'menu_draw_label' is
  * genuinely exercised, not assumed; 'clock.c' is linked for real too,
@@ -44,7 +44,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <types/pair.h>
 
 /* Local includes */
@@ -75,8 +75,8 @@ static char s_last_drawn_texts[4][WM_INFO_POPUP_LINE_MAX_LENGTH];
 
 /** Whether the stand-in reports a resolvable monitor at all */
 static bool s_monitor_resolves;
-/** Surface the stand-in hands back through @c out_surface */
-static surface_td *s_monitor_out_surface;
+/** Stage the stand-in hands back through @c out_stage */
+static stage_td *s_monitor_out_stage;
 /** Monitor rectangle the stand-in hands back through @c out_monitor */
 static monitor_td s_monitor_out_value;
 
@@ -279,13 +279,13 @@ uint16_t text_string_measure(const char *text)
  *
  * @note Complexity: @e O(1)
  */
-bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
+bool ccmd_client_monitor(client_td *client, stage_td **out_stage,
         monitor_td *out_monitor)
 {
     (void) client;
     s_call_ccmd_client_monitor++;
-    if (out_surface != NULL) {
-        *out_surface = s_monitor_out_surface;
+    if (out_stage != NULL) {
+        *out_stage = s_monitor_out_stage;
     }
     if (out_monitor != NULL) {
         *out_monitor = s_monitor_out_value;
@@ -329,7 +329,7 @@ static void s_reset(void)
     s_last_created_h = 0;
     memset(s_last_drawn_texts, 0, sizeof(s_last_drawn_texts));
     s_monitor_resolves = false;
-    s_monitor_out_surface = NULL;
+    s_monitor_out_stage = NULL;
     memset(&s_monitor_out_value, 0, sizeof(s_monitor_out_value));
     s_measure_reply = 30u;
 
@@ -355,18 +355,18 @@ static config_td s_make_config(void)
 }
 
 
-static surface_td s_make_surface(uint32_t w, uint32_t h, uint32_t id)
+static stage_td s_make_stage(uint32_t w, uint32_t h, uint32_t id)
 {
-    surface_td surface;
+    stage_td stage;
     static xcb_screen_t screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
-    surface.properties.dim.w = w;
-    surface.properties.dim.h = h;
-    surface.id = id;
-    return surface;
+    stage.screen = &screen;
+    stage.properties.dim.w = w;
+    stage.properties.dim.h = h;
+    stage.id = id;
+    return stage;
 }
 
 
@@ -399,46 +399,46 @@ static client_td s_make_client(xcb_window_t id, xcb_window_t frame,
 
 
 /* popup_show does nothing at all on any null argument, or a
- * screen-less surface, without ever generating a window id */
+ * screen-less stage, without ever generating a window id */
 static void s_test_show_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u, 0u);
+    stage = s_make_stage(1024u, 768u, 0u);
     desktop = s_make_desktop(1u);
     client = s_make_client(50u, 51u, 10, 10, 200u, 100u);
     cfg = s_make_config();
 
-    popup_show(NULL, &surface, &desktop, &client, 0, 38, &cfg);
+    popup_show(NULL, &stage, &desktop, &client, 0, 38, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null connection creates no window");
 
     popup_show(s_fake_connection, NULL, &desktop, &client, 0, 38, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
-            "a null surface creates no window");
+            "a null stage creates no window");
 
-    popup_show(s_fake_connection, &surface, NULL, &client, 0, 38, &cfg);
+    popup_show(s_fake_connection, &stage, NULL, &client, 0, 38, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null desktop creates no window");
 
-    popup_show(s_fake_connection, &surface, &desktop, NULL, 0, 38, &cfg);
+    popup_show(s_fake_connection, &stage, &desktop, NULL, 0, 38, &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null client creates no window");
 
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             NULL);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
             "a null config creates no window");
 
-    surface.screen = NULL;
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    stage.screen = NULL;
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             &cfg);
     TAP_EQ_INT(s_call_xcb_create_window, 0,
-            "a screen-less surface creates no window");
+            "a screen-less stage creates no window");
 }
 
 
@@ -447,18 +447,18 @@ static void s_test_show_null_guards(void)
  * corner when that fits on screen without clamping */
 static void s_test_show_creates_positions_and_maps(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u, 0u);
+    stage = s_make_stage(1024u, 768u, 0u);
     desktop = s_make_desktop(1u);
     client = s_make_client(50u, 51u, 40, 60, 200u, 100u);
     cfg = s_make_config();
 
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             &cfg);
 
     TAP_EQ_INT(s_call_xcb_create_window, 1,
@@ -486,23 +486,23 @@ static void s_test_show_creates_positions_and_maps(void)
 
 
 /* A client whose position would place the popup off the right or
- * bottom edge of the surface is clamped back on screen, never
+ * bottom edge of the stage is clamped back on screen, never
  * negative and never past the far edge */
 static void s_test_show_clamps_to_screen(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(300u, 200u, 0u);
+    stage = s_make_stage(300u, 200u, 0u);
     desktop = s_make_desktop(1u);
-    /* Placed well past the surface's own 300x200 bounds */
+    /* Placed well past the stage's own 300x200 bounds */
     client = s_make_client(50u, 51u, 900, 900, 50u, 50u);
     cfg = s_make_config();
 
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             &cfg);
 
     TAP_OK(s_last_created_x >= 0 &&
@@ -520,19 +520,19 @@ static void s_test_show_clamps_to_screen(void)
  * defaults to 0 rather than being left uninitialized or crashing */
 static void s_test_show_monitor_unresolved_defaults_zero(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u, 7u);
+    stage = s_make_stage(1024u, 768u, 7u);
     desktop = s_make_desktop(2u);
     client = s_make_client(60u, 61u, 5, 5, 100u, 80u);
     cfg = s_make_config();
     s_monitor_resolves = false;
 
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             &cfg);
 
     TAP_EQ_INT(s_call_ccmd_client_monitor, 1,
@@ -547,19 +547,19 @@ static void s_test_show_monitor_unresolved_defaults_zero(void)
  * the module's static state, reflected through the public accessors */
 static void s_test_close_resets_state(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td cfg;
     xcb_window_t opened_window;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u, 0u);
+    stage = s_make_stage(1024u, 768u, 0u);
     desktop = s_make_desktop(1u);
     client = s_make_client(70u, 71u, 5, 5, 100u, 80u);
     cfg = s_make_config();
 
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             &cfg);
     opened_window = popup_window();
     TAP_OK(opened_window != XCB_WINDOW_NONE, "the popup opens first");
@@ -597,14 +597,14 @@ static void s_test_close_null_guards(void)
  * value bounded by the popup timeout constant right after opening */
 static void s_test_ms_remaining_reflects_state(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td cfg;
     int remaining;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u, 0u);
+    stage = s_make_stage(1024u, 768u, 0u);
     desktop = s_make_desktop(1u);
     client = s_make_client(80u, 81u, 5, 5, 100u, 80u);
     cfg = s_make_config();
@@ -612,7 +612,7 @@ static void s_test_ms_remaining_reflects_state(void)
     TAP_EQ_INT(popup_ms_remaining(), -1,
             "with nothing open, remaining time is -1");
 
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             &cfg);
     remaining = popup_ms_remaining();
     TAP_OK(remaining > 0 && remaining <= WM_INFO_POPUP_TIMEOUT_MS,
@@ -628,7 +628,7 @@ static void s_test_ms_remaining_reflects_state(void)
  * at a time */
 static void s_test_show_replaces_previous_popup(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client_a;
     client_td client_b;
@@ -636,17 +636,17 @@ static void s_test_show_replaces_previous_popup(void)
     xcb_window_t first_window;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u, 0u);
+    stage = s_make_stage(1024u, 768u, 0u);
     desktop = s_make_desktop(1u);
     client_a = s_make_client(90u, 91u, 5, 5, 100u, 80u);
     client_b = s_make_client(92u, 93u, 20, 20, 120u, 90u);
     cfg = s_make_config();
 
-    popup_show(s_fake_connection, &surface, &desktop, &client_a, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client_a, 0, 38,
             &cfg);
     first_window = popup_window();
 
-    popup_show(s_fake_connection, &surface, &desktop, &client_b, 0, 40,
+    popup_show(s_fake_connection, &stage, &desktop, &client_b, 0, 40,
             &cfg);
 
     TAP_EQ_INT(s_call_xcb_window_destroy, 1,
@@ -689,18 +689,18 @@ static void s_test_repaint_null_guards(void)
  * repainted */
 static void s_test_repaint_draws_four_cached_lines(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td cfg;
 
     s_reset();
-    surface = s_make_surface(1024u, 768u, 0u);
+    stage = s_make_stage(1024u, 768u, 0u);
     desktop = s_make_desktop(3u);
     client = s_make_client(0x64u, 0x65u, 12, 34, 640u, 480u);
     cfg = s_make_config();
 
-    popup_show(s_fake_connection, &surface, &desktop, &client, 0, 38,
+    popup_show(s_fake_connection, &stage, &desktop, &client, 0, 38,
             &cfg);
     popup_repaint(s_fake_connection, &cfg);
 

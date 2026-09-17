@@ -45,7 +45,7 @@
  * @param client  Target client
  * @param event   Received @c CLIENT_MESSAGE event
  * @param ewmh    EWMH connection handle
- * @param surface Surface owning the client
+ * @param stage   Stage owning the client
  * @param desktop Desktop where the client lives
  *
  * @note Implemented in @c handler/ewmh.c
@@ -54,13 +54,13 @@
 void hi_handle_net_wm_state(client_td *client,
         xcb_client_message_event_t *event,
         const xcb_ewmh_connection_t *ewmh,
-        surface_td *surface, desktop_td *desktop);
+        stage_td *stage, desktop_td *desktop);
 
 
 /**
  * @brief Handle a @c _NET_CURRENT_DESKTOP client message
  *
- * Switches the active desktop on the surface identified by
+ * Switches the active desktop on the stage identified by
  * @c event->window to the desktop index carried in the event data.
  *
  * @param wm    Window manager context
@@ -76,7 +76,7 @@ void hi_handle_net_current_desktop(const wm_td *wm,
 /**
  * @brief Handle a @c _NET_DESKTOP_VIEWPORT client message
  *
- * Moves the current desktop's viewport, on the surface identified by
+ * Moves the current desktop's viewport, on the stage identified by
  * @c event->window, straight to the origin carried in the event's first
  * two data words, the way a pager or other external EWMH client asks
  * for it.
@@ -86,7 +86,7 @@ void hi_handle_net_current_desktop(const wm_td *wm,
  *
  * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the surface's current desktop
+ *       the stage's current desktop
  */
 void hi_handle_net_desktop_viewport(const wm_td *wm,
         xcb_client_message_event_t *event);
@@ -101,7 +101,7 @@ void hi_handle_net_desktop_viewport(const wm_td *wm,
  * @param wm          Window manager context
  * @param event       Received @c CLIENT_MESSAGE event
  * @param client      Client to move
- * @param surface     Surface owning the client
+ * @param stage       Stage owning the client
  * @param src_desktop Client's current desktop
  *
  * @note Implemented in @c handler/ewmh.c
@@ -109,7 +109,7 @@ void hi_handle_net_desktop_viewport(const wm_td *wm,
  */
 void hi_handle_net_wm_desktop(const wm_td *wm,
         xcb_client_message_event_t *event, client_td *client,
-        surface_td *surface, desktop_td *src_desktop);
+        stage_td *stage, desktop_td *src_desktop);
 
 /**
  * @brief Handle a @c _NET_MOVERESIZE_WINDOW client message
@@ -142,28 +142,28 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
  * @param wm      Window manager state
  * @param event   Incoming client message event
  * @param client  Client the message targets
- * @param surface Surface (screen) @p client is on
+ * @param stage   Stage (screen) @p client is on
  * @param desktop Desktop @p client is on
  *
  * @note Complexity: @e O(1)
  */
 void hi_handle_net_moveresize_window(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop);
+        client_td *client, stage_td *stage, desktop_td *desktop);
 
 
 /**
- * @brief Apply a @c _NET_SHOWING_DESKTOP request to one surface
+ * @brief Apply a @c _NET_SHOWING_DESKTOP request to one stage
  *
- * Hides or restores clients on the current desktop of @p surface.
+ * Hides or restores clients on the current desktop of @p stage.
  *
- * @param surface Surface to update
- * @param show    @c true to enter showing-desktop mode
+ * @param stage Stage to update
+ * @param show  @c true to enter showing-desktop mode
  *
  * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(n)
  */
-void hi_handle_net_showing_desktop(surface_td *surface, bool show);
+void hi_handle_net_showing_desktop(stage_td *stage, bool show);
 
 
 /**
@@ -174,7 +174,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show);
  * @param wm      Window manager state
  * @param event   Client-message event carrying the restack request
  * @param client  Target client
- * @param surface Surface containing the client
+ * @param stage   Stage containing the client
  * @param desktop Desktop containing the client
  *
  * @note Implemented in @c handler/ewmh.c
@@ -182,7 +182,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show);
  */
 void hi_handle_net_restack_window(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop);
+        client_td *client, stage_td *stage, desktop_td *desktop);
 
 
 /**
@@ -194,7 +194,7 @@ void hi_handle_net_restack_window(const wm_td *wm,
  * @param wm      Window manager state
  * @param event   Client-message event carrying the monitor indices
  * @param client  Target client
- * @param surface Surface containing the client
+ * @param stage   Stage containing the client
  * @param desktop Desktop containing the client
  *
  * @note Implemented in @c handler/ewmh.c
@@ -202,7 +202,7 @@ void hi_handle_net_restack_window(const wm_td *wm,
  */
 void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop);
+        client_td *client, stage_td *stage, desktop_td *desktop);
 
 
 /**
@@ -212,11 +212,11 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
  * behalf of a client that draws its titlebar or resize grips, matching
  * whichever operation and anchor the message's direction requests.
  *
- * @param wm      Window manager state
- * @param event   Client-message event carrying @c x_root, @c y_root,
+ * @param wm    Window manager state
+ * @param event Client-message event carrying @c x_root, @c y_root,
  *                direction, button, and source indication
  * @param client  Target client
- * @param surface Surface containing the client
+ * @param stage   Stage containing the client
  * @param desktop Desktop containing the client
  *
  * @note Implemented in @c handler/ewmh.c
@@ -224,7 +224,7 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
  */
 void hi_handle_net_wm_moveresize(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop);
+        client_td *client, stage_td *stage, desktop_td *desktop);
 
 
 #endif  /* ! HANDLER_INTERNAL_H */

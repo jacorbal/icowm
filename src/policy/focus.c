@@ -21,7 +21,7 @@
 #include <enact/client.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -33,7 +33,7 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/transient.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Local includes */
 #include <policy/focus.h>
@@ -324,7 +324,7 @@ bool focus_is_sloppy(const config_td *cfg)
 
 
 /* Focus a client and keep focus-related state in sync */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client,
         bool raise, const config_td *cfg)
 {
@@ -332,7 +332,7 @@ void focus_apply(list_td *surfaces, surface_td *surface,
     bool should_raise;
     cJSON *fields;
 
-    if (surface == NULL || desktop == NULL || client == NULL) {
+    if (stage == NULL || desktop == NULL || client == NULL) {
         return;
     }
 
@@ -394,7 +394,7 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * to rather than the one originally named.  A no-op on a
      * single-page viewport and on a client already on the page
      * shown. */
-    scmd_surface_viewport_center_on_client(surface, client);
+    scmd_stage_viewport_center_on_client(stage, client);
 
     /* Unfocus the previous active client, and focus this one,
      * synchronously and in that exact order, rather than through the
@@ -417,10 +417,10 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * a precise ordering requirement between them, so it needs neither
      * the queue's decoupling nor its reentrancy guarantees to begin
      * with. */
-    if (surfaces != NULL &&
+    if (stages != NULL &&
             desktop->client_active_id != 0 &&
             desktop->client_active_id != client->id) {
-        previous = lookup_find_client(surfaces,
+        previous = lookup_find_client(stages,
                 desktop->client_active_id, NULL, NULL);
         if (previous != NULL) {
             ccmd_client_unfocus(previous);
@@ -437,7 +437,7 @@ void focus_apply(list_td *surfaces, surface_td *surface,
 
     /* Mark outdated so the next update cycle repaints titlebars */
     desktop->is_outdated = true;
-    surface->is_outdated = true;
+    stage->is_outdated = true;
 
     /* Recorded in the focus order, which is what the cycle menu and
      * focus recovery read, and never in the stacking list, which is
@@ -470,8 +470,8 @@ void focus_apply(list_td *surfaces, surface_td *surface,
 
     fields = cJSON_CreateObject();
     if (fields != NULL) {
-        cJSON_AddNumberToObject(fields, "surface_id",
-                (double) surface->id);
+        cJSON_AddNumberToObject(fields, "stage_id",
+                (double) stage->id);
         cJSON_AddNumberToObject(fields, "client_id",
                 (double) client->id);
     }

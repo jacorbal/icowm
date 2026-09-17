@@ -43,7 +43,7 @@
 #include <client/state.h>
 #include <config.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -66,7 +66,7 @@ static client_td *s_unfocus_last_client;
 /* What lookup_find_client should hand back, and to which of its two
  * call sites (the event window, or the active-client id lookup) */
 static client_td *s_lookup_event_client;
-static surface_td *s_lookup_event_surface;
+static stage_td *s_lookup_event_stage;
 static desktop_td *s_lookup_event_desktop;
 static client_td *s_lookup_active_client;
 
@@ -86,7 +86,7 @@ static void s_reset(void)
     s_call_unfocus = 0;
     s_unfocus_last_client = NULL;
     s_lookup_event_client = NULL;
-    s_lookup_event_surface = NULL;
+    s_lookup_event_stage = NULL;
     s_lookup_event_desktop = NULL;
     s_lookup_active_client = NULL;
     s_reply_present = false;
@@ -138,24 +138,24 @@ void enact_client_unfocus(client_td *client)
  * @brief Controlled stand-in for lookup_find_client
  *
  * handler_leave_notify calls this exactly twice on its sloppy-focus
- * path: once with the event window (to resolve surface/desktop), and
+ * path: once with the event window (to resolve stage/desktop), and
  * once with a desktop's client_active_id (to resolve the active
  * client, passing NULL for the out parameters).  Distinguished here
- * by whether @p surface/@p desktop are NULL, the same way the two
+ * by whether @p stage/@p desktop are NULL, the same way the two
  * call sites in the real source differ.
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **surface, desktop_td **desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **stage, desktop_td **desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
-    if (surface == NULL && desktop == NULL) {
+    if (stage == NULL && desktop == NULL) {
         return s_lookup_active_client;
     }
 
-    if (surface != NULL) {
-        *surface = s_lookup_event_surface;
+    if (stage != NULL) {
+        *stage = s_lookup_event_stage;
     }
     if (desktop != NULL) {
         *desktop = s_lookup_event_desktop;
@@ -227,7 +227,7 @@ int main(void)
     xcb_enter_notify_event_t event;
     client_td active;
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
 
     TAP_PLAN(20);
@@ -322,19 +322,19 @@ int main(void)
     /* Everything lines up (sloppy focus, non-INFERIOR crossing, a
      * managed client, an active client on that desktop) and the
      * lookup for the active client itself finds someone real: unfocus
-     * fires and the desktop/surface are marked dirty and outdated */
+     * fires and the desktop/stage are marked dirty and outdated */
     s_reset();
     memset(&active, 0, sizeof(active));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     desktop.client_active_id = 0x42u;
     desktop.is_focus_dirty = false;
     desktop.is_outdated = false;
-    surface.is_outdated = false;
-    surface.screen = NULL;      /* no screen: the NONLINEAR re-check
+    stage.is_outdated = false;
+    stage.screen = NULL;      /* no screen: the NONLINEAR re-check
                                     below is skipped for this case */
     s_lookup_event_client = (client_td *) 0x1;
-    s_lookup_event_surface = &surface;
+    s_lookup_event_stage = &stage;
     s_lookup_event_desktop = &desktop;
     s_lookup_active_client = &active;
     handler_leave_notify(&wm, &event);
@@ -349,8 +349,8 @@ int main(void)
             "the desktop is marked focus-dirty");
     TAP_OK(desktop.is_outdated,
             "the desktop is marked outdated");
-    TAP_OK(surface.is_outdated,
-            "the surface is marked outdated");
+    TAP_OK(stage.is_outdated,
+            "the stage is marked outdated");
 
     /* A NONLINEAR crossing with a real screen: a fresh QueryPointer is
      * consulted, and finding the same active client still on the
@@ -359,14 +359,14 @@ int main(void)
     s_reset();
     memset(&active, 0, sizeof(active));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
     screen.root = 0x900u;
     desktop.client_active_id = 0x42u;
-    surface.screen = &screen;
+    stage.screen = &screen;
     event.detail = XCB_NOTIFY_DETAIL_NONLINEAR;
     s_lookup_event_client = (client_td *) 0x1;
-    s_lookup_event_surface = &surface;
+    s_lookup_event_stage = &stage;
     s_lookup_event_desktop = &desktop;
     s_lookup_active_client = &active;
     s_reply_present = true;
@@ -383,14 +383,14 @@ int main(void)
     s_reset();
     memset(&active, 0, sizeof(active));
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
     screen.root = 0x900u;
     desktop.client_active_id = 0x42u;
-    surface.screen = &screen;
+    stage.screen = &screen;
     event.detail = XCB_NOTIFY_DETAIL_NONLINEAR;
     s_lookup_event_client = (client_td *) 0x1;
-    s_lookup_event_surface = &surface;
+    s_lookup_event_stage = &stage;
     s_lookup_event_desktop = &desktop;
     s_lookup_active_client = &active;
     s_reply_present = true;

@@ -9,8 +9,8 @@
  * file already controls directly), then hands the finished rows to
  * 'menu_message_dialog_show_pairs', which is the one recording
  * stand-in below: how those rows are laid out and drawn is message.c's
- * own, separately tested, concern.  'surface_monitor_for_point' is
- * likewise a recording stand-in: it is 'src/surface/monitors.c' 's own
+ * own, separately tested, concern.  'stage_monitor_for_point' is
+ * likewise a recording stand-in: it is 'src/stage/monitors.c' 's own
  * logic, a whole other module, not anything inspect.c itself defines.
  * 'dialog_pair_append_blank' is a tiny, pure, link-only reproduction of
  * message.c's own two-line helper, the same way test_confirm.c
@@ -39,7 +39,7 @@
 #include <client/predicates.h>
 #include <config.h>
 #include <defs/dialog.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -70,7 +70,7 @@ static bool s_captured_has_label[DIALOG_MSG_MAX_LINES];
 static uint8_t s_captured_count;
 static menu_msg_level_e s_captured_level;
 
-/** Monitor this file's own surface_monitor_for_point stand-in answers */
+/** Monitor this file's own stage_monitor_for_point stand-in answers */
 static monitor_td s_stub_monitor;
 static int s_call_monitor_for_point;
 
@@ -129,14 +129,14 @@ void dialog_pair_append_blank(struct dialog_pair_s *pairs, uint8_t *count)
  * @note Complexity: @e O(n), where @e n is @p count
  */
 void menu_message_dialog_show_pairs(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const struct dialog_pair_s *pairs, size_t count,
         menu_msg_level_e level)
 {
     size_t i;
 
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     s_call_show_pairs++;
     s_captured_count = (uint8_t) count;
@@ -157,13 +157,13 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_monitor_for_point
+ * @brief Test-controlled stand-in for @a stage_monitor_for_point
  * @note Complexity: @e O(1)
  */
-monitor_td surface_monitor_for_point(const surface_td *surface,
+monitor_td stage_monitor_for_point(const stage_td *stage,
         struct position_s point)
 {
-    (void) surface;
+    (void) stage;
     (void) point;
     s_call_monitor_for_point++;
     return s_stub_monitor;
@@ -234,43 +234,43 @@ static void s_make_client(client_td *client)
 
 
 /**
- * @brief Build a minimal, real surface fixture
+ * @brief Build a minimal, real stage fixture
  * @note Complexity: @e O(1)
  */
-static void s_make_surface(surface_td *surface)
+static void s_make_stage(stage_td *stage)
 {
-    memset(surface, 0, sizeof(*surface));
+    memset(stage, 0, sizeof(*stage));
 }
 
 
 /* dialog_inspect_show is a no-op on every guarded NULL argument */
 static void s_test_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     client_td client;
 
-    s_make_surface(&surface);
+    s_make_stage(&stage);
     memset(&config, 0, sizeof(config));
     s_make_client(&client);
 
     s_reset();
-    dialog_inspect_show(NULL, &surface, &config, &client);
+    dialog_inspect_show(NULL, &stage, &config, &client);
     TAP_EQ_INT(s_call_show_pairs, 0,
             "inspect_show: NULL connection is a no-op");
 
     s_reset();
     dialog_inspect_show(s_fake_connection, NULL, &config, &client);
     TAP_EQ_INT(s_call_show_pairs, 0,
-            "inspect_show: NULL surface is a no-op");
+            "inspect_show: NULL stage is a no-op");
 
     s_reset();
-    dialog_inspect_show(s_fake_connection, &surface, NULL, &client);
+    dialog_inspect_show(s_fake_connection, &stage, NULL, &client);
     TAP_EQ_INT(s_call_show_pairs, 0,
             "inspect_show: NULL config is a no-op");
 
     s_reset();
-    dialog_inspect_show(s_fake_connection, &surface, &config, NULL);
+    dialog_inspect_show(s_fake_connection, &stage, &config, NULL);
     TAP_EQ_INT(s_call_show_pairs, 0,
             "inspect_show: NULL client is a no-op");
 }
@@ -280,16 +280,16 @@ static void s_test_null_guards(void)
  * composed from its own fields */
 static void s_test_identity_and_placement_rows(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     client_td client;
 
-    s_make_surface(&surface);
+    s_make_stage(&stage);
     memset(&config, 0, sizeof(config));
     s_make_client(&client);
     s_reset();
 
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
 
     TAP_EQ_INT(s_call_show_pairs, 1,
             "inspect_show: shows the dialog exactly once");
@@ -321,17 +321,17 @@ static void s_test_identity_and_placement_rows(void)
  * includes it */
 static void s_test_pinned_and_process_rows(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     client_td client;
 
-    s_make_surface(&surface);
+    s_make_stage(&stage);
     memset(&config, 0, sizeof(config));
     s_make_client(&client);
     client.properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
     s_reset();
 
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
 
     TAP_EQ_STR(s_find_value("Desktop"), "2 (pinned to all)",
             "inspect_show: pinned client's Desktop row is annotated");
@@ -342,7 +342,7 @@ static void s_test_pinned_and_process_rows(void)
     s_make_client(&client);
     client.process.pid = 4242;
     s_reset();
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
     TAP_EQ_STR(s_find_value("Process"), "4242",
             "inspect_show: a client with a positive pid shows its"
             " Process row");
@@ -354,13 +354,13 @@ static void s_test_pinned_and_process_rows(void)
  * instead */
 static void s_test_state_flags_partition_is_and_is_not(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     client_td client;
     const char *is_list;
     const char *is_not_list;
 
-    s_make_surface(&surface);
+    s_make_stage(&stage);
     memset(&config, 0, sizeof(config));
     s_make_client(&client);
     client.properties.flags = (uint16_t)
@@ -369,7 +369,7 @@ static void s_test_state_flags_partition_is_and_is_not(void)
     client.properties.state = (uint16_t) CLIENT_STATE_ICONIFIED;
     s_reset();
 
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
 
     is_list = s_find_value("Is");
     is_not_list = s_find_value("Is not");
@@ -397,18 +397,18 @@ static void s_test_state_flags_partition_is_and_is_not(void)
  * literal 0x0 */
 static void s_test_unlimited_max_size(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     client_td client;
 
-    s_make_surface(&surface);
+    s_make_stage(&stage);
     memset(&config, 0, sizeof(config));
     s_make_client(&client);
     client.hints_icccm.size.max.w = 0u;
     client.hints_icccm.size.max.h = 0u;
     s_reset();
 
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
 
     TAP_EQ_STR(s_find_value("Maximum"), "unlimited",
             "inspect_show: a zero max size hint shows \"unlimited\"");
@@ -417,7 +417,7 @@ static void s_test_unlimited_max_size(void)
     client.hints_icccm.size.max.w = 800u;
     client.hints_icccm.size.max.h = 600u;
     s_reset();
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
     TAP_EQ_STR(s_find_value("Maximum"), "800x600",
             "inspect_show: a genuine max size hint is shown as WxH");
 }
@@ -428,18 +428,18 @@ static void s_test_unlimited_max_size(void)
  * own Transients count reflects its real transient children list */
 static void s_test_transient_relations_rows(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     client_td client;
     client_td parent;
     cdlist_td *children;
 
-    s_make_surface(&surface);
+    s_make_stage(&stage);
     memset(&config, 0, sizeof(config));
     s_make_client(&client);
     s_reset();
 
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
     TAP_EQ_STR(s_find_value("Transient for"), "(none)",
             "inspect_show: a client with no transient parent shows"
             " \"(none)\"");
@@ -457,7 +457,7 @@ static void s_test_transient_relations_rows(void)
     parent.transients = children;
     s_reset();
 
-    dialog_inspect_show(s_fake_connection, &surface, &config, &client);
+    dialog_inspect_show(s_fake_connection, &stage, &config, &client);
     TAP_EQ_STR(s_find_value("Transient for"), "0x55 (editor)",
             "inspect_show: a transient client shows its parent's window"
             " ID and title");

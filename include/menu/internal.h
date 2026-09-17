@@ -46,7 +46,7 @@
  * (rendering).
  */
 struct cycle_menu_state_s {
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *desktop;
     client_td *preview_client;
     const config_td *config;

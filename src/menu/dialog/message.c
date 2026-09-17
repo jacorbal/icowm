@@ -39,7 +39,7 @@
 #include <config.h>
 #include <i18n.h>
 #include <render/text.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <menu/dialog.h>
@@ -205,8 +205,8 @@ static int16_t s_message_value_column(const struct dialog_pair_s *pairs,
  * that stayed reserved for the life of the process regardless of
  * whether a dialog was even open.
  *
- * @param raw        Null-terminated text to wrap
- * @param out_count  Receives the number of lines actually produced,
+ * @param raw       Null-terminated text to wrap
+ * @param out_count Receives the number of lines actually produced,
  *                   always set even on failure
  *
  * @return A @c malloc'd array of @c *out_count lines, for the caller to
@@ -358,7 +358,7 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
  * @a s_confirm_compute_layout (@c menu/dialog/confirm.c) guards against
  * for the two-button confirm dialog.
  *
- * Caps @p layout->h to 70% of @p surface's resolved target monitor (see
+ * Caps @p layout->h to 70% of @p stage's resolved target monitor (see
  * @a dlgutil_resolve_monitor) and computes how many message lines fit
  * within that cap into @p layout->visible_lines, scrolling the rest
  * instead of growing past it; see @a s_message_draw for how that
@@ -366,16 +366,16 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
  *
  * @param connection XCB connection, needed to measure the label text
  *                   and to resolve the target monitor
- * @param surface    Surface the dialog will show on, to resolve the
+ * @param stage Stage the dialog will show on, to resolve the
  *                   target monitor against
- * @param config     Theme providing button font and padding
- * @param layout     Layout structure containing input text and
+ * @param config Theme providing button font and padding
+ * @param layout Layout structure containing input text and
  *                   receiving the computed dialog geometry
  *
  * @note Complexity: @e O(n), where @e n is @p layout->line_count
  */
 static void s_message_compute_layout(xcb_connection_t *connection,
-        const surface_td *surface,
+        const stage_td *stage,
         const config_td *config, s_message_layout_td *layout)
 {
     uint16_t msg_w = 0u;
@@ -493,7 +493,7 @@ static void s_message_compute_layout(xcb_connection_t *connection,
      * past its right edge the moment scrolling actually kicked in. */
     natural_h = dlgutil_u16max(DIALOG_MIN_H,
             (uint16_t) (reserved_h + extra_lines_h));
-    monitor = dlgutil_resolve_monitor(connection, surface);
+    monitor = dlgutil_resolve_monitor(connection, stage);
     max_h = (uint16_t) ((monitor.h * 70u) / 100u);
     if (max_h > 0u && natural_h > max_h) {
         char status_probe[DIALOG_MSG_LINE_MAX_LENGTH];
@@ -798,11 +798,11 @@ static void s_message_draw(xcb_connection_t *connection,
  * and only inside a word where a single word is wider than the column
  * has to give.
  *
- * @param value  Text to lay out
- * @param avail  Width the column leaves for it, in pixels
- * @param out    Lines written here, the first being the one drawn
+ * @param value Text to lay out
+ * @param avail Width the column leaves for it, in pixels
+ * @param out   Lines written here, the first being the one drawn
  *               beside the label
- * @param room   How many of @p out remain
+ * @param room How many of @p out remain
  *
  * @return How many lines were written
  *
@@ -886,7 +886,7 @@ void dialog_pair_append_blank(struct dialog_pair_s *pairs,
 /* Show a message dialog whose content is a list of label and value
  * pairs */
 void menu_message_dialog_show_pairs(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const struct dialog_pair_s *pairs, size_t pair_count,
         menu_msg_level_e level)
 {
@@ -901,7 +901,7 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
     uint8_t count = 0u;
     int16_t column;
 
-    if (connection == NULL || surface == NULL || config == NULL ||
+    if (connection == NULL || stage == NULL || config == NULL ||
             pairs == NULL || pair_count == 0u) {
         return;
     }
@@ -927,7 +927,7 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
     /* Half a line height, which is what an em amounts to here: the body
      * of the font rather than the width of any one letter */
     gap = (uint16_t) ((text_font_ascent() + text_font_descent()) / 2);
-    monitor = dlgutil_resolve_monitor(connection, surface);
+    monitor = dlgutil_resolve_monitor(connection, stage);
     /* Two fifths of what the dialog may ever grow to, so one long
      * translated label cannot squeeze the values out of it */
     room = (uint16_t) (monitor.w * 70u / 100u);
@@ -1010,12 +1010,12 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
     s_message_layout.line_count = count;
     s_message_layout.value_x = column;
 
-    menu_message_dialog_show(connection, surface, config, NULL, level);
+    menu_message_dialog_show(connection, stage, config, NULL, level);
 }
 
 
 void menu_message_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level)
 {
     xcb_get_input_focus_cookie_t foc_cookie;
@@ -1029,8 +1029,8 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     size_t message_len;
     size_t needed;
 
-    if (connection == NULL || surface == NULL || config == NULL ||
-            surface->screen == NULL) {
+    if (connection == NULL || stage == NULL || config == NULL ||
+            stage->screen == NULL) {
         return;
     }
 
@@ -1119,10 +1119,10 @@ void menu_message_dialog_show(xcb_connection_t *connection,
         }
     }
 
-    s_message_compute_layout(connection, surface, config,
+    s_message_compute_layout(connection, stage, config,
             &s_message_layout);
 
-    menu_dialog_center(connection, surface, s_message_layout.w,
+    menu_dialog_center(connection, stage, s_message_layout.w,
             s_message_layout.h, &x, &y);
 
     /* XCB requires attribute values to be listed in ascending bit order
@@ -1146,7 +1146,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             s_message_window,
-            surface->screen->root,
+            stage->screen->root,
             x, y,
             s_message_layout.w, s_message_layout.h,
             (uint16_t) config->theme.dialog.border.width,

@@ -19,8 +19,8 @@
  *   configuration or computed at startup, since C sizes those once, at
  *   compile time, regardless of what any run-time flag later asks for;
  *   @c config_base_s's @p (screens[CONFIG_MAX_SCREENS]) of
- *   @p (desktops[CONFIG_MAX_DESKTOPS]) each, @c surface_td's
- *   @p (monitors[WM_SURFACE_MAX_MONITORS]), and the message dialog's
+ *   @p (desktops[CONFIG_MAX_DESKTOPS]) each, @c stage_td's
+ *   @p (monitors[WM_STAGE_MAX_MONITORS]), and the message dialog's
  *   own @p (lines[DIALOG_MSG_MAX_LINES]) are three examples.
  * - @c COMPACT is a compile-time choice.  Defining it,
  *   @c (make COMPACT=1), which the top-level @c Makefile turns into

@@ -33,7 +33,7 @@
 
 /* Project includes */
 #include <client.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */

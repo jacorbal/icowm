@@ -44,11 +44,11 @@ bool menu_message_dialog_is_open(void)
 }
 
 void menu_message_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     (void) message;
     (void) level;

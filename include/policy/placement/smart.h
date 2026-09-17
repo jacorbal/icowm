@@ -77,11 +77,11 @@
  * becoming movable, iconifiable, or otherwise actable on the way a real
  * window is.
  *
- * @param wm      Pointer to the window manager singleton
- * @param surface Pointer to the surface where the client will appear
- * @param client  Pointer to the client being placed
- * @param out_x   Output pointer for the selected X coordinate
- * @param out_y   Output pointer for the selected Y coordinate
+ * @param wm     Pointer to the window manager singleton
+ * @param stage  Pointer to the stage where the client will appear
+ * @param client Pointer to the client being placed
+ * @param out_x  Output pointer for the selected X coordinate
+ * @param out_y  Output pointer for the selected Y coordinate
  *
  * @return @c true if a free position was found
  *
@@ -90,7 +90,7 @@
  *       current desktop
  */
 bool place_window_smart(const wm_td *wm,
-        surface_td *surface, client_td *client,
+        stage_td *stage, client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y);
 
 

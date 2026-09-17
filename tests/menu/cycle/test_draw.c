@@ -44,7 +44,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -322,17 +322,17 @@ static config_td s_make_config(void)
 }
 
 
-static surface_td s_make_surface(void)
+static stage_td s_make_stage(void)
 {
-    surface_td surface;
+    stage_td stage;
     static xcb_screen_t screen;
     static xcb_screen_t *screen_ptr = &screen;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
     screen.root = 1u;
-    surface.screen = screen_ptr;
-    return surface;
+    stage.screen = screen_ptr;
+    return stage;
 }
 
 
@@ -393,16 +393,16 @@ static void s_test_draw_null_guards(void)
 static void s_test_draw_full_repaint_first_call(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 3;
     g_cycle_menu.selected = 0;
@@ -446,16 +446,16 @@ static void s_test_draw_full_repaint_first_call(void)
 static void s_test_draw_selection_move_repaints_two_rows(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 3;
     g_cycle_menu.selected = 1;
@@ -490,16 +490,16 @@ static void s_test_draw_selection_move_repaints_two_rows(void)
 static void s_test_draw_scroll_change_forces_full_repaint(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 5;
     g_cycle_menu.selected = 2;
@@ -541,17 +541,17 @@ static void s_test_draw_scroll_change_forces_full_repaint(void)
 static void s_test_draw_scroll_indicators(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     int extra_bg_calls;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 5;
     g_cycle_menu.selected = 2;
@@ -591,17 +591,17 @@ static void s_test_draw_scroll_indicators(void)
 static void s_test_draw_applies_preview_to_selection(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *selected;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(0x50u);
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 1;
     g_cycle_menu.selected = 0;
@@ -652,21 +652,21 @@ static void s_test_draw_applies_preview_to_selection(void)
 static void s_test_draw_preview_transitions_between_targets(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *first;
     client_td *second;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(0x60u);
 
     first = s_make_client(0, 0x60u, "First", CLIENT_FLAG_FOCUSABLE);
     second = s_make_client(1, 0x61u, "Second", CLIENT_FLAG_FOCUSABLE);
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 2;
     g_cycle_menu.selected = 0;
@@ -716,14 +716,14 @@ static void s_test_draw_preview_transitions_between_targets(void)
 static void s_test_draw_icon_menu_preview_repaints_icons(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *first;
     client_td *second;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     first = s_make_client(0, 0x70u, "First", CLIENT_FLAG_FOCUSABLE);
@@ -732,7 +732,7 @@ static void s_test_draw_icon_menu_preview_repaints_icons(void)
     second->icon_window = 0x9400u;
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 2;
     g_cycle_menu.selected = 0;
@@ -765,19 +765,19 @@ static void s_test_draw_icon_menu_preview_repaints_icons(void)
 static void s_test_draw_preview_noop_on_same_selection(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td *only;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     only = s_make_client(0, 0x80u, "Only", CLIENT_FLAG_FOCUSABLE);
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 1;
     g_cycle_menu.selected = 0;
@@ -812,12 +812,12 @@ static void s_test_draw_preview_noop_on_same_selection(void)
 static void s_test_preview_apply_direct_guards(void)
 {
     config_td cfg;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
     cfg = s_make_config();
-    surface = s_make_surface();
+    stage = s_make_stage();
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     mi_cycle_preview_apply(NULL, &cfg);
@@ -834,7 +834,7 @@ static void s_test_preview_apply_direct_guards(void)
             "no cycle window open is a harmless no-op");
 
     g_cycle_menu.window = 42u;
-    g_cycle_menu.surface = &surface;
+    g_cycle_menu.stage = &stage;
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 1;
     g_cycle_menu.selected = 5;

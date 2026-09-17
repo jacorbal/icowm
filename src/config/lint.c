@@ -165,8 +165,8 @@ static int s_key_occurrences(const cJSON *obj, const cJSON *item,
  * Matches the same way the real loaders do.  Case-insensitively, with
  * @c '-' and @c '_' treated as equivalent.
  *
- * @param key      Key name as it appears in the JSON file
- * @param schema   Schema entries to search
+ * @param key          Key name as it appears in the JSON file
+ * @param schema       Schema entries to search
  * @param schema_count Number of entries in @p schema
  *
  * @return The matching entry, or @c NULL if none matches
@@ -365,8 +365,8 @@ static void s_lint_object(const cJSON *obj,
 /**
  * @brief Check one configuration file against its schema
  *
- * @param config_dir   Configuration directory the file lives under
- * @param spec         This file's name, schema, and whether it must
+ * @param config_dir Configuration directory the file lives under
+ * @param spec       This file's name, schema, and whether it must
  *                      exist
  * @param display_name Name to head the report with if anything is
  *                      found; distinct from @c spec->filename so a

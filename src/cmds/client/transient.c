@@ -31,8 +31,8 @@
 #include <client.h>
 #include <desktop.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -166,7 +166,7 @@ static client_td *s_client_mapped_transient_child(client_td *client)
  * size rather than to how many other, unrelated clients happen to be
  * managed.
  *
- * @param node  Client whose descendants to walk; @p visit is never
+ * @param node Client whose descendants to walk; @p visit is never
  *              called with @p node itself
  * @param visit Callback invoked once per descendant found
  * @param ctx   Opaque context passed through to every @p visit call
@@ -266,12 +266,12 @@ static void s_family_snapshot_visitor(client_td *candidate, void *ctx)
  * whole file still had to scan every desktop instead of walking a real
  * tree).
  *
- * @param top            Family's top-most ancestor; excluded from the
+ * @param top Family's top-most ancestor; excluded from the
  *                       result even where found
  * @param desktop_filter A specific desktop's @c id to restrict the
  *                       result to, or @c WM_DESKTOP_ID_ALL to match
  *                       every desktop
- * @param count_out      Receives the number of clients collected; set
+ * @param count_out Receives the number of clients collected; set
  *                       to @c 0 on any early return
  *
  * @return Newly allocated array of @c *count_out client pointers, the
@@ -409,7 +409,7 @@ client_td
 
 
 /* Collect every other member of a transient family, found on any
- * desktop of any surface, into a newly allocated snapshot array */
+ * desktop of any stage, into a newly allocated snapshot array */
 client_td **ccmd_client_transient_family_snapshot_anywhere(
         client_td *top, size_t *count_out)
 {
@@ -432,7 +432,7 @@ void ccmd_client_bring_family(client_td *client)
 {
     client_td *top;
     desktop_td *target;
-    surface_td *top_surface;
+    stage_td *top_stage;
     size_t count;
     client_td **siblings;
 
@@ -449,7 +449,7 @@ void ccmd_client_bring_family(client_td *client)
      * 'top''s literal "home" desktop.  A pinned client stays registered
      * under whichever desktop it was originally created on forever (pin
      * is achieved purely by exempting it from the hide/show cycle
-     * 'surface_client_hide_all'/ '_show', 'surface/actions/client.c',
+     * 'stage_client_hide_all'/ '_show', 'stage/actions/client.c',
      * runs on every switch, never by actually moving it between
      * desktops), so using 'wm_get_client_desktop(top)' here would
      * "bring" a transient onto a desktop nobody is even looking at
@@ -459,9 +459,9 @@ void ccmd_client_bring_family(client_td *client)
      * its own original desktop: visible on every desktop from then on,
      * indistinguishable from being pinned itself, yet with its pin
      * indicator never lit, since nothing ever actually pinned it. */
-    top_surface = wm_get_surface_by_id(top->screen_id);
-    target = (top_surface != NULL)
-        ? surface_desktop_get(top_surface, top_surface->desktop_cur)
+    top_stage = wm_get_stage_by_id(top->screen_id);
+    target = (top_stage != NULL)
+        ? stage_desktop_get(top_stage, top_stage->desktop_cur)
         : wm_get_client_desktop(top);
     if (target == NULL) {
         return;
@@ -551,7 +551,7 @@ void client_link_transient(client_td *client)
         return;
     }
 
-    parent = lookup_find_client(wm_get_surfaces(),
+    parent = lookup_find_client(wm_get_stages(),
             client->transient_for, NULL, NULL);
     if (parent == NULL || parent == client) {
         return;

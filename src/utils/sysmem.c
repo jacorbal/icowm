@@ -38,7 +38,7 @@
  *                 "VmRSS:"); its length is measured here rather than
  *                 passed in, so there is nothing for a caller to keep
  *                 in sync with the string itself
- * @param out_mib  Receives the value, in mebibytes, rounded down
+ * @param out_mib Receives the value, in mebibytes, rounded down
  *
  * @return @c true if @p filepath was read and @p label was found in it
  *

@@ -21,7 +21,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -36,16 +36,16 @@ cJSON *ipc_dispatch_client_action(const wm_td *wm, const cJSON *args,
         ipc_client_action_fn action)
 {
     client_td *client;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop = NULL;
     cJSON *error = NULL;
 
-    client = ipc_resolve_client(wm, args, &surface, &desktop, &error);
+    client = ipc_resolve_client(wm, args, &stage, &desktop, &error);
     if (client == NULL) {
         return error;
     }
 
-    action(wm, client, surface, desktop);
+    action(wm, client, stage, desktop);
 
     return ipc_response_ok();
 }

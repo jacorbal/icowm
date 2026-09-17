@@ -91,23 +91,23 @@ enum ik_resize_e {
 };
 
 /**
- * @brief Resolve the currently focused client on a surface
+ * @brief Resolve the currently focused client on a stage
  *
- * Looks up the current desktop for @p surface and returns the active
- * client on that desktop.  Optionally returns the owning surface and
+ * Looks up the current desktop for @p stage and returns the active
+ * client on that desktop.  Optionally returns the owning stage and
  * desktop pointers through @p cs_out and @p cd_out.
  *
- * @param surface  Surface to query
- * @param surfaces Full surface list (for @a lookup_find_client)
- * @param cs_out   Receives the client's owning surface (may be null)
- * @param cd_out   Receives the client's owning desktop (may be null)
+ * @param stage  Stage to query
+ * @param stages Full stage list (for @a lookup_find_client)
+ * @param cs_out Receives the client's owning stage (may be null)
+ * @param cd_out Receives the client's owning desktop (may be null)
  *
  * @return Active client, or @c NULL when none is focused
  *
  * @note Complexity: @e O(n) for the client list walk
  */
-client_td *ik_get_active_client(surface_td *surface,
-        list_td *surfaces, surface_td **cs_out, desktop_td **cd_out);
+client_td *ik_get_active_client(stage_td *stage,
+        list_td *stages, stage_td **cs_out, desktop_td **cd_out);
 
 /**
  * @brief Launch one of the configured programs
@@ -116,40 +116,40 @@ client_td *ik_get_active_client(surface_td *surface,
  * @a cctl_launch_dispatch.
  *
  * @param program Which program to launch
- * @param surface Current surface, passed to @a cctl_launch_dispatch
+ * @param stage   Current stage, passed to @a cctl_launch_dispatch
  * @param config  Active configuration holding the program paths
  *
  * @note Complexity: @e O(1), aside from the launch itself
  */
 void ik_handle_launch(enum ik_launch_e program,
-        surface_td *surface, const config_td *config);
+        stage_td *stage, const config_td *config);
 
 /**
  * @brief Move the active client by keyboard
  *
  * @param direction Where to move it, by a step or to a corner
- * @param surface   Current surface
- * @param surfaces  Full surface list, for @a ik_get_active_client
+ * @param stage     Current stage
+ * @param stages    Full stage list, for @a ik_get_active_client
  * @param config    Active configuration holding the move step
  *
  * @note Complexity: @e O(1)
  */
 void ik_handle_move(enum ik_move_e direction,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config);
 
 /**
  * @brief Resize the active client by keyboard
  *
- * @param edge     Which edge to move
- * @param surface  Current surface
- * @param surfaces Full surface list, for @a ik_get_active_client
- * @param config   Active configuration holding the resize step
+ * @param edge   Which edge to move
+ * @param stage  Current stage
+ * @param stages Full stage list, for @a ik_get_active_client
+ * @param config Active configuration holding the resize step
  *
  * @note Complexity: @e O(1)
  */
 void ik_handle_resize(enum ik_resize_e edge,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config);
 
 /**
@@ -166,16 +166,16 @@ void ik_handle_resize(enum ik_resize_e edge,
  * all it takes, including one where something further down still
  * believes the keyboard is its.
  *
- * @param keysym       Key symbol of the press as the bindings define
+ * @param keysym Key symbol of the press as the bindings define
  *                     it: the key itself, with no modifier applied
  * @param typed_keysym Symbol that key and its modifiers actually
  *                     produce, which is what a dialog reading text
  *                     wants
- * @param state        Modifier mask of the press, lock bits already
+ * @param state Modifier mask of the press, lock bits already
  *                     cleared
- * @param surface      Surface the press belongs to, may be null
- * @param surfaces     Full surface list
- * @param config       Active configuration
+ * @param stage  Stage the press belongs to, may be null
+ * @param stages Full stage list
+ * @param config Active configuration
  *
  * @return @c true when the key was consumed and must go no further
  *
@@ -184,7 +184,7 @@ void ik_handle_resize(enum ik_resize_e edge,
  */
 bool ik_intercept_keypress(xcb_keysym_t keysym,
         xcb_keysym_t typed_keysym, uint16_t state,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config);
 
 /**
@@ -194,8 +194,8 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
  * and answers the same for the same arguments, which is what makes the
  * binding logic testable on its own.
  *
- * @param keysym      Key symbol to match
- * @param state       Modifier mask to match, as reported by the X
+ * @param keysym Key symbol to match
+ * @param state  Modifier mask to match, as reported by the X
  *                    server; its lock bits are ignored
  * @param out_modmask Receives the matched binding's raw modifier
  *                    mask, which some actions need; may be null
@@ -212,24 +212,24 @@ enum wm_keybind_type_e ik_resolve_binding(xcb_keysym_t keysym,
 /**
  * @brief Carry out the action a resolved binding names
  *
- * @param wm       Window-manager singleton, for the actions that
- *                 reach beyond one surface
- * @param btype    Action to carry out, as resolved by
+ * @param wm Window-manager singleton, for the actions that
+ *                 reach beyond one stage
+ * @param btype Action to carry out, as resolved by
  *                 @a ik_resolve_binding
- * @param modmask  Raw modifier mask of the matched binding, which the
+ * @param modmask Raw modifier mask of the matched binding, which the
  *                 cycle menu needs in order to know which modifier
  *                 release confirms it
- * @param keycode  Keycode of the press, for the same reason
- * @param surface  Surface the press belongs to, may be null
- * @param surfaces Full surface list
- * @param config   Active configuration
+ * @param keycode Keycode of the press, for the same reason
+ * @param stage   Stage the press belongs to, may be null
+ * @param stages  Full stage list
+ * @param config  Active configuration
  *
  * @note Complexity: depends entirely on the action; @e O(1) for most,
  *       @e O(n) over managed clients for the ones that walk them
  */
 void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         uint16_t modmask, xcb_keycode_t keycode,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config);
 
 

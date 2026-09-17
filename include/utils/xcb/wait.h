@@ -51,8 +51,8 @@
  * instead of blocking indefinitely, e.g., treating this the same way it
  * already treats a reply that turned out to be @c NULL.
  *
- * @param connection  XCB connection
- * @param timeout_ms  How long to wait in milliseconds before giving up
+ * @param connection XCB connection
+ * @param timeout_ms How long to wait in milliseconds before giving up
  *
  * @return Status of the wait
  * @retval  true  The connection has data ready to read

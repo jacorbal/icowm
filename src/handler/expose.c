@@ -55,7 +55,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <wm.h>
 
@@ -66,7 +66,7 @@
 
 /* Handle an 'EXPOSE' event for decoration repaints */
 void handler_expose(xcb_connection_t *connection,
-        list_td *surfaces, xcb_expose_event_t *event,
+        list_td *stages, xcb_expose_event_t *event,
         const config_td *cfg)
 {
     client_td *client;
@@ -181,7 +181,7 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
-    client = lookup_find_client(surfaces, event->window,
+    client = lookup_find_client(stages, event->window,
             NULL, &desktop);
     if (client == NULL) {
         return;

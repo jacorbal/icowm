@@ -49,13 +49,13 @@ static const config_lint_key_td s_schema_memguard_windows[] = {
      * memguard.json's parser reads every field either accepts),
      * so shared verbatim rather than duplicated, same as 'programs'
      * and 'shutdown' above. */
-    {"focus", s_schema_windows_focus,
-        sizeof(s_schema_windows_focus) /
-            sizeof(s_schema_windows_focus[0]),
+    {"focus", schema_windows_focus,
+        sizeof(schema_windows_focus) /
+            sizeof(schema_windows_focus[0]),
         0, NULL, 0u, NULL},
-    {"placement", s_schema_windows_placement,
-        sizeof(s_schema_windows_placement) /
-            sizeof(s_schema_windows_placement[0]),
+    {"placement", schema_windows_placement,
+        sizeof(schema_windows_placement) /
+            sizeof(schema_windows_placement[0]),
         0, NULL, 0u, NULL}
 };
 
@@ -75,10 +75,10 @@ static const config_lint_key_td s_schema_memguard_icons[] = {
 
 static const config_lint_key_td s_schema_memguard_desktops[] = {
     /* Reuses 'desktops.margins''s schema array; see
-     * 's_schema_systray''s identical comment above for why. */
-    {"margins", s_schema_desktops_margins,
-        sizeof(s_schema_desktops_margins) /
-            sizeof(s_schema_desktops_margins[0]),
+     * 'schema_systray''s identical comment above for why. */
+    {"margins", schema_desktops_margins,
+        sizeof(schema_desktops_margins) /
+            sizeof(schema_desktops_margins[0]),
         0, NULL, 0u, NULL}
 };
 
@@ -88,11 +88,11 @@ const config_lint_key_td s_schema_memguard[] = {
     /* 'programs', 'prompt', and 'shutdown' accept the exact same
      * fields as config.json's identically-named sections, so
      * their schemas are shared verbatim rather than duplicated. */
-    {"programs", s_schema_programs,
-        sizeof(s_schema_programs) / sizeof(s_schema_programs[0]),
+    {"programs", schema_programs,
+        sizeof(schema_programs) / sizeof(schema_programs[0]),
         0, NULL, 0u, NULL},
-    {"prompt", s_schema_prompt,
-        sizeof(s_schema_prompt) / sizeof(s_schema_prompt[0]),
+    {"prompt", schema_prompt,
+        sizeof(schema_prompt) / sizeof(schema_prompt[0]),
         0, NULL, 0u, NULL},
     {"desktops", s_schema_memguard_desktops,
         sizeof(s_schema_memguard_desktops) /
@@ -106,16 +106,16 @@ const config_lint_key_td s_schema_memguard[] = {
         sizeof(s_schema_memguard_icons) /
             sizeof(s_schema_memguard_icons[0]),
         0, NULL, 0u, NULL},
-    /* 'systray' is loaded by the exact same 'ci_config_load_systray'
+    /* 'systray' is loaded by the exact same 'ci_config_systray_load'
      * config.json itself uses, so every field it accepts there is
      * accepted here too, even the two ('text.position' and 'order')
      * that end up with no visible effect in this mode; see that
      * function's call site in memguard.c for why. */
-    {"systray", s_schema_systray,
-        sizeof(s_schema_systray) / sizeof(s_schema_systray[0]),
+    {"systray", schema_systray,
+        sizeof(schema_systray) / sizeof(schema_systray[0]),
         0, NULL, 0u, NULL},
-    {"shutdown", s_schema_shutdown,
-        sizeof(s_schema_shutdown) / sizeof(s_schema_shutdown[0]),
+    {"shutdown", schema_shutdown,
+        sizeof(schema_shutdown) / sizeof(schema_shutdown[0]),
         0, NULL, 0u, NULL}
 };
 

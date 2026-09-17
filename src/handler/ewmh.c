@@ -38,7 +38,7 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Input includes */
 #include <input/mouse/drag.h>
@@ -64,9 +64,9 @@
 #include <handler/internal.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/client.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/client.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 
@@ -108,7 +108,7 @@ static bool s_wm_state_resolve_add(uint32_t action, bool already_set)
  *                   @c WM_STATE_ACTION_ADD;
  *                   @c WM_STATE_ACTION_REMOVE; or
  *                   @c WM_STATE_ACTION_TOGGLE
- * @param ewmh       Pointer to the EWMH connection handle
+ * @param ewmh Pointer to the EWMH connection handle
  *
  * @note No-op if @p client or @p ewmh are null
  * @note Complexity: @e O(1)
@@ -301,13 +301,13 @@ static void s_handle_wm_state_atom(client_td *client,
  * @brief Map a @c _NET_WM_MOVERESIZE direction to the anchor and
  *        per-axis resize flags @a drag_start_directed expects
  *
- * @param direction         One of the eight
+ * @param direction One of the eight
  *                          @c XCB_EWMH_WM_MOVERESIZE_SIZE_* values
  * @param out_anchor_right  Set to whether the right edge stays fixed
  * @param out_anchor_bottom Set to whether the bottom edge stays fixed
  * @param out_resize_w      Set to whether this direction resizes the
  *                          width at all
- * @param out_resize_h      Set to whether this direction resizes the
+ * @param out_resize_h Set to whether this direction resizes the
  *                          height at all
  *
  * @note Complexity: @e O(1)
@@ -383,17 +383,17 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  * parent and on every other member in turn.
  *
  * @param client      Client to move; must be non-null
- * @param surface     Client's surface; must be non-null
+ * @param stage       Client's stage; must be non-null
  * @param src_desktop Client's current desktop; must be non-null
  * @param tgt_desktop Desktop to move it to; must be non-null and
  *                    different from @p src_desktop
- * @param target_id   Numeric index of @p tgt_desktop, as published
+ * @param target_id Numeric index of @p tgt_desktop, as published
  *                    on @c _NET_WM_DESKTOP
  *
  * @note Complexity: @e O(1)
  */
 static void s_hi_handle_net_wm_desktop_one(client_td *client,
-        const surface_td *surface, desktop_td *src_desktop,
+        const stage_td *stage, desktop_td *src_desktop,
         desktop_td *tgt_desktop, uint32_t target_id)
 {
     /* Moved as one step: the removal and the insertion together,
@@ -403,7 +403,7 @@ static void s_hi_handle_net_wm_desktop_one(client_td *client,
      * them; see winlist.c) depends on to agree with the tables. */
     (void) desktop_action_client_move(src_desktop, tgt_desktop, client);
 
-    if (surface->desktop_cur != target_id) {
+    if (stage->desktop_cur != target_id) {
         xcb_window_t target =
             (client_is_decorated(client) && client->frame != 0)
             ? client->frame
@@ -505,7 +505,7 @@ static void s_client_hide_visit(client_td *client, void *data)
 void hi_handle_net_wm_state(client_td *client,
         xcb_client_message_event_t *event,
         const xcb_ewmh_connection_t *ewmh,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
     uint32_t action;
     xcb_atom_t atom1;
@@ -524,7 +524,7 @@ void hi_handle_net_wm_state(client_td *client,
         s_handle_wm_state_atom(client, atom2, action, ewmh);
     }
 
-    wm_outdate_surface(surface);
+    wm_outdate_stage(stage);
     wm_outdate_desktop(desktop);
 }
 
@@ -533,19 +533,19 @@ void hi_handle_net_wm_state(client_td *client,
 void hi_handle_net_current_desktop(const wm_td *wm,
         xcb_client_message_event_t *event)
 {
-    surface_td *surface;
+    stage_td *stage;
 
     if (wm == NULL || event == NULL) {
         return;
     }
 
-    surface = lookup_surface_for_root(wm_surfaces(wm), event->window);
-    if (surface == NULL) {
+    stage = lookup_stage_for_root(wm_stages(wm), event->window);
+    if (stage == NULL) {
         return;
     }
 
-    scmd_surface_desktop_switch(surface, event->data.data32[0]);
-    wm_outdate_surface(surface);
+    scmd_stage_desktop_switch(stage, event->data.data32[0]);
+    wm_outdate_stage(stage);
 }
 
 
@@ -553,20 +553,20 @@ void hi_handle_net_current_desktop(const wm_td *wm,
 void hi_handle_net_desktop_viewport(const wm_td *wm,
         xcb_client_message_event_t *event)
 {
-    surface_td *surface;
+    stage_td *stage;
 
     if (wm == NULL || event == NULL) {
         return;
     }
 
-    surface = lookup_surface_for_root(wm_surfaces(wm), event->window);
-    if (surface == NULL) {
+    stage = lookup_stage_for_root(wm_stages(wm), event->window);
+    if (stage == NULL) {
         return;
     }
 
-    scmd_surface_viewport_set(surface, (int32_t) event->data.data32[0],
+    scmd_stage_viewport_set(stage, (int32_t) event->data.data32[0],
             (int32_t) event->data.data32[1]);
-    wm_outdate_surface(surface);
+    wm_outdate_stage(stage);
 }
 
 
@@ -574,7 +574,7 @@ void hi_handle_net_desktop_viewport(const wm_td *wm,
  * client's whole transient family along with it */
 void hi_handle_net_wm_desktop(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface,
+        client_td *client, stage_td *stage,
         desktop_td *src_desktop)
 {
     uint32_t target_id;
@@ -589,7 +589,7 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
     }
 
     target_id = event->data.data32[0];
-    tgt_desktop = surface_desktop_get(surface, target_id);
+    tgt_desktop = stage_desktop_get(stage, target_id);
     if (tgt_desktop == NULL || tgt_desktop == src_desktop) {
         return;
     }
@@ -604,28 +604,28 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
         return;
     }
 
-    s_hi_handle_net_wm_desktop_one(top, surface, top_desktop,
+    s_hi_handle_net_wm_desktop_one(top, stage, top_desktop,
             tgt_desktop, target_id);
 
     siblings = ccmd_client_transient_family_snapshot(top_desktop, top,
             &count);
     if (siblings != NULL) {
         for (size_t i = 0; i < count; i++) {
-            s_hi_handle_net_wm_desktop_one(siblings[i], surface,
+            s_hi_handle_net_wm_desktop_one(siblings[i], stage,
                     top_desktop, tgt_desktop, target_id);
         }
 
         free(siblings);
     }
 
-    wm_outdate_surface(surface);
+    wm_outdate_stage(stage);
 }
 
 
 /* Handle a '_NET_MOVERESIZE_WINDOW' client message */
 void hi_handle_net_moveresize_window(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop)
+        client_td *client, stage_td *stage, desktop_td *desktop)
 {
     uint32_t flags;
     int32_t req_x;
@@ -724,24 +724,24 @@ void hi_handle_net_moveresize_window(const wm_td *wm,
             client_decoration_layout_sync(client);
         }
         wm_outdate_client(client);
-        wm_outdate_surface(surface);
+        wm_outdate_stage(stage);
         wm_outdate_desktop(desktop);
     }
 }
 
 
-/* Apply a '_NET_SHOWING_DESKTOP' request to one surface */
-void hi_handle_net_showing_desktop(surface_td *surface, bool show)
+/* Apply a '_NET_SHOWING_DESKTOP' request to one stage */
+void hi_handle_net_showing_desktop(stage_td *stage, bool show)
 {
     desktop_td *desktop;
     bool any_visible;
     bool changed_hidden_state;
 
-    if (surface == NULL || xcb_connection_get() == NULL) {
+    if (stage == NULL || xcb_connection_get() == NULL) {
         return;
     }
 
-    desktop = lookup_current_desktop(surface);
+    desktop = lookup_current_desktop(stage);
     if (desktop == NULL) {
         return;
     }
@@ -757,22 +757,22 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 
     stacking_walk(desktop, s_any_visible_visit, &any_visible);
 
-    if (show && !surface->is_showing_desktop) {
+    if (show && !stage->is_showing_desktop) {
         if (!any_visible) {
             show = false;
         }
     }
 
-    if (!show && surface->is_showing_desktop) {
+    if (!show && stage->is_showing_desktop) {
         stacking_walk(desktop, s_client_unhide_visit,
                 &changed_hidden_state);
-        surface_client_show_all(surface, surface->desktop_cur);
+        stage_client_show_all(stage, stage->desktop_cur);
     } else if (show) {
         /* Unmap the windows first, then mark them hidden.
-         * 'surface_client_hide_all' skips clients that already have
+         * 'stage_client_hide_all' skips clients that already have
          * 'CLIENT_FLAG_HIDDEN' set, so the flag must be applied only
          * after the unmap call. */
-        surface_client_hide_all(surface, surface->desktop_cur);
+        stage_client_hide_all(stage, stage->desktop_cur);
         stacking_walk(desktop, s_client_hide_visit,
                 &changed_hidden_state);
 
@@ -784,7 +784,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                 : (uint32_t) XCB_CURRENT_TIME);
     }
 
-    /* Not 'show && changed_hidden_state': whether the surface is now
+    /* Not 'show && changed_hidden_state': whether the stage is now
      * showing the desktop follows from 'show' alone (already adjusted
      * above for the nothing-visible case), not from whether this one
      * call happened to change any individual client's hidden flag.
@@ -797,9 +797,9 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
      * 'else' this comment's block replaces and hid everything again
      * instead of restoring it: no request left able to bring the
      * clients back. */
-    surface->is_showing_desktop = show;
+    stage->is_showing_desktop = show;
 
-    wm_outdate_surface(surface);
+    wm_outdate_stage(stage);
     wm_outdate_desktop(desktop);
 }
 
@@ -807,7 +807,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 /* Handle a '_NET_RESTACK_WINDOW' client message */
 void hi_handle_net_restack_window(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop)
+        client_td *client, stage_td *stage, desktop_td *desktop)
 {
     uint32_t detail;
     xcb_window_t sibling;
@@ -851,7 +851,7 @@ void hi_handle_net_restack_window(const wm_td *wm,
     (void) i;
 
     xcb_configure_window(connection, target, mask, values);
-    wm_outdate_surface(surface);
+    wm_outdate_stage(stage);
     wm_outdate_desktop(desktop);
 }
 
@@ -859,7 +859,7 @@ void hi_handle_net_restack_window(const wm_td *wm,
 /* Handle a '_NET_WM_FULLSCREEN_MONITORS' client message */
 void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop)
+        client_td *client, stage_td *stage, desktop_td *desktop)
 {
     uint32_t monitors[4];
     xcb_connection_t *connection = wm_connection(wm);
@@ -884,7 +884,7 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
         ccmd_client_fullscreen(client);
     }
 
-    wm_outdate_surface(surface);
+    wm_outdate_stage(stage);
     wm_outdate_desktop(desktop);
 }
 
@@ -892,7 +892,7 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
 /* Handle a '_NET_WM_MOVERESIZE' client message */
 void hi_handle_net_wm_moveresize(const wm_td *wm,
         xcb_client_message_event_t *event,
-        client_td *client, surface_td *surface, desktop_td *desktop)
+        client_td *client, stage_td *stage, desktop_td *desktop)
 {
     uint32_t direction;
     struct position_s root_pos;
@@ -907,7 +907,7 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
     (void) desktop;
 
     if (wm == NULL || event == NULL || client == NULL ||
-            surface == NULL || surface->screen == NULL ||
+            stage == NULL || stage->screen == NULL ||
             config == NULL) {
         return;
     }
@@ -939,11 +939,11 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
         root_pos.y = INT16_MAX;
     }
 
-    screen_dim.w = surface->properties.dim.w;
-    screen_dim.h = surface->properties.dim.h;
+    screen_dim.w = stage->properties.dim.w;
+    screen_dim.h = stage->properties.dim.h;
 
     if (direction == XCB_EWMH_WM_MOVERESIZE_MOVE) {
-        drag_start(connection, surface->screen->root, client,
+        drag_start(connection, stage->screen->root, client,
                 wm_get_client_desktop(client),
                 CLIENT_OPERATION_MOVING,
                 XCB_CURRENT_TIME,
@@ -958,7 +958,7 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
     s_moveresize_direction_to_anchor(direction, &anchor_right,
             &anchor_bottom, &resize_w, &resize_h);
 
-    drag_start_directed(connection, surface->screen->root,
+    drag_start_directed(connection, stage->screen->root,
             client, wm_get_client_desktop(client),
             XCB_CURRENT_TIME,
             root_pos, screen_dim,

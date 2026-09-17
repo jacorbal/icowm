@@ -13,7 +13,7 @@
  * and lives in @c policy/stacking.h.
  *
  * @defgroup desktop Virtual desktop management
- * @ingroup surface
+ * @ingroup stage
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -39,12 +39,14 @@
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
+/* Types includes */
+#include <types/handles.h>
+
 /* Default initial values */
 #include <defs/desktop.h>
-#include <defs/surface.h>
+#include <defs/stage.h>
 
 /* Project includes */
-#include <types/handles.h>
 #include <config.h>
 
 
@@ -77,19 +79,19 @@
 
 
 /**
- * @brief Forward declaration only: a surface owns its desktops
- *        (@c surface.h includes this header, never the other way
+ * @brief Forward declaration only: a stage owns its desktops
+ *        (@c stage.h includes this header, never the other way
  *        around), so this header can only ever reference
- *        @c surface_td through a pointer, never the full definition.
- *        Guarded (see @c surface.h's matching guard) since
+ *        @c stage_td through a pointer, never the full definition.
+ *        Guarded (see @c stage.h's matching guard) since
  *        whichever of the two headers a translation unit includes
  *        first sets it, so a later include of the other one skips
  *        redeclaring the exact same alias, illegal under strict C99
  *        (unlike C11) even for two textually identical typedefs
  */
-#ifndef SURFACE_TD_DECLARED
-#define SURFACE_TD_DECLARED
-typedef struct surface_s surface_td;
+#ifndef STAGE_TD_DECLARED
+#define STAGE_TD_DECLARED
+typedef struct stage_s stage_td;
 #endif
 
 
@@ -128,16 +130,16 @@ struct desktop_s {
      */
     xcb_screen_t *screen;
 
-    ohtbl_td *clients;                      /**< Clients hash table */
+    ohtbl_td *clients;              /**< Clients hash table */
 
 
 
     /**
-     * @brief This desktop's surface's shared configuration
+     * @brief This desktop's stage's shared configuration
      *
-     * Always @c &surface->config (see @a desktop_init's two
-     * callers, surface.c and surface/switch.c), never a config from
-     * any other source: every desktop on the same surface points at
+     * Always @c &stage->config (see @a desktop_init's two
+     * callers, stage.c and stage/switch.c), never a config from
+     * any other source: every desktop on the same stage points at
      * the exact same @c config_td, so @p base and @p theme, which
      * two separate pointers would reach, never actually diverge from
      * one another in practice.  One pointer
@@ -163,8 +165,8 @@ struct desktop_s {
      * 'render/desktop.c'), not per desktop. */
 
     uint32_t screen_id;             /**< Screen index */
-    xcb_window_t id;                        /**< Desktop index */
-    xcb_window_t client_active_id;          /**< Active window */
+    xcb_window_t id;                /**< Desktop index */
+    xcb_window_t client_active_id;  /**< Active window */
 
     /** @brief Number of valid entries in @p monitor_workareas */
     uint32_t monitor_workarea_count;
@@ -176,44 +178,44 @@ struct desktop_s {
      * @brief This desktop's remembered pan offset within its own
      *        pannable viewport
      *
-     * Always @c {0, 0} on a @c viewport.columns<=1 && viewport.rows<=1
-     * screen (panning disabled), and clamped so that
-     * @c 0 <= x <= (viewport.columns - 1) * geometry.dim.w and
-     * likewise for @c y, one whole screen at a time, never a
-     * fractional pan.  Every non-sticky client's window is kept
-     * translated by this same offset in real X11 screen coordinates
-     * whenever it changes (see @a scmd_surface_viewport_pan_north and
-     * its three siblings, @c cmds/surface.c), so nothing else in
-     * placement, move, or snap code ever needs to know a virtual
-     * coordinate space exists at all.
+     * Always @c {0, 0} on a
+     * @c (viewport.columns<=1 && viewport.rows<=1) screen (panning
+     * disabled), and clamped so that
+     * @c (0 <= x <= (viewport.columns - 1) * @c geometry.dim.w) and
+     * likewise for @c y, one whole screen at a time, never a fractional
+     * pan.  Every non-sticky client's window is kept translated by this
+     * same offset in real X11 screen coordinates whenever it changes
+     * (see @a scmd_stage_viewport_pan_north and its three siblings,
+     * @c cmds/stage.c), so nothing else in placement, move, or snap
+     * code ever needs to know a virtual coordinate space exists at all.
      */
     struct position_s viewport_origin;
 
     /**
      * @brief Per-monitor work area, the same reservations @p workarea
      *        itself folds in but scoped to each individual monitor
-     *        instead of the whole surface at once
+     *        instead of the whole stage at once
      *
      * A strut whose along-edge span (@c _NET_WM_STRUT_PARTIAL's
-     * @c start/@c end) only covers part of the combined surface, a
+     * @c start/@c end) only covers part of the combined stage, a
      * panel docked to just one monitor in a multi-monitor setup being
      * the common case, still reduces @p workarea across the @e whole
-     * surface: EWMH's strut model has no native notion of "which
+     * stage: EWMH's strut model has no native notion of "which
      * monitor" at all, a reservation from one of the four @e screen
      * edges either way.  This array is this project's answer,
      * folding the exact same struts against each monitor's
-     * along-edge span in turn instead of the whole surface's, so a
+     * along-edge span in turn instead of the whole stage's, so a
      * monitor with no panel of its own keeps its full physical area
-     * here even while @p workarea, surface-wide, already reflects a
+     * here even while @p workarea, stage-wide, already reflects a
      * neighboring monitor's panel.  A monitor with no panel
      * reservation touching it at all simply equals its physical
-     * @c surface->monitors entry.
+     * @c stage->monitors entry.
      *
-     * Indices line up with @c surface->monitors, as
+     * Indices line up with @c stage->monitors, as
      * @a desktop_update_workarea's comment describes; only the first
      * @c monitor_workarea_count entries are valid.
      */
-    struct geometry_s monitor_workareas[WM_SURFACE_MAX_MONITORS];
+    struct geometry_s monitor_workareas[WM_STAGE_MAX_MONITORS];
 
     bool is_outdated;                       /**< Flag when data needs to
                                                  be updated */
@@ -247,7 +249,7 @@ struct desktop_s {
      *
      * @note Consulted by nothing yet, being a hook for a later feature
      *       such as drawing this desktop's entry differently while the
-     *       surface shows another
+     *       stage shows another
      * @note Recorded now all the same, so that a client's urgency is
      *       never missed whichever desktop it lands on
      */
@@ -284,7 +286,7 @@ struct desktop_s {
  * @param connection Pointer to the XCB connection
  * @param screen_id  Screen identifier where this desktop belongs
  * @param desktop_id Desktop identifier
- * @param config     This desktop's surface's shared configuration
+ * @param config     This desktop's stage's shared configuration
  *
  * @return Pointer to new desktop or @c NULL otherwise
  *
@@ -368,7 +370,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client);
  * through nothing.  On such a failure the client is put back where it
  * came from and @p client keeps naming its original desktop.
  *
- * @param from   Desktop the client currently belongs to; may be
+ * @param from Desktop the client currently belongs to; may be
  *               @c NULL when it belongs to none
  * @param to     Desktop to move it to
  * @param client Client to move
@@ -387,7 +389,7 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
  * @brief Find the client on a desktop matching a given client ID
  *
  * @param desktop Desktop whose clients are searched
- * @param id Client ID to search for
+ * @param id      Client ID to search for
  *
  * @return Pointer to the matching client, or @c NULL if @p desktop is
  *         null, or no client on it has that ID
@@ -512,7 +514,7 @@ int desktop_action_process_launch(desktop_td *desktop,
  * @param executable_path Path to the binary file
  * @param class_name      @c WM_CLASS to request via the child's
  *                        environment; @c NULL or empty leaves it alone
- * @param out_pid         If non-@c NULL, receives the launched
+ * @param out_pid If non-@c NULL, receives the launched
  *                        process's PID on success; left untouched on
  *                        any failure, so only ever read this after
  *                        checking the return value is @c 0
@@ -549,60 +551,60 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
  * X server as @c _NET_WORKAREA.
  *
  * Repeats the same reservation math once more per individual monitor
- * on @p surface, storing the result in
+ * on @p stage, storing the result in
  * @c desktop->monitor_workareas, whose comment in this same
  * file says why: each
- * monitor's along-edge span, rather than the whole surface's, is
+ * monitor's along-edge span, rather than the whole stage's, is
  * what a strut's start/end range is checked against there, so a
  * monitor with no panel of its own keeps its full area even while a
  * neighboring monitor's panel already reduces @p workarea,
- * surface-wide.  A configured margin, having no start/end of its own
+ * stage-wide.  A configured margin, having no start/end of its own
  * to scope it the way a strut's does, only ever reduces a given
  * monitor's entry on whichever of its four sides actually
- * coincides with that same side of the whole surface (its left
- * edge sits at surface @c x=0, say); elsewhere, an internal boundary
+ * coincides with that same side of the whole stage (its left
+ * edge sits at stage @c x=0, say); elsewhere, an internal boundary
  * between two monitors is not "the screen edge" a margin is meant to
  * carve out in the first place.
  *
  * Call this after a panel (strut client) is mapped or unmapped, after
  * the systray's reservation changes (reposition, resize, or being
- * shown/hidden), after @p surface's monitor list itself changes
+ * shown/hidden), after @p stage's monitor list itself changes
  * (a RandR hotplug), and after a configuration reload that may have
  * changed @p margins, so that maximize and smart-placement work on
  * the correct available area.
  *
- * @param desktop        Desktop whose work area should be refreshed
- * @param surface        Surface @p desktop lives on; supplies both
+ * @param desktop Desktop whose work area should be refreshed
+ * @param stage   Stage @p desktop lives on; supplies both
  *                       the full screen dimensions and the monitor
  *                       list @p desktop->monitor_workareas is scoped
  *                       to
  * @param config_desktop Active desktop-behavior configuration, for
  *                       its @p margins; a @c NULL treats every margin
  *                       as @c 0, same as if none were configured
- * @param systray_strut  The systray's current reservation on
- *                       @p desktop's surface; a @c NULL value folds in
+ * @param systray_strut The systray's current reservation on
+ *                       @p desktop's stage; a @c NULL value folds in
  *                       nothing, same as if the systray reserved no
  *                       space
- * @param ignore_struts  When @c true, neither @p systray_strut nor any
+ * @param ignore_struts When @c true, neither @p systray_strut nor any
  *                       client's @c _NET_WM_STRUT_PARTIAL is
  *                       folded in, only @p config_desktop's
- *                       @p margins (the surface's "full surface"
+ *                       @p margins (the stage's "full stage"
  *                       distraction-free toggle; see
- *                       @a surface_action_maximize_toggle_strutless,
- *                       surface.h): a deliberate, static reservation
+ *                       @a stage_action_maximize_toggle_strutless,
+ *                       stage.h): a deliberate, static reservation
  *                       stays honored even then, only the dynamic
  *                       presence of a panel or the tray is set aside
  *
- * @note A @c NULL @p surface is a silent no-op
+ * @note A @c NULL @p stage is a silent no-op
  * @note Complexity: @e O(n*m), where @e n is the number of clients on
- *       the desktop and @e m is @p surface->monitor_count
+ *       the desktop and @e m is @p stage->monitor_count
  *
  * @see @a systray_get_reserved_strut
  * @see @p config_desktop_s in @c config.h, for a program that reserves
  *      screen space without publishing either property itself
  */
 void desktop_update_workarea(desktop_td *desktop,
-        const surface_td *surface,
+        const stage_td *stage,
         const struct config_desktop_s *config_desktop,
         const struct strut_partial_s *systray_strut,
         bool ignore_struts);

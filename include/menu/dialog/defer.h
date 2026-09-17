@@ -68,8 +68,8 @@ typedef void (*menu_dialog_defer_callback_td)(xcb_connection_t *connection);
  *                   cannot be read to schedule the delay, in which case
  *                   @p callback runs immediately instead of being left
  *                   scheduled with no way to ever become due
- * @param delay_ms   Milliseconds from now until @p callback should run
- * @param callback   Function to call once due; a @c NULL cancels
+ * @param delay_ms Milliseconds from now until @p callback should run
+ * @param callback Function to call once due; a @c NULL cancels
  *                   whatever was previously scheduled without replacing
  *                   it with anything new
  *

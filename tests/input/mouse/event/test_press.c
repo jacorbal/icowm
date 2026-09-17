@@ -69,7 +69,7 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Default initial values */
@@ -108,13 +108,13 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
 
 /**
- * @brief Link-only stand-in for @a lookup_surface_for_root, never
+ * @brief Link-only stand-in for @a lookup_stage_for_root, never
  *        exercised
  * @note Complexity: @e O(1)
  */
-surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
+stage_td *lookup_stage_for_root(list_td *stages, xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
 
     s_unreached_calls++;
@@ -128,12 +128,12 @@ surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
  *        exercised
  * @note Complexity: @e O(1)
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
-    (void) out_surface;
+    (void) out_stage;
     (void) out_desktop;
 
     s_unreached_calls++;
@@ -182,11 +182,11 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
  * @note Complexity: @e O(1)
  */
 void drag_background_start(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t root,
+        stage_td *stage, xcb_window_t root,
         xcb_timestamp_t event_time, struct position_s root_pos)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) root;
     (void) event_time;
     (void) root_pos;
@@ -271,12 +271,12 @@ void enact_client_restore(client_td *client)
  * @brief Link-only stand-in for @a iconmenu_show, never exercised
  * @note Complexity: @e O(1)
  */
-void iconmenu_show(xcb_connection_t *connection, surface_td *surface,
+void iconmenu_show(xcb_connection_t *connection, stage_td *stage,
         desktop_td *desktop, client_td *client, struct position_s pos,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) pos;
@@ -303,12 +303,12 @@ void enact_client_unfocus(client_td *client)
  * @brief Link-only stand-in for @a focus_apply, never exercised
  * @note Complexity: @e O(1)
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *config)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -341,11 +341,11 @@ im_resize_bounds_td im_bounds_resize(const client_td *client)
  * @note Complexity: @e O(1)
  */
 bool im_press_close_overlays(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) event;
     (void) config;
 
@@ -361,12 +361,12 @@ bool im_press_close_overlays(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void im_press_scroll_binding(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop,
         enum wm_mousebind_type_e type, const config_td *config)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) event;
     (void) client;
     (void) desktop;
@@ -381,17 +381,17 @@ void im_press_scroll_binding(xcb_connection_t *connection,
  * @brief Link-only stand-in for @a im_press_titlebar, never exercised
  * @note Complexity: @e O(1)
  */
-bool im_press_titlebar(xcb_connection_t *connection, list_td *surfaces,
+bool im_press_titlebar(xcb_connection_t *connection, list_td *stages,
         xcb_button_press_event_t *event, client_td *client,
-        desktop_td *desktop, surface_td *surface,
+        desktop_td *desktop, stage_td *stage,
         const config_td *config)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) event;
     (void) client;
     (void) desktop;
-    (void) surface;
+    (void) stage;
     (void) config;
 
     s_unreached_calls++;
@@ -447,12 +447,12 @@ bool place_manual_is_active(void)
  * @note Complexity: @e O(1)
  */
 void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
-        surface_td *surface, struct position_s pos,
+        stage_td *stage, struct position_s pos,
         const config_td *config)
 {
     (void) wm;
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) pos;
     (void) config;
 
@@ -461,13 +461,13 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_get, never
+ * @brief Link-only stand-in for @a stage_desktop_get, never
  *        exercised
  * @note Complexity: @e O(1)
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 
     s_unreached_calls++;
@@ -480,12 +480,12 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
  * @brief Link-only stand-in for @a wincmenu_show, never exercised
  * @note Complexity: @e O(1)
  */
-void wincmenu_show(xcb_connection_t *connection, surface_td *surface,
+void wincmenu_show(xcb_connection_t *connection, stage_td *stage,
         desktop_td *desktop, client_td *client, struct position_s pos,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) pos;
@@ -499,11 +499,11 @@ void wincmenu_show(xcb_connection_t *connection, surface_td *surface,
  * @brief Link-only stand-in for @a winlist_show, never exercised
  * @note Complexity: @e O(1)
  */
-void winlist_show(xcb_connection_t *connection, surface_td *surface,
+void winlist_show(xcb_connection_t *connection, stage_td *stage,
         struct position_s pos, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) pos;
     (void) config;
 
@@ -512,13 +512,13 @@ void winlist_show(xcb_connection_t *connection, surface_td *surface,
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_surface_by_id, never
+ * @brief Link-only stand-in for @a wm_get_stage_by_id, never
  *        exercised
  * @note Complexity: @e O(1)
  */
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
+    (void) stage_id;
 
     s_unreached_calls++;
 
@@ -614,8 +614,8 @@ static void s_test_allow_and_flush_async_mode(void)
 }
 
 
-/* im_sync_pinned_active is a no-op when the surface is null */
-static void s_test_sync_pinned_null_surface_is_noop(void)
+/* im_sync_pinned_active is a no-op when the stage is null */
+static void s_test_sync_pinned_null_stage_is_noop(void)
 {
     client_td client;
     desktop_td desktop;
@@ -626,10 +626,10 @@ static void s_test_sync_pinned_null_surface_is_noop(void)
     client.id = 5u;
 
     /* Nothing to assert on directly beyond "does not crash"; ASan
-     * would catch any null-surface dereference regardless */
+     * would catch any null-stage dereference regardless */
     im_sync_pinned_active(NULL, &desktop, &client);
 
-    TAP_OK(true, "null surface: im_sync_pinned_active returns"
+    TAP_OK(true, "null stage: im_sync_pinned_active returns"
             " without touching anything");
 }
 
@@ -637,14 +637,14 @@ static void s_test_sync_pinned_null_surface_is_noop(void)
 /* im_sync_pinned_active is a no-op when the client is null */
 static void s_test_sync_pinned_null_client_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
-    surface.desktops = NULL;
+    stage.desktops = NULL;
 
-    im_sync_pinned_active(&surface, &desktop, NULL);
+    im_sync_pinned_active(&stage, &desktop, NULL);
 
     TAP_OK(true, "null client: im_sync_pinned_active returns without"
             " touching anything");
@@ -652,16 +652,16 @@ static void s_test_sync_pinned_null_client_is_noop(void)
 
 
 /* im_sync_pinned_active is a no-op for a non-pinned client, even with
- * a real desktop list behind the surface */
+ * a real desktop list behind the stage */
 static void s_test_sync_pinned_unpinned_client_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td d1;
     desktop_td d2;
     client_td client;
     cdlist_td *desktops = cdlist_init(NULL);
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&d1, 0, sizeof(d1));
     memset(&d2, 0, sizeof(d2));
     memset(&client, 0, sizeof(client));
@@ -671,47 +671,47 @@ static void s_test_sync_pinned_unpinned_client_is_noop(void)
 
     cdlist_ins_next(desktops, NULL, &d1);
     cdlist_ins_next(desktops, cdlist_head(desktops), &d2);
-    surface.desktops = desktops;
+    stage.desktops = desktops;
 
-    im_sync_pinned_active(&surface, &d1, &client);
+    im_sync_pinned_active(&stage, &d1, &client);
 
     TAP_EQ_INT((int) d1.client_active_id, 0,
             "unpinned client: the passed-in desktop is untouched");
     TAP_EQ_INT((int) d2.client_active_id, 0,
-            "and the other desktop on the surface is untouched too");
+            "and the other desktop on the stage is untouched too");
 
     cdlist_destroy(desktops);
 }
 
 
-/* im_sync_pinned_active is a no-op when the surface's desktop list
+/* im_sync_pinned_active is a no-op when the stage's desktop list
  * itself is null, even for a pinned client */
 static void s_test_sync_pinned_null_desktop_list_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     client.properties.flags |= CLIENT_FLAG_PIN;
     client.id = 3u;
-    surface.desktops = NULL;
+    stage.desktops = NULL;
 
-    im_sync_pinned_active(&surface, &desktop, &client);
+    im_sync_pinned_active(&stage, &desktop, &client);
 
-    TAP_OK(true, "null desktop list on the surface: returns cleanly"
+    TAP_OK(true, "null desktop list on the stage: returns cleanly"
             " without dereferencing it");
 }
 
 
 /* A pinned client propagates its id onto every other desktop on the
- * surface, skipping only the one desktop already passed in (the one
+ * stage, skipping only the one desktop already passed in (the one
  * focus_apply is assumed to have just updated itself) */
 static void s_test_sync_pinned_pinned_client_propagates(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td d1;
     desktop_td d2;
     desktop_td d3;
@@ -719,7 +719,7 @@ static void s_test_sync_pinned_pinned_client_propagates(void)
     cdlist_td *desktops = cdlist_init(NULL);
     cdlist_item_td *head;
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&d1, 0, sizeof(d1));
     memset(&d2, 0, sizeof(d2));
     memset(&d3, 0, sizeof(d3));
@@ -737,9 +737,9 @@ static void s_test_sync_pinned_pinned_client_propagates(void)
     head = cdlist_head(desktops);
     cdlist_ins_next(desktops, head, &d2);
     cdlist_ins_next(desktops, cdlist_next(head), &d3);
-    surface.desktops = desktops;
+    stage.desktops = desktops;
 
-    im_sync_pinned_active(&surface, &d1, &client);
+    im_sync_pinned_active(&stage, &d1, &client);
 
     TAP_EQ_INT((int) d1.client_active_id, 7,
             "the desktop already passed in (already handled by"
@@ -764,13 +764,13 @@ static void s_test_sync_pinned_pinned_client_propagates(void)
  * is_focus_dirty untouched, since nothing about it actually changed */
 static void s_test_sync_pinned_already_correct_stays_clean(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td d1;
     desktop_td d2;
     client_td client;
     cdlist_td *desktops = cdlist_init(NULL);
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&d1, 0, sizeof(d1));
     memset(&d2, 0, sizeof(d2));
     memset(&client, 0, sizeof(client));
@@ -782,9 +782,9 @@ static void s_test_sync_pinned_already_correct_stays_clean(void)
 
     cdlist_ins_next(desktops, NULL, &d1);
     cdlist_ins_next(desktops, cdlist_head(desktops), &d2);
-    surface.desktops = desktops;
+    stage.desktops = desktops;
 
-    im_sync_pinned_active(&surface, &d1, &client);
+    im_sync_pinned_active(&stage, &d1, &client);
 
     TAP_OK(!d2.is_focus_dirty,
             "a desktop that already shows the pinned client active is"
@@ -798,19 +798,19 @@ static void s_test_sync_pinned_already_correct_stays_clean(void)
 /* An empty desktop list (head is null) is a no-op, not a crash */
 static void s_test_sync_pinned_empty_desktop_list_is_noop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     cdlist_td *desktops = cdlist_init(NULL);
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     client.properties.flags |= CLIENT_FLAG_PIN;
     client.id = 1u;
-    surface.desktops = desktops;
+    stage.desktops = desktops;
 
-    im_sync_pinned_active(&surface, &desktop, &client);
+    im_sync_pinned_active(&stage, &desktop, &client);
 
     TAP_OK(true, "empty desktop list: returns cleanly without"
             " iterating anything");
@@ -825,7 +825,7 @@ int main(void)
 
     s_test_allow_and_flush_forwards_mode_and_time();
     s_test_allow_and_flush_async_mode();
-    s_test_sync_pinned_null_surface_is_noop();
+    s_test_sync_pinned_null_stage_is_noop();
     s_test_sync_pinned_null_client_is_noop();
     s_test_sync_pinned_unpinned_client_is_noop();
     s_test_sync_pinned_null_desktop_list_is_noop();

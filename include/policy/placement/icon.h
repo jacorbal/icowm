@@ -45,14 +45,14 @@
  *
  * Every coordinate here, in and out, is relative to (0, 0) and bounded
  * by @p screen_dim.  It is the caller that knows which monitor within
- * a wider surface that space belongs to, and the caller that shifts
+ * a wider stage that space belongs to, and the caller that shifts
  * the answer onto it; nothing in this file resolves a monitor or reads
  * a root coordinate.  @p anchor has to arrive already converted into
  * that same space for the same reason.
  *
- * @param client     Pointer to the client being iconified (must not be
+ * @param client Pointer to the client being iconified (must not be
  *                   null)
- * @param desktop    Desktop to inspect for existing icon positions;
+ * @param desktop Desktop to inspect for existing icon positions;
  *                   may be null (treated as empty desktop)
  * @param policy     Icon placement policy from configuration
  * @param icon_dim   Icon window's width/height, in pixels
@@ -62,7 +62,7 @@
  *                   the same space as @p out_pos; null when the caller
  *                   has none to offer, which sends that policy to the
  *                   smart search instead
- * @param out_pos    Output X/Y coordinate
+ * @param out_pos Output X/Y coordinate
  *
  * @note Read by @c CONFIG_ICON_PLACEMENT_IN_PLACE alone; the five
  *       edge-anchored policies have no use for where the window was
@@ -100,14 +100,14 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
  * the tray's height leaves less room than the icon and its gap
  * together need.
  *
- * @param io_x     Icon's proposed X position; read but never adjusted
+ * @param io_x Icon's proposed X position; read but never adjusted
  *                 by this function (the tray's width is not
  *                 currently used to also push horizontally).  Kept as
  *                 its separate, @c const-qualified parameter
  *                 rather than folded into a @c struct position_s
  *                 alongside @p io_y, so this read-only guarantee stays
  *                 compiler-enforced rather than merely documented
- * @param io_y     Icon's proposed Y position; read, and overwritten
+ * @param io_y Icon's proposed Y position; read, and overwritten
  *                 with the adjusted position if pushed
  * @param icon_dim Icon's width/height, in pixels
  * @param tray     Tray's current rectangle

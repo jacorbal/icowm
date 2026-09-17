@@ -16,12 +16,12 @@
  * stand-ins: the former to capture exactly which IPC_EVENT_* type
  * each action broadcasts without a real IPC transport, the latter to
  * avoid pulling in the whole scratchpad engine for the one boolean
- * enact_client_unfocus itself reads.  wm_get_surface_by_id,
- * surface_desktop_get, surface_desktop_north/south/east/west,
- * enact_desktop_client_send, enact_surface_desktop_switch, and
+ * enact_client_unfocus itself reads.  wm_get_stage_by_id,
+ * stage_desktop_get, stage_desktop_north/south/east/west,
+ * enact_desktop_client_send, enact_stage_desktop_switch, and
  * focus_apply are stand-ins too, needed only by the four
  * enact_client_send_to_desktop_* functions, whose own real
- * behavior otherwise needs a live surface's full desktop grid.
+ * behavior otherwise needs a live stage's full desktop grid.
  * cJSON is linked for real throughout, so enact_broadcast_client_event
  * and the metadata-carrying actions (rename/reclass/rerole/set_icon)
  * build their own real JSON payload exactly as they do in production,
@@ -60,7 +60,7 @@
 #include <ipc.h>
 #include <policy/focus.h>
 #include <scratchpad.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
@@ -128,16 +128,16 @@ static char s_last_rename_name[64];
 static char s_last_set_icon_name[64];
 
 /** Call counter and last-seen page for
- *  @a scmd_surface_viewport_client_send_to_page, which
+ *  @a scmd_stage_viewport_client_send_to_page, which
  *  @a enact_client_send_to_page is the thin wrapper over */
 static int s_call_send_to_page;
 static uint32_t s_last_page_col;
 static uint32_t s_last_page_row;
 
-void scmd_surface_viewport_client_send_to_page(surface_td *surface,
+void scmd_stage_viewport_client_send_to_page(stage_td *stage,
         client_td *client, uint32_t col, uint32_t row)
 {
-    (void) surface;
+    (void) stage;
     (void) client;
 
     s_call_send_to_page++;
@@ -414,12 +414,12 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
 
 /** Controllable stand-ins needed only by the four
  *  enact_client_send_to_desktop_* functions */
-static surface_td *s_surface_by_id_result;
+static stage_td *s_stage_by_id_result;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_by_id_result;
+    (void) stage_id;
+    return s_stage_by_id_result;
 }
 
 
@@ -427,9 +427,9 @@ static desktop_td s_cur_desktop;
 static desktop_td s_target_desktop;
 static bool s_desktop_get_returns_cur;
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     return s_desktop_get_returns_cur ? &s_cur_desktop : NULL;
 }
@@ -441,40 +441,40 @@ static int s_call_desktop_south;
 static int s_call_desktop_east;
 static int s_call_desktop_west;
 
-desktop_td *surface_desktop_north(surface_td *surface,
+desktop_td *stage_desktop_north(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     s_call_desktop_north++;
     return s_direction_target;
 }
 
-desktop_td *surface_desktop_south(surface_td *surface,
+desktop_td *stage_desktop_south(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     s_call_desktop_south++;
     return s_direction_target;
 }
 
-desktop_td *surface_desktop_east(surface_td *surface,
+desktop_td *stage_desktop_east(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     s_call_desktop_east++;
     return s_direction_target;
 }
 
-desktop_td *surface_desktop_west(surface_td *surface,
+desktop_td *stage_desktop_west(stage_td *stage,
         uint32_t desktop_id, bool cycle)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) cycle;
     s_call_desktop_west++;
@@ -483,7 +483,7 @@ desktop_td *surface_desktop_west(surface_td *surface,
 
 
 static int s_call_desktop_client_send;
-static int s_call_surface_desktop_switch;
+static int s_call_stage_desktop_switch;
 static int s_call_focus_apply;
 
 void enact_desktop_client_send(const desktop_td *desktop,
@@ -495,19 +495,19 @@ void enact_desktop_client_send(const desktop_td *desktop,
     s_call_desktop_client_send++;
 }
 
-void enact_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
+void enact_stage_desktop_switch(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
-    s_call_surface_desktop_switch++;
+    s_call_stage_desktop_switch++;
 }
 
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client,
         bool raise, const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -541,7 +541,7 @@ static void s_reset(void)
     cJSON_Delete(s_last_broadcast_fields);
     s_last_broadcast_fields = NULL;
 
-    s_surface_by_id_result = NULL;
+    s_stage_by_id_result = NULL;
     memset(&s_cur_desktop, 0, sizeof(s_cur_desktop));
     memset(&s_target_desktop, 0, sizeof(s_target_desktop));
     s_cur_desktop.id = 1u;
@@ -553,7 +553,7 @@ static void s_reset(void)
     s_call_desktop_east = 0;
     s_call_desktop_west = 0;
     s_call_desktop_client_send = 0;
-    s_call_surface_desktop_switch = 0;
+    s_call_stage_desktop_switch = 0;
     s_call_focus_apply = 0;
 }
 
@@ -842,7 +842,7 @@ static void s_test_metadata_actions_carry_their_own_field(void)
 
 /* Every action broadcasting through enact_broadcast_client_event
  * skips the broadcast entirely for a NULL client, since there would
- * be no client_id/desktop_id/surface_id to report; the underlying
+ * be no client_id/desktop_id/stage_id to report; the underlying
  * ccmd_client_* call itself is still made (that function's own job
  * is deciding whether to act, not this file's; every ccmd_client_*
  * stand-in above already tolerates a NULL client on its own) */
@@ -895,33 +895,33 @@ static void s_test_unfocus_scratchpad_client_hides_once(void)
 
 
 /* enact_client_send_to_desktop_*: a NULL client is a silent no-op,
- * never reaching wm_get_surface_by_id at all */
+ * never reaching wm_get_stage_by_id at all */
 static void s_test_send_to_desktop_null_client_is_noop(void)
 {
-    int fake_surfaces_storage;
-    list_td *const fake_surfaces = (list_td *) &fake_surfaces_storage;
+    int fake_stages_storage;
+    list_td *const fake_stages = (list_td *) &fake_stages_storage;
 
     s_reset();
-    enact_client_send_to_desktop_north(NULL, fake_surfaces, NULL);
-    TAP_EQ_INT(s_call_surface_desktop_switch, 0,
-            "a NULL client never reaches enact_surface_desktop_switch"
+    enact_client_send_to_desktop_north(NULL, fake_stages, NULL);
+    TAP_EQ_INT(s_call_stage_desktop_switch, 0,
+            "a NULL client never reaches enact_stage_desktop_switch"
             " at all");
 }
 
 
-/* enact_client_send_to_desktop_*: an unresolvable surface is a
+/* enact_client_send_to_desktop_*: an unresolvable stage is a
  * silent no-op */
-static void s_test_send_to_desktop_no_surface_is_noop(void)
+static void s_test_send_to_desktop_no_stage_is_noop(void)
 {
-    int fake_surfaces_storage;
-    list_td *const fake_surfaces = (list_td *) &fake_surfaces_storage;
+    int fake_stages_storage;
+    list_td *const fake_stages = (list_td *) &fake_stages_storage;
 
     s_reset();
-    s_surface_by_id_result = NULL;
+    s_stage_by_id_result = NULL;
 
-    enact_client_send_to_desktop_north(&s_client, fake_surfaces, NULL);
+    enact_client_send_to_desktop_north(&s_client, fake_stages, NULL);
     TAP_EQ_INT(s_call_desktop_client_send, 0,
-            "an unresolvable surface never reaches"
+            "an unresolvable stage never reaches"
             " enact_desktop_client_send");
 }
 
@@ -931,23 +931,23 @@ static void s_test_send_to_desktop_no_surface_is_noop(void)
  * current, or NULL) is a silent no-op */
 static void s_test_send_to_desktop_no_target_is_noop(void)
 {
-    surface_td surface;
-    int fake_surfaces_storage;
-    list_td *const fake_surfaces = (list_td *) &fake_surfaces_storage;
+    stage_td stage;
+    int fake_stages_storage;
+    list_td *const fake_stages = (list_td *) &fake_stages_storage;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    s_surface_by_id_result = &surface;
+    memset(&stage, 0, sizeof(stage));
+    s_stage_by_id_result = &stage;
     s_desktop_get_returns_cur = true;
     s_direction_target = &s_cur_desktop;
 
-    enact_client_send_to_desktop_east(&s_client, fake_surfaces, NULL);
+    enact_client_send_to_desktop_east(&s_client, fake_stages, NULL);
     TAP_EQ_INT(s_call_desktop_client_send, 0,
             "a direction lookup returning the already-current desktop"
             " never sends the client anywhere");
 
     s_direction_target = NULL;
-    enact_client_send_to_desktop_west(&s_client, fake_surfaces, NULL);
+    enact_client_send_to_desktop_west(&s_client, fake_stages, NULL);
     TAP_EQ_INT(s_call_desktop_client_send, 0,
             "a direction lookup returning NULL never sends the client"
             " anywhere either");
@@ -955,35 +955,35 @@ static void s_test_send_to_desktop_no_target_is_noop(void)
 
 
 /* enact_client_send_to_desktop_*: a genuinely different target
- * desktop sends the client, switches the surface to it, and
+ * desktop sends the client, switches the stage to it, and
  * re-applies focus, once each, for every one of the four compass
  * directions */
 static void s_test_send_to_desktop_moves_and_follows(void)
 {
-    surface_td surface;
-    int fake_surfaces_storage;
-    list_td *const fake_surfaces = (list_td *) &fake_surfaces_storage;
+    stage_td stage;
+    int fake_stages_storage;
+    list_td *const fake_stages = (list_td *) &fake_stages_storage;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    s_surface_by_id_result = &surface;
+    memset(&stage, 0, sizeof(stage));
+    s_stage_by_id_result = &stage;
     s_desktop_get_returns_cur = true;
     s_direction_target = &s_target_desktop;
 
-    enact_client_send_to_desktop_north(&s_client, fake_surfaces, NULL);
-    enact_client_send_to_desktop_south(&s_client, fake_surfaces, NULL);
-    enact_client_send_to_desktop_east(&s_client, fake_surfaces, NULL);
-    enact_client_send_to_desktop_west(&s_client, fake_surfaces, NULL);
+    enact_client_send_to_desktop_north(&s_client, fake_stages, NULL);
+    enact_client_send_to_desktop_south(&s_client, fake_stages, NULL);
+    enact_client_send_to_desktop_east(&s_client, fake_stages, NULL);
+    enact_client_send_to_desktop_west(&s_client, fake_stages, NULL);
 
     TAP_EQ_INT(s_call_desktop_north + s_call_desktop_south +
             s_call_desktop_east + s_call_desktop_west, 4,
             "all four compass directions each query their own"
-            " surface_desktop_* function exactly once");
+            " stage_desktop_* function exactly once");
     TAP_EQ_INT(s_call_desktop_client_send, 4,
             "a genuinely different target desktop sends the client"
             " on every one of the four calls");
-    TAP_EQ_INT(s_call_surface_desktop_switch, 4,
-            "and switches the surface to that target desktop every"
+    TAP_EQ_INT(s_call_stage_desktop_switch, 4,
+            "and switches the stage to that target desktop every"
             " time as well");
     TAP_EQ_INT(s_call_focus_apply, 4,
             "and re-applies focus onto the client every time too");
@@ -992,7 +992,7 @@ static void s_test_send_to_desktop_moves_and_follows(void)
 
 int main(void)
 {
-    TAP_PLAN(68);
+    TAP_PLAN(70);
 
     s_test_broadcast_free_actions();
     s_test_restore_broadcasts_deiconified();
@@ -1003,7 +1003,7 @@ int main(void)
     s_test_unfocus_plain_client();
     s_test_unfocus_scratchpad_client_hides_once();
     s_test_send_to_desktop_null_client_is_noop();
-    s_test_send_to_desktop_no_surface_is_noop();
+    s_test_send_to_desktop_no_stage_is_noop();
     s_test_send_to_desktop_no_target_is_noop();
     s_test_send_to_desktop_moves_and_follows();
 

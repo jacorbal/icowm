@@ -3,10 +3,10 @@
  *
  * @brief Test battery for whole-window-manager client traversal
  *
- * wm_for_each_client walks each surface's own 'desktops' cdlist
- * directly, never through surface_desktop_get, so every desktop this
+ * wm_for_each_client walks each stage's own 'desktops' cdlist
+ * directly, never through stage_desktop_get, so every desktop this
  * file's own tests build must be a real cdlist entry (via
- * cdlist_init/cdlist_ins_next on surface.desktops itself), not an
+ * cdlist_init/cdlist_ins_next on stage.desktops itself), not an
  * entry in some separate lookup table.
  */
 /*
@@ -30,14 +30,14 @@
 #include <client.h>
 #include <desktop.h>
 #include <harness/tap.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm/internal.h>
 
 
 /**
  * @brief Link-only stand-in for @a desktop_destroy
  *
- * Reached only through @c surface/desktops.c's own teardown, which
+ * Reached only through @c stage/desktops.c's own teardown, which
  * nothing here calls: linking the real one would pull in the whole of
  * a desktop's own machinery for a walk over a list.
  *
@@ -90,8 +90,8 @@ static bool s_id_match(const void *key1, const void *key2)
 }
 
 
-/* A NULL singleton, or one with a NULL surface list, visits nothing */
-static void s_test_null_wm_or_surfaces(void)
+/* A NULL singleton, or one with a NULL stage list, visits nothing */
+static void s_test_null_wm_or_stages(void)
 {
     wm_td local_wm;
 
@@ -100,33 +100,33 @@ static void s_test_null_wm_or_surfaces(void)
             "a NULL wm singleton visits nothing");
 
     memset(&local_wm, 0, sizeof(local_wm));
-    local_wm.surfaces = NULL;
+    local_wm.stages = NULL;
     wm = &local_wm;
     TAP_EQ_INT((long) wm_for_each_client(wm, NULL, NULL), 0,
-            "a NULL surfaces list visits nothing");
+            "a NULL stages list visits nothing");
 
     wm = NULL;
 }
 
 
-/* An empty surface list visits nothing */
-static void s_test_empty_surface_list(void)
+/* An empty stage list visits nothing */
+static void s_test_empty_stage_list(void)
 {
     wm_td local_wm;
 
     memset(&local_wm, 0, sizeof(local_wm));
-    local_wm.surfaces = list_init(NULL);
+    local_wm.stages = list_init(NULL);
     wm = &local_wm;
 
     TAP_EQ_INT((long) wm_for_each_client(wm, NULL, NULL), 0,
-            "an empty surface list visits nothing");
+            "an empty stage list visits nothing");
 
-    list_destroy(local_wm.surfaces);
+    list_destroy(local_wm.stages);
     wm = NULL;
 }
 
 
-/* Every client across a single surface's several desktops is
+/* Every client across a single stage's several desktops is
  * visited, with the action called on each and passed the given
  * userdata through unchanged */
 static bool s_visited[3];
@@ -145,7 +145,7 @@ static void s_recording_action(client_td *client, void *userdata)
 static void s_test_visits_every_client_across_desktops(void)
 {
     wm_td local_wm;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop_a;
     desktop_td desktop_b;
     client_td client0;
@@ -155,7 +155,7 @@ static void s_test_visits_every_client_across_desktops(void)
     uint32_t count;
 
     memset(&local_wm, 0, sizeof(local_wm));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop_a, 0, sizeof(desktop_a));
     memset(&desktop_b, 0, sizeof(desktop_b));
     memset(&client0, 0, sizeof(client0));
@@ -173,12 +173,12 @@ static void s_test_visits_every_client_across_desktops(void)
     ohtbl_insert(desktop_a.clients, &client1);
     ohtbl_insert(desktop_b.clients, &client2);
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, &desktop_a);
-    cdlist_ins_next(surface.desktops, NULL, &desktop_b);
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, &desktop_a);
+    cdlist_ins_next(stage.desktops, NULL, &desktop_b);
 
-    local_wm.surfaces = list_init(NULL);
-    list_ins_next(local_wm.surfaces, NULL, &surface);
+    local_wm.stages = list_init(NULL);
+    list_ins_next(local_wm.stages, NULL, &stage);
     wm = &local_wm;
 
     s_visited[0] = s_visited[1] = s_visited[2] = false;
@@ -192,10 +192,10 @@ static void s_test_visits_every_client_across_desktops(void)
     TAP_OK(s_seen_userdata == &marker,
             "userdata is passed through to the action unchanged");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     ohtbl_destroy(desktop_a.clients);
     ohtbl_destroy(desktop_b.clients);
-    list_destroy(local_wm.surfaces);
+    list_destroy(local_wm.stages);
     wm = NULL;
 }
 
@@ -204,13 +204,13 @@ static void s_test_visits_every_client_across_desktops(void)
 static void s_test_null_action_only_counts(void)
 {
     wm_td local_wm;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     uint32_t count;
 
     memset(&local_wm, 0, sizeof(local_wm));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     client.id = 0;
@@ -218,20 +218,20 @@ static void s_test_null_action_only_counts(void)
     desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
     ohtbl_insert(desktop.clients, &client);
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, &desktop);
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, &desktop);
 
-    local_wm.surfaces = list_init(NULL);
-    list_ins_next(local_wm.surfaces, NULL, &surface);
+    local_wm.stages = list_init(NULL);
+    list_ins_next(local_wm.stages, NULL, &stage);
     wm = &local_wm;
 
     count = wm_for_each_client(wm, NULL, NULL);
     TAP_EQ_INT((long) count, 1,
             "a NULL action still counts every client, no crash");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     ohtbl_destroy(desktop.clients);
-    list_destroy(local_wm.surfaces);
+    list_destroy(local_wm.stages);
     wm = NULL;
 }
 
@@ -241,13 +241,13 @@ static void s_test_null_action_only_counts(void)
 static void s_test_skips_null_desktop_gap(void)
 {
     wm_td local_wm;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     uint32_t count;
 
     memset(&local_wm, 0, sizeof(local_wm));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     client.id = 0;
@@ -257,21 +257,21 @@ static void s_test_skips_null_desktop_gap(void)
     ohtbl_insert(desktop.clients, &client);
     /* One real desktop entry plus one explicit NULL entry: the NULL
      * slot is the gap wm_for_each_client must skip cleanly */
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, &desktop);
-    cdlist_ins_next(surface.desktops, NULL, NULL);
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, &desktop);
+    cdlist_ins_next(stage.desktops, NULL, NULL);
 
-    local_wm.surfaces = list_init(NULL);
-    list_ins_next(local_wm.surfaces, NULL, &surface);
+    local_wm.stages = list_init(NULL);
+    list_ins_next(local_wm.stages, NULL, &stage);
     wm = &local_wm;
 
     count = wm_for_each_client(wm, NULL, NULL);
     TAP_EQ_INT((long) count, 1,
             "a NULL-desktop gap is skipped, the rest still counted");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     ohtbl_destroy(desktop.clients);
-    list_destroy(local_wm.surfaces);
+    list_destroy(local_wm.stages);
     wm = NULL;
 }
 
@@ -280,8 +280,8 @@ int main(void)
 {
     TAP_PLAN(8);
 
-    s_test_null_wm_or_surfaces();
-    s_test_empty_surface_list();
+    s_test_null_wm_or_stages();
+    s_test_empty_stage_list();
     s_test_visits_every_client_across_desktops();
     s_test_null_action_only_counts();
     s_test_skips_null_desktop_gap();

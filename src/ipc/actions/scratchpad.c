@@ -17,7 +17,7 @@
 /* Project includes */
 #include <desktop.h>
 #include <scratchpad.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -28,11 +28,11 @@
 
 cJSON *ipc_action_toggle_scratchpad(const wm_td *wm, const cJSON *args)
 {
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     desktop_td *desktop;
     cJSON *error = NULL;
 
-    desktop = ipc_resolve_desktop(wm, args, false, &surface, &error);
+    desktop = ipc_resolve_desktop(wm, args, false, &stage, &error);
     if (desktop == NULL) {
         return error;
     }

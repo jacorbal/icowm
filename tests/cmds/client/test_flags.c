@@ -60,8 +60,8 @@
  *
  * Reached only through the "moved off the current desktop" branch of
  * 'ccmd_client_unpin', which none of these tests take: every desktop
- * this file builds is either not the surface's current one, or has
- * no matching surface at all.
+ * this file builds is either not the stage's current one, or has
+ * no matching stage at all.
  *
  * @note Complexity: @e O(1)
  */
@@ -214,14 +214,14 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
 /**
  * @brief Link-only stand-in for @a lookup_current_desktop
  *
- * Reached only when 'ccmd_client_unpin' finds a non-null surface;
+ * Reached only when 'ccmd_client_unpin' finds a non-null stage;
  * none of these tests attach one, so this is unreachable in practice.
  *
  * @note Complexity: @e O(1)
  */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return NULL;
 }
 
@@ -246,38 +246,38 @@ desktop_td *wm_get_client_desktop(const client_td *client)
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_surface_by_id
+ * @brief Test-controlled stand-in for @a wm_get_stage_by_id
  *
  * Reached by 'ccmd_client_unpin', 'ccmd_client_toggle_pin' and
  * 'ccmd_client_toggle_stick'.  @c NULL, which 's_reset' restores, keeps
  * 'ccmd_client_unpin''s desktop-move branch untaken and makes both
  * toggles fall through to their actual work instead of returning early
- * for a surface that cannot host the flag.
+ * for a stage that cannot host the flag.
  *
  * @note Complexity: @e O(1)
  */
-static surface_td *s_stub_surface;
+static stage_td *s_stub_stage;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_stub_surface;
+    (void) stage_id;
+    return s_stub_stage;
 }
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_viewport_has_room
+ * @brief Test-controlled stand-in for @a stage_viewport_has_room
  *
- * Reproduced here rather than linking surface/viewport.c for one
- * predicate; only consulted once 's_stub_surface' above is non-null.
+ * Reproduced here rather than linking stage/viewport.c for one
+ * predicate; only consulted once 's_stub_stage' above is non-null.
  *
  * @note Complexity: @e O(1)
  */
 static bool s_stub_viewport_has_room;
 
-bool surface_viewport_has_room(const surface_td *surface)
+bool stage_viewport_has_room(const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     return s_stub_viewport_has_room;
 }
@@ -369,7 +369,7 @@ static void s_reset(void)
     s_owner_desktop = NULL;
     s_redraw_calls = 0;
     s_siblings_used = 0;
-    s_stub_surface = NULL;
+    s_stub_stage = NULL;
     s_stub_viewport_has_room = true;
     memset(s_siblings, 0, sizeof(s_siblings));
 }
@@ -566,7 +566,7 @@ static void s_test_unpin_cascades_but_skips_locked(void)
 
 
 /* Toggling pin on a currently-unpinned client with no attached
- * surface pins it, and toggling again unpins it */
+ * stage pins it, and toggling again unpins it */
 static void s_test_toggle_pin_flips_both_ways(void)
 {
     client_td *client;
@@ -576,7 +576,7 @@ static void s_test_toggle_pin_flips_both_ways(void)
 
     ccmd_client_toggle_pin(client);
     TAP_OK(client_is_pinned(client) != 0,
-            "toggling an unpinned client with no surface pins it");
+            "toggling an unpinned client with no stage pins it");
 
     ccmd_client_toggle_pin(client);
     TAP_OK(client_is_unpinned(client),
@@ -777,18 +777,18 @@ static void s_test_toggle_stick_flips_both_ways(void)
 }
 
 
-/* A surface whose configured viewport is a single screen refuses the
+/* A stage whose configured viewport is a single screen refuses the
  * toggle outright: there is nothing for the flag to hold a client
  * still against there, so the keyboard shortcut is cut off at the same
  * choke point every other caller passes through */
 static void s_test_toggle_stick_single_cell_viewport_is_a_no_op(void)
 {
     client_td *client;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
-    s_stub_surface = &surface;
+    memset(&stage, 0, sizeof(stage));
+    s_stub_stage = &stage;
     s_stub_viewport_has_room = false;
     client = s_make_client(56u);
 

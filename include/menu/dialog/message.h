@@ -110,7 +110,7 @@ void dialog_pair_append_blank(struct dialog_pair_s *pairs,
  * scrolls when the message does not fit.
  *
  * @param connection XCB connection
- * @param surface    Surface on which to center the dialog
+ * @param stage      Stage on which to center the dialog
  * @param config     Active configuration (theme colors and font)
  * @param message    Null-terminated message text
  * @param level      Alert severity level
@@ -120,7 +120,7 @@ void dialog_pair_append_blank(struct dialog_pair_s *pairs,
  * @see @a menu_message_dialog_scroll
  */
 void menu_message_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *message, menu_msg_level_e level);
 
 /**
@@ -140,7 +140,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
  * rather than left to squeeze the values out of the dialog.
  *
  * @param connection XCB connection
- * @param surface    Surface to show the dialog on
+ * @param stage      Stage to show the dialog on
  * @param config     Active configuration
  * @param pairs      Rows to show, in order
  * @param pair_count How many of them
@@ -153,7 +153,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
  *       the longest value's length, from measuring and wrapping each
  */
 void menu_message_dialog_show_pairs(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const struct dialog_pair_s *pairs, size_t pair_count,
         menu_msg_level_e level);
 

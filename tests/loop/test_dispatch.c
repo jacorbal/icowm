@@ -15,7 +15,7 @@
  * loop/event.h, or input/mouse/event.h, is not dispatch.c's own logic
  * at all, so every one of those targets is a link-only stand-in below
  * that records which adapter actually reached it and with which event,
- * rather than a real handler that would need a live surfaces list, a
+ * rather than a real handler that would need a live stages list, a
  * live wm singleton, or a live X server round trip to do anything
  * useful; s_loop_dispatch_extension and the dispatch table itself are
  * both static to dispatch.c, so this file can only reach them through
@@ -100,11 +100,11 @@ void handler_error_protocol(const xcb_generic_event_t *event)
 
 
 /** Link-only stand-in for mouse_handle_enter (input/mouse/event.c) */
-void mouse_handle_enter(xcb_connection_t *connection, list_td *surfaces,
+void mouse_handle_enter(xcb_connection_t *connection, list_td *stages,
         xcb_enter_notify_event_t *event, const config_td *config)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) config;
     s_last_called = "mouse_handle_enter";
     s_last_event = (xcb_generic_event_t *) event;
@@ -123,11 +123,11 @@ void handler_leave_notify(const wm_td *wm, xcb_leave_notify_event_t *event)
 
 
 /** Link-only stand-in for handler_focus_in (handler.c) */
-void handler_focus_in(xcb_connection_t *connection, list_td *surfaces,
+void handler_focus_in(xcb_connection_t *connection, list_td *stages,
         xcb_focus_in_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_focus_in";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -146,10 +146,10 @@ void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event)
 
 /** Link-only stand-in for handler_configure_notify (handler.c) */
 void handler_configure_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_configure_notify_event_t *event)
+        list_td *stages, xcb_configure_notify_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_configure_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -158,10 +158,10 @@ void handler_configure_notify(xcb_connection_t *connection,
 
 /** Link-only stand-in for handler_configure_request (handler.c) */
 void handler_configure_request(xcb_connection_t *connection,
-        list_td *surfaces, xcb_configure_request_event_t *event)
+        list_td *stages, xcb_configure_request_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_configure_request";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -179,11 +179,11 @@ void handler_window_map_request(const wm_td *wm, xcb_map_request_event_t *event)
 
 
 /** Link-only stand-in for handler_window_map_notify (handler.c) */
-void handler_window_map_notify(xcb_connection_t *connection, list_td *surfaces,
+void handler_window_map_notify(xcb_connection_t *connection, list_td *stages,
         xcb_map_notify_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_window_map_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -191,11 +191,11 @@ void handler_window_map_notify(xcb_connection_t *connection, list_td *surfaces,
 
 
 /** Link-only stand-in for handler_window_unmap_notify (handler.c) */
-void handler_window_unmap_notify(xcb_connection_t *connection, list_td *surfaces,
+void handler_window_unmap_notify(xcb_connection_t *connection, list_td *stages,
         xcb_unmap_notify_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_window_unmap_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -204,11 +204,11 @@ void handler_window_unmap_notify(xcb_connection_t *connection, list_td *surfaces
 
 /** Link-only stand-in for handler_window_destroy_notify (handler.c) */
 void handler_window_destroy_notify(wm_td *wm, xcb_connection_t *connection,
-        list_td *surfaces, xcb_destroy_notify_event_t *event)
+        list_td *stages, xcb_destroy_notify_event_t *event)
 {
     (void) wm;
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_window_destroy_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -217,11 +217,11 @@ void handler_window_destroy_notify(wm_td *wm, xcb_connection_t *connection,
 
 /** Link-only stand-in for handler_property_notify (handler.c) */
 void handler_property_notify(const wm_td *wm, xcb_connection_t *connection,
-        list_td *surfaces, xcb_property_notify_event_t *event)
+        list_td *stages, xcb_property_notify_event_t *event)
 {
     (void) wm;
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_property_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -230,10 +230,10 @@ void handler_property_notify(const wm_td *wm, xcb_connection_t *connection,
 
 /** Link-only stand-in for handler_colormap_notify (handler.c) */
 void handler_colormap_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_colormap_notify_event_t *event)
+        list_td *stages, xcb_colormap_notify_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_colormap_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -241,11 +241,11 @@ void handler_colormap_notify(xcb_connection_t *connection,
 
 
 /** Link-only stand-in for handler_expose (handler.c) */
-void handler_expose(xcb_connection_t *connection, list_td *surfaces,
+void handler_expose(xcb_connection_t *connection, list_td *stages,
         xcb_expose_event_t *event, const config_td *config)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) config;
     s_last_called = "handler_expose";
     s_last_event = (xcb_generic_event_t *) event;
@@ -275,11 +275,11 @@ void handler_selection_clear(wm_td *wm,
 
 
 /** Link-only stand-in for handler_mapping_notify (handler.c) */
-void handler_mapping_notify(xcb_key_symbols_t *keysyms, list_td *surfaces,
+void handler_mapping_notify(xcb_key_symbols_t *keysyms, list_td *stages,
         xcb_mapping_notify_event_t *event, const config_td *config)
 {
     (void) keysyms;
-    (void) surfaces;
+    (void) stages;
     (void) config;
     s_last_called = "handler_mapping_notify";
     s_last_event = (xcb_generic_event_t *) event;
@@ -288,11 +288,11 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms, list_td *surfaces,
 
 
 /** Link-only stand-in for handler_window_gravity_notify (handler.c) */
-void handler_window_gravity_notify(xcb_connection_t *connection, list_td *surfaces,
+void handler_window_gravity_notify(xcb_connection_t *connection, list_td *stages,
         xcb_gravity_notify_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_window_gravity_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -301,10 +301,10 @@ void handler_window_gravity_notify(xcb_connection_t *connection, list_td *surfac
 
 /** Link-only stand-in for handler_window_circulate_notify (handler.c) */
 void handler_window_circulate_notify(xcb_connection_t *connection,
-        list_td *surfaces, xcb_circulate_notify_event_t *event)
+        list_td *stages, xcb_circulate_notify_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_window_circulate_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
@@ -313,10 +313,10 @@ void handler_window_circulate_notify(xcb_connection_t *connection,
 
 /** Link-only stand-in for handler_window_circulate_request (handler.c) */
 void handler_window_circulate_request(xcb_connection_t *connection,
-        list_td *surfaces, xcb_circulate_request_event_t *event)
+        list_td *stages, xcb_circulate_request_event_t *event)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_last_called = "handler_window_circulate_request";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;

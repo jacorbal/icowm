@@ -10,7 +10,7 @@
  * server, i.e., xcb_get_extension_data reading a real connection's
  * extension cache, xcb_randr_query_version/xcb_sync_initialize
  * sending real requests and blocking on real replies, and for
- * wm_startup_randr_init, further per-surface CRTC/output probing
+ * wm_startup_randr_init, further per-stage CRTC/output probing
  * (xcb_randr_get_screen_resources_current,
  * xcb_randr_get_crtc_info) that only makes sense against a real
  * X server's real display configuration.  None of that is
@@ -38,7 +38,7 @@
 /* Local includes */
 #include <harness/tap.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm/internal.h>
 #include <wm/startup.h>
 
@@ -64,14 +64,14 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
 
 /**
- * @brief Link-only stand-in for surface_action_randr_apply_profiles
+ * @brief Link-only stand-in for stage_action_randr_apply_profiles
  *
  * Referenced unconditionally in wm_startup_randr_init's body, past
  * the guard clause this file actually exercises; a real call applies
- * a configured RandR output profile against a live surface's real
+ * a configured RandR output profile against a live stage's real
  * screen, which no guard-clause scenario here ever reaches.
  *
- * @param surface Unused
+ * @param stage Unused
  * @param force   Unused
  *
  * @return false always, an arbitrary value never observed by any
@@ -79,9 +79,9 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
  *
  * @note Complexity: O(1)
  */
-bool surface_action_randr_apply_profiles(surface_td *surface, bool force)
+bool stage_action_randr_apply_profiles(stage_td *stage, bool force)
 {
-    (void) surface;
+    (void) stage;
     (void) force;
     return false;
 }

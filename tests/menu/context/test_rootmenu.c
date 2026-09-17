@@ -57,7 +57,7 @@
 #include <menu/context/menujson.h>
 #include <menu/context/rootmenu.h>
 #include <menu/dialog/quit.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
@@ -99,12 +99,12 @@ static int s_show_calls;
 static ctxmenu_state_td *s_show_state;
 static struct position_s s_show_pos;
 
-void ctxmenu_show(xcb_connection_t *connection, surface_td *surface,
+void ctxmenu_show(xcb_connection_t *connection, stage_td *stage,
         ctxmenu_state_td *state, struct position_s pos,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
     s_show_calls++;
     s_show_state = state;
@@ -159,11 +159,11 @@ static int s_tree_click_y;
 static bool s_tree_click_return;
 
 bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
+        stage_td *stage, ctxmenu_state_td *root, xcb_window_t win,
         int y, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) root;
     (void) config;
     s_tree_click_calls++;
@@ -198,11 +198,11 @@ static xcb_keysym_t s_tree_keypress_keysym;
 static bool s_tree_keypress_return;
 
 bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root,
+        stage_td *stage, ctxmenu_state_td *root,
         xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) root;
     (void) config;
     s_tree_keypress_calls++;
@@ -232,10 +232,10 @@ void ctxmenu_tree_handle_motion_window(ctxmenu_state_td *root,
 
 /** Link-only stand-ins for the footer callbacks' own dependencies;
  *  never invoked, since no test here activates an entry */
-void wm_action_rearrange(const wm_td *wm, surface_td *surface)
+void wm_action_rearrange(const wm_td *wm, stage_td *stage)
 {
     (void) wm;
-    (void) surface;
+    (void) stage;
 }
 
 
@@ -251,17 +251,17 @@ void wm_request_full_redraw(void)
 }
 
 
-void enact_surface_toggle_strutless_maximize(surface_td *surface)
+void enact_stage_toggle_strutless_maximize(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 }
 
 
-void dialog_quit_show(xcb_connection_t *connection, surface_td *surface,
+void dialog_quit_show(xcb_connection_t *connection, stage_td *stage,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
 }
 
@@ -341,28 +341,28 @@ static void s_test_json_load(void)
 
 
 /**
- * @brief Verify @a rootmenu_show rejects null connection, surface,
+ * @brief Verify @a rootmenu_show rejects null connection, stage,
  *        or config without ever reaching @a ctxmenu_show
  */
 static void s_test_show_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     struct position_s pos = { 1, 2 };
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
 
-    rootmenu_show(NULL, NULL, &surface, pos, &config);
+    rootmenu_show(NULL, NULL, &stage, pos, &config);
     TAP_EQ_INT(s_show_calls, 0,
             "showing with a null connection shows nothing");
 
     rootmenu_show(NULL, (xcb_connection_t *) 1, NULL, pos, &config);
     TAP_EQ_INT(s_show_calls, 0,
-            "showing with a null surface shows nothing");
+            "showing with a null stage shows nothing");
 
-    rootmenu_show(NULL, (xcb_connection_t *) 1, &surface, pos, NULL);
+    rootmenu_show(NULL, (xcb_connection_t *) 1, &stage, pos, NULL);
     TAP_EQ_INT(s_show_calls, 0,
             "showing with a null config shows nothing");
 }
@@ -384,16 +384,16 @@ static void s_test_show_guards(void)
  */
 static void s_test_show_empty_json(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     struct position_s pos = { 0, 0 };
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
     rootmenu_menu_json_load("/etc/icowm");
 
-    rootmenu_show(NULL, (xcb_connection_t *) 1, &surface, pos, &config);
+    rootmenu_show(NULL, (xcb_connection_t *) 1, &stage, pos, &config);
 
     TAP_EQ_INT(s_show_state->entry_count, 6,
             "the 6-row footer alone makes 6 rows total when no JSON"
@@ -414,13 +414,13 @@ static void s_test_show_empty_json(void)
  */
 static void s_test_show_with_json_entries(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     struct position_s pos = { 0, 0 };
     ctxmenu_entry_td fixture[2];
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
     memset(fixture, 0, sizeof(fixture));
 
@@ -434,7 +434,7 @@ static void s_test_show_with_json_entries(void)
     s_json_load_count = 2;
     rootmenu_menu_json_load("/etc/icowm");
 
-    rootmenu_show(NULL, (xcb_connection_t *) 1, &surface, pos, &config);
+    rootmenu_show(NULL, (xcb_connection_t *) 1, &stage, pos, &config);
 
     TAP_EQ_INT(s_show_state->entry_count, 9,
             "two JSON entries plus a leading separator plus the"
@@ -470,20 +470,20 @@ static void s_test_show_with_json_entries(void)
 
 /**
  * @brief Verify the footer's maximization label reflects whether the
- *        surface is already in strutless mode
+ *        stage is already in strutless mode
  */
 static void s_test_show_strutted_label(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     struct position_s pos = { 0, 0 };
     ctxmenu_entry_td fixture[1];
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
     memset(fixture, 0, sizeof(fixture));
-    surface.strutless_maximize = true;
+    stage.strutless_maximize = true;
 
     /* A JSON entry is loaded here purely so 'entries[2]' below lands
      * on the footer's first row, right after the leading separator
@@ -494,10 +494,10 @@ static void s_test_show_strutted_label(void)
     s_json_load_count = 1;
     rootmenu_menu_json_load("/etc/icowm");
 
-    rootmenu_show(NULL, (xcb_connection_t *) 1, &surface, pos, &config);
+    rootmenu_show(NULL, (xcb_connection_t *) 1, &stage, pos, &config);
 
     TAP_EQ_STR(s_show_state->entries[2].label, "Strutted maximization",
-            "an already-strutless surface offers to switch back to"
+            "an already-strutless stage offers to switch back to"
             " strutted maximization");
 
     rootmenu_close();
@@ -511,13 +511,13 @@ static void s_test_show_strutted_label(void)
  */
 static void s_test_show_closes_previous(void)
 {
-    surface_td surface;
+    stage_td stage;
     config_td config;
     struct position_s pos = { 0, 0 };
     ctxmenu_entry_td fixture[1];
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&config, 0, sizeof(config));
     memset(fixture, 0, sizeof(fixture));
 
@@ -529,12 +529,12 @@ static void s_test_show_closes_previous(void)
     s_json_load_count = 1;
     rootmenu_menu_json_load("/etc/icowm");
 
-    rootmenu_show(NULL, (xcb_connection_t *) 1, &surface, pos, &config);
+    rootmenu_show(NULL, (xcb_connection_t *) 1, &stage, pos, &config);
     TAP_EQ_INT(s_close_calls, 1,
             "showing the menu the first time still closes the"
             " (not yet open) singleton first");
 
-    rootmenu_show(NULL, (xcb_connection_t *) 1, &surface, pos, &config);
+    rootmenu_show(NULL, (xcb_connection_t *) 1, &stage, pos, &config);
     TAP_EQ_INT(s_close_calls, 2,
             "showing again closes the previous open menu first");
 

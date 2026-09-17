@@ -43,8 +43,7 @@
  * already held, if @c "systray" itself is absent.  Each of the three
  * nested objects is likewise only consulted if present.  Declared here
  * rather than kept private to @c config/base/systray.c since both it
- * and
- * @c config/memguard.c need this exact same parsing (the @c systray
+ * and @c config/memguard.c need this exact same parsing (the @c systray
  * object itself is identical between the two files), and duplicating it
  * would risk the two drifting apart over some future change to one
  * without the other.
@@ -56,7 +55,7 @@
  * @note Implemented in @c config/base/systray.c
  * @note Complexity: @e O(1)
  */
-void ci_config_load_systray(cJSON *json,
+void ci_config_systray_load(cJSON *json,
         struct config_base_s *config_base);
 
 /**
@@ -64,11 +63,11 @@ void ci_config_load_systray(cJSON *json,
  *        enumeration
  *
  * Declared here rather than kept private to @c config/base/parse.c
- * since both it and @c config/memguard.c need this exact same
- * parsing (the icon
- * placement policy string accepted is identical between @c config.json
- * and @c memguard.json), and duplicating it would risk the two drifting
- * apart over some future change to one without the other.
+ * since both it and @c config/memguard.c need this exact same parsing
+ * (the icon placement policy string accepted is identical between
+ * @c config.json and @c memguard.json), and duplicating it would risk
+ * the two drifting apart over some future change to one without the
+ * other.
  *
  * @param value Icon placement string from configuration
  *
@@ -87,11 +86,11 @@ enum config_icon_placement_e ci_config_parse_icon_placement(
  *        enumeration
  *
  * Declared here rather than kept private to @c config/base/parse.c
- * since both it and @c config/memguard.c need this exact same
- * parsing (the window
- * placement policy string accepted is identical between @c config.json
- * and @c memguard.json), and duplicating it would risk the two drifting
- * apart over some future change to one without the other.
+ * since both it and @c config/memguard.c need this exact same parsing
+ * (the window placement policy string accepted is identical between
+ * @c config.json and @c memguard.json), and duplicating it would risk
+ * the two drifting apart over some future change to one without the
+ * other.
  *
  * @param value Placement policy string from configuration
  *
@@ -112,12 +111,12 @@ enum config_placement_policy_e
  * Every font field not already naming some variant of the "fixed"
  * X core font family is replaced outright with plain
  * @c MEMGUARD_FONT_NAME.  @c xsettings publishing, icon pixmaps (both
- * the icon square's, @c icon.show-pixmaps, and the menu row/cycle
- * row icon shown alongside each entry, @c menu.show-pixmaps), and icon
- * hint indicators are all forced off unconditionally.  Every other
- * theme field, colors, decoration, and @c is-captioned included, is
- * left exactly as the theme file specified.  None of those carry the
- * ongoing memory cost the font backend and pixmap compositing do.
+ * the icon square's, @c icon.show-pixmaps, and the menu row/cycle row
+ * icon shown alongside each entry, @c menu.show-pixmaps), and icon hint
+ * indicators are all forced off unconditionally.  Every other theme
+ * field, colors, decoration, and @c is-captioned included, is left
+ * exactly as the theme file specified.  None of those carry the ongoing
+ * memory cost the font backend and pixmap compositing do.
  *
  * @param config Configuration structure whose already-loaded theme this
  *               restricts (must not be null)
@@ -136,11 +135,11 @@ void ci_memguard_restrict_theme(config_td *config);
  * @a ci_config_parse_placement_policy, shared verbatim with
  * @c config.json's identical parsing), the icon placement policy
  * (via @a ci_config_parse_icon_placement, likewise shared), the systray
- * block (via @a ci_config_load_systray, shared verbatim with
+ * block (via @a ci_config_systray_load, shared verbatim with
  * @c config.json's identical @c systray object, minus its
  * @c text.position and @c order fields, which this mode always keeps at
- * their fixed defaults regardless of what the file specifies), and
- * the emergency shortcut.
+ * their fixed defaults regardless of what the file specifies), and the
+ * emergency shortcut.
  *
  * @param filename Path to @c memguard.json
  * @param config   Configuration structure to update
@@ -156,7 +155,6 @@ void ci_memguard_restrict_theme(config_td *config);
  * @note Complexity: @e O(n), where @e n is the size of @p filename
  */
 int ci_memguard_load_json(const char *filename, config_td *config);
-
 
 /**
  * @brief Parse focus policy text into configuration enumeration
@@ -237,15 +235,15 @@ enum config_desktop_corner_e
  * @brief Parse one scratchpad dimension from either a fixed pixel
  *        count or the string @c "max"
  *
- * @param item Value from configuration, expected to be either a
- *             number or the string @c "max"; any other JSON type,
- *             or a negative number, leaves @p out untouched
+ * @param item Value from configuration, expected to be either a number
+ *             or the string @c "max"; any other JSON type, or
+ *             a negative number, leaves @p out untouched
  * @param out  Destination dimension
  *
  * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(1)
  */
-void ci_config_parse_scratchpad_size(const cJSON *item,
+void ci_config_scratchpad_size_parse(const cJSON *item,
         struct config_scratchpad_size_s *out);
 
 /**
@@ -255,8 +253,7 @@ void ci_config_parse_scratchpad_size(const cJSON *item,
  *
  * @return Parsed scratchpad edge enumeration value
  *
- * @note Supported values are @c top, @c bottom, @c left, and
- *       @c right
+ * @note Supported values are @c top, @c bottom, @c left, and @c right
  * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
@@ -287,7 +284,7 @@ enum config_systray_position_e
  *
  * @return Parsed systray monitor anchor enumeration value
  *
- * @note Supported values are @c surface, @c primary, and @c index
+ * @note Supported values are @c stage, @c primary, and @c index
  * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
@@ -353,7 +350,7 @@ enum config_systray_text_position_e
  * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-bool ci_config_parse_systray_text_item(const char *value,
+bool ci_config_systray_text_item_parse(const char *value,
         enum config_systray_text_item_e *out);
 
 /**
@@ -384,8 +381,7 @@ enum config_battery_backend_type_e
  * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */
-enum config_gravity_e
-    ci_config_parse_gravity(const char *value);
+enum config_gravity_e ci_config_parse_gravity(const char *value);
 
 /**
  * @brief Load @c topology.screens (screen count, and each screen's
@@ -394,9 +390,9 @@ enum config_gravity_e
  *
  * Accepts two on-disk shapes for the @p topology.screens.desktops
  * array.  A flat list of desktop entries applied to screen 0 (the
- * common, single-screen case), or, when any entry in that array
- * itself carries its @p settings / @p count / @p inaugural fields, a
- * nested layout where each entry instead describes one whole screen
+ * common, single-screen case), or, when any entry in that array itself
+ * carries its @p settings / @p count / @p inaugural fields, a nested
+ * layout where each entry instead describes one whole screen
  * (multi-screen configurations).
  *
  * Which shape is in use is detected from the first array entry alone.
@@ -416,13 +412,13 @@ enum config_gravity_e
  * @param config_base Destination structure; its @c screen_count and
  *                    each screen's desktop settings are updated
  *                    here
- * @param filename    Path @p json was read from, for log messages only
+ * @param filename Path @p json was read from, for log messages only
  *
  * @note Implemented in @c config/base/desktops.c
  * @note Complexity: @e O(s * d), where @e s is the number of screens
  *       and @e d the number of desktops described
  */
-void ci_config_load_screens(cJSON *json,
+void ci_config_screens_load(cJSON *json,
         struct config_base_s *config_base, const char *filename);
 
 /**
@@ -432,9 +428,9 @@ void ci_config_load_screens(cJSON *json,
  * A sibling of @p topology at the root of @c config.json, not nested
  * inside it.  Unlike @p topology, every field this loads is meant to
  * take effect again on a configuration reload, so
- * @a ci_config_load_screens and this function are deliberately kept
- * separate despite both being called from @a config_load_base.  A
- * missing @p desktops object, or a missing @p margins within it,
+ * @a ci_config_screens_load and this function are deliberately kept
+ * separate despite both being called from @a config_load_base.
+ * A missing @p desktops object, or a missing @p margins within it,
  * leaves whatever @p config_desktop already held untouched.
  *
  * @param json           Parsed root of @c config.json
@@ -445,7 +441,7 @@ void ci_config_load_screens(cJSON *json,
  * @note Implemented in @c config/base/desktops.c
  * @note Complexity: @e O(1)
  */
-void ci_config_load_desktop_behavior(cJSON *json,
+void ci_config_desktop_behavior_load(cJSON *json,
         struct config_desktop_s *config_desktop, const char *filename);
 
 

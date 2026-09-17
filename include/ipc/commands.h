@@ -52,8 +52,8 @@
  * only two commands whose effect belongs to @p client_idx's
  * connection rather than to @p wm.
  *
- * @param wm         Window manager instance
- * @param request    Null-terminated request line, without its
+ * @param wm      Window manager instance
+ * @param request Null-terminated request line, without its
  *                   trailing newline
  * @param client_idx Index of the connection @p request arrived on,
  *                   passed through to @c ipc_client_subscribe /

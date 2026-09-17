@@ -4,7 +4,7 @@
  * @brief Test battery for the shared "Send to monitor" context menu
  *        submenu (menu/context/submenu/monitor.c)
  *
- * 'surface_monitor_for_point' is test-controlled, answering whichever
+ * 'stage_monitor_for_point' is test-controlled, answering whichever
  * monitor a scenario registers as "current" via 's_current_monitor',
  * instead of resolving one from a real monitor rectangle list.
  * 'enact_client_move_to_monitor' is a recording stand-in: a scenario
@@ -35,19 +35,19 @@
 #include <harness/tap.h>
 #include <menu/context/ctxmenu.h>
 #include <menu/context/submenu/monitor.h>
-#include <surface.h>
+#include <stage.h>
 
 
-/** Test-controlled stand-in for @a surface_monitor_for_point,
+/** Test-controlled stand-in for @a stage_monitor_for_point,
  *  answering whichever monitor this file last registered as
  *  "current" via @a s_current_monitor
  * @note Complexity: @e O(1) */
 static monitor_td s_current_monitor;
 
-monitor_td surface_monitor_for_point(const surface_td *surface,
+monitor_td stage_monitor_for_point(const stage_td *stage,
         struct position_s pos)
 {
-    (void) surface;
+    (void) stage;
     (void) pos;
     return s_current_monitor;
 }
@@ -81,62 +81,62 @@ static void s_reset(void)
 /* A null argument, in any position, builds nothing */
 static void s_test_null_guards(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *entries = (ctxmenu_entry_td *) 1;
     ctxmenu_state_td *state = (ctxmenu_state_td *) 1;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
-    surface.monitor_count = 2u;
+    stage.monitor_count = 2u;
 
     TAP_EQ_INT(ctxmenu_submenu_monitor_build(NULL, &desktop, &client,
-                &entries, &state), 0, "a null surface builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&surface, &desktop, NULL,
+                &entries, &state), 0, "a null stage builds nothing");
+    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&stage, &desktop, NULL,
                 &entries, &state), 0, "a null client builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&surface, &desktop,
+    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&stage, &desktop,
                 &client, NULL, &state), 0,
             "a null out_entries builds nothing");
-    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&surface, &desktop,
+    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&stage, &desktop,
                 &client, &entries, NULL), 0,
             "a null out_state builds nothing");
 }
 
 
-/* A surface with only one monitor has nowhere to send a client, so
+/* A stage with only one monitor has nowhere to send a client, so
  * the whole submenu is omitted rather than built with a single,
  * always-refused row in it */
 static void s_test_single_monitor_builds_nothing(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *entries = NULL;
     ctxmenu_state_td *state = NULL;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
-    surface.monitor_count = 1u;
+    stage.monitor_count = 1u;
 
-    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&surface, &desktop,
+    TAP_EQ_INT(ctxmenu_submenu_monitor_build(&stage, &desktop,
                 &client, &entries, &state), 0,
-            "a single-monitor surface builds nothing");
+            "a single-monitor stage builds nothing");
     TAP_NULL(entries, "out_entries is left untouched");
     TAP_NULL(state, "out_state is left untouched");
 }
 
 
-/* A client on a two-monitor surface gets one row per monitor, its own
+/* A client on a two-monitor stage gets one row per monitor, its own
  * current monitor refused, the other one selectable and, once
  * activated, sending the client to that monitor's index */
 static void s_test_two_monitors_one_row_each(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     ctxmenu_entry_td *e = NULL;
@@ -144,16 +144,16 @@ static void s_test_two_monitors_one_row_each(void)
     int n;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
-    surface.monitor_count = 2u;
-    surface.monitors[0] = (monitor_td) { 0, 0, 1920u, 1080u };
-    surface.monitors[1] = (monitor_td) { 1920, 0, 1920u, 1080u };
-    surface.primary_monitor_index = 0u;
-    s_current_monitor = surface.monitors[0];
+    stage.monitor_count = 2u;
+    stage.monitors[0] = (monitor_td) { 0, 0, 1920u, 1080u };
+    stage.monitors[1] = (monitor_td) { 1920, 0, 1920u, 1080u };
+    stage.primary_monitor_index = 0u;
+    s_current_monitor = stage.monitors[0];
 
-    n = ctxmenu_submenu_monitor_build(&surface, &desktop, &client,
+    n = ctxmenu_submenu_monitor_build(&stage, &desktop, &client,
             &e, &state);
 
     TAP_EQ_INT(n, 2, "two monitors yield one row each");

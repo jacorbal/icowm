@@ -175,7 +175,7 @@ enum config_desktop_corner_e
 
 
 /* Parse one scratchpad dimension from a fixed pixel count or "max" */
-void ci_config_parse_scratchpad_size(const cJSON *item,
+void ci_config_scratchpad_size_parse(const cJSON *item,
         struct config_scratchpad_size_s *out)
 {
     if (item == NULL || out == NULL) {
@@ -255,7 +255,7 @@ enum config_systray_monitor_anchor_e
     char value_norm[CONFIG_MAX_LENGTH_OPTION];
 
     if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
-        return CONFIG_SYSTRAY_MONITOR_SURFACE;
+        return CONFIG_SYSTRAY_MONITOR_STAGE;
     }
 
     if (safe_strcmp(value_norm, "primary") == 0) {
@@ -265,7 +265,7 @@ enum config_systray_monitor_anchor_e
         return CONFIG_SYSTRAY_MONITOR_INDEX;
     }
 
-    return CONFIG_SYSTRAY_MONITOR_SURFACE;
+    return CONFIG_SYSTRAY_MONITOR_STAGE;
 }
 
 
@@ -333,7 +333,7 @@ enum config_systray_text_position_e
 
 
 /* Parse one systray text item name, "clock" or "battery" */
-bool ci_config_parse_systray_text_item(const char *value,
+bool ci_config_systray_text_item_parse(const char *value,
         enum config_systray_text_item_e *out)
 {
     char value_norm[CONFIG_MAX_LENGTH_OPTION];

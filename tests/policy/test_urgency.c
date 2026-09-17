@@ -12,11 +12,11 @@
  * the real time this needs to wait for small without making the
  * sleep-vs-threshold margin unreliable.
  *
- * surface_desktop_get (surface.c) and the three render functions
+ * stage_desktop_get (stage.c) and the three render functions
  * s_repaint_urgent_clients calls are stubbed below as controllable,
  * call-counting stand-ins, the same pattern already used for
  * test_lookup.c and test_resolve.c.  s_any_client_urgent (a
- * different function in the same file) instead walks surface->
+ * different function in the same file) instead walks stage->
  * desktops directly, so that field is also a real cdlist here, with
  * the one desktop inserted into it alongside the s_desktops_by_id
  * lookup array.
@@ -45,7 +45,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -53,29 +53,29 @@
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_walk_all
+ * @brief Link-only stand-in for @a stage_desktop_walk_all
  *
- * Walks the surface's own list here rather than linking
- * @c surface/desktops.c, which would bring a desktop's whole teardown
+ * Walks the stage's own list here rather than linking
+ * @c stage/desktops.c, which would bring a desktop's whole teardown
  * along with it and clash with this file's own stand-ins.
  *
- * @param surface Surface whose desktops to visit
+ * @param stage Stage whose desktops to visit
  * @param visit   Called once per desktop
  * @param data    Handed to @p visit untouched
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops on
- *       @p surface
+ *       @p stage
  */
-void surface_desktop_walk_all(const surface_td *surface,
-        surface_desktop_visitor_fn visit, void *data)
+void stage_desktop_walk_all(const stage_td *stage,
+        stage_desktop_visitor_fn visit, void *data)
 {
     cdlist_item_td *node;
 
-    if (surface == NULL || surface->desktops == NULL || visit == NULL) {
+    if (stage == NULL || stage->desktops == NULL || visit == NULL) {
         return;
     }
 
-    cdlist_foreach(surface->desktops, node) {
+    cdlist_foreach(stage->desktops, node) {
         desktop_td *const desktop = (desktop_td *) cdlist_data(node);
 
         if (desktop != NULL) {
@@ -87,9 +87,9 @@ void surface_desktop_walk_all(const surface_td *surface,
 
 static desktop_td *s_desktops_by_id[4];
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     if (desktop_id >= 4u) {
         return NULL;
     }
@@ -119,9 +119,9 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     s_render_icon_calls++;
 }
 
-void surface_render_flush(surface_td *surface)
+void stage_render_flush(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     s_render_flush_calls++;
 }
 
@@ -156,15 +156,15 @@ static void s_sleep_ms(long ms)
 
 int main(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
     client_td client;
     config_td config;
-    list_td *surfaces;
+    list_td *stages;
 
     TAP_PLAN(12);
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     memset(&client, 0, sizeof(client));
     memset(&config, 0, sizeof(config));
@@ -172,22 +172,22 @@ int main(void)
     client.id = 1;
     /* Not hidden: s_repaint_urgent_clients takes the desktop_render_
      * one_client branch, not the iconified/ri_render_client_icon one */
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
     desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
     s_desktops_by_id[0] = &desktop;
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, &desktop);
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, &desktop);
     config.a11y.urgency.blink_interval_ms = 5u;
     config.a11y.urgency.sound_bell = false;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     /* 1: nothing urgent yet at all */
     TAP_OK(!urgency_blink_is_on(), "starts off, before any tick at all");
-    urgency_blink_tick(surfaces, &config);
+    urgency_blink_tick(stages, &config);
     TAP_EQ_INT(urgency_blink_ms_remaining(&config), -1,
             "no urgent client: nothing to wait for");
 
@@ -195,7 +195,7 @@ int main(void)
      * not itself flip the phase */
     ohtbl_insert(desktop.clients, &client);
     client.properties.flags |= CLIENT_FLAG_URGENT;
-    urgency_blink_tick(surfaces, &config);
+    urgency_blink_tick(stages, &config);
     TAP_OK(!urgency_blink_is_on(),
             "an urgent client's first tick only arms the timer");
     TAP_OK(urgency_blink_ms_remaining(&config) >= 0,
@@ -206,24 +206,24 @@ int main(void)
     s_sleep_ms(20);
     s_render_client_calls = 0;
     s_render_flush_calls = 0;
-    urgency_blink_tick(surfaces, &config);
+    urgency_blink_tick(stages, &config);
     TAP_OK(urgency_blink_is_on(),
             "after the interval elapses, the phase flips on");
     TAP_OK(s_render_client_calls == 1,
             "the urgent, visible client was repainted exactly once");
     TAP_OK(s_render_flush_calls == 1,
-            "the surface was flushed once after repainting");
+            "the stage was flushed once after repainting");
 
     /* Ticking again immediately (no sleep) must not flip the phase
      * back, since the interval has not elapsed again yet */
-    urgency_blink_tick(surfaces, &config);
+    urgency_blink_tick(stages, &config);
     TAP_OK(urgency_blink_is_on(),
             "ticking again immediately does not flip the phase back");
 
     /* The client stops being urgent: the next tick clears the
      * blink state entirely */
     client.properties.flags &= ~(uint16_t) CLIENT_FLAG_URGENT;
-    urgency_blink_tick(surfaces, &config);
+    urgency_blink_tick(stages, &config);
     TAP_OK(!urgency_blink_is_on(),
             "once nothing is urgent anymore, the blink turns off");
     TAP_EQ_INT(urgency_blink_ms_remaining(&config), -1,
@@ -232,14 +232,14 @@ int main(void)
     /* A NULL config falls back to the built-in interval, and never
      * sounds a bell, without crashing */
     client.properties.flags |= CLIENT_FLAG_URGENT;
-    urgency_blink_tick(surfaces, NULL);
+    urgency_blink_tick(stages, NULL);
     TAP_OK(true, "a NULL config is handled without crashing");
     TAP_OK(urgency_blink_ms_remaining(NULL) >= 0,
             "ms_remaining also accepts a NULL config");
 
     ohtbl_destroy(desktop.clients);
-    cdlist_destroy(surface.desktops);
-    list_destroy(surfaces);
+    cdlist_destroy(stage.desktops);
+    list_destroy(stages);
     s_desktops_by_id[0] = NULL;
 
     return TAP_DONE();

@@ -17,7 +17,7 @@
 
 
 /* The { font, color: {background, foreground}, border: {color,
- * width} } shape shared by every themeable surface's row or
+ * width} } shape shared by every themeable stage's row or
  * button style (menu.unselected/selected/label, dialog.button.
  * unselected/selected): never has its 'opacity', since
  * '_NET_WM_WINDOW_OPACITY' is a per-window property that cannot vary

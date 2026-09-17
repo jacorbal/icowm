@@ -83,7 +83,7 @@ uint32_t viewport_mesh_color_from_background(uint32_t background,
  * rather than left negative, since @c C's @c % truncates toward zero
  * and would otherwise place the dot outside the tile.
  *
- * @param origin  Viewport origin along this axis, in pixels; may be
+ * @param origin Viewport origin along this axis, in pixels; may be
  *                negative
  * @param spacing Distance between neighboring dots along this axis, in
  *                pixels; never zero
@@ -102,7 +102,7 @@ uint32_t viewport_mesh_tile_origin(int32_t origin, uint32_t spacing);
  * Three conditions have to hold at once, and any of them can change
  * across a configuration reload, so this is asked on every background
  * render rather than resolved once.  The mesh has to be enabled in
- * @c viewport.mesh.is-enabled ; the surface's configured viewport has
+ * @c viewport.mesh.is-enabled ; the stage's configured viewport has
  * to be able to pan, since a mesh that can never move is decoration
  * rather than an aid; and no external tool may own the root window's
  * pixels, because the mesh is applied as the root's background pixmap

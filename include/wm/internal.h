@@ -47,8 +47,8 @@
  * their respective windows.
  *
  * The @p is_running flag indicates whether the window manager is
- * currently operational, while the @p surfaces linked list holds
- * references to all surfaces being managed.  The @p config pointer
+ * currently operational, while the @p stages linked list holds
+ * references to all stages being managed.  The @p config pointer
  * allows for customization of the window manager's settings; events
  * that affect window behavior and user interactions are dispatched from
  * @a loop_run instead, not tracked as a field here.
@@ -61,7 +61,7 @@
 struct wm_s {
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
     xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
-    list_td *surfaces;              /**< List of surfaces */
+    list_td *stages;                /**< List of stages */
 
     /**
      * Key symbols table used to translate keycodes to keysyms for
@@ -115,15 +115,15 @@ struct wm_s {
 
 
 /**
- * @brief Visit every currently managed client across every surface and
+ * @brief Visit every currently managed client across every stage and
  *        desktop, optionally applying an action to each
  *
  * Shared by @c wm/shutdown.c and @c wm/ewmh.c, so both walk the exact
  * same enumeration instead of each keeping its separate copy of
  * this traversal.
  *
- * @param wm       Window manager instance
- * @param action   Called once per client found, with @p userdata passed
+ * @param wm     Window manager instance
+ * @param action Called once per client found, with @p userdata passed
  *                 through unchanged, or @c NULL to only count clients
  *                 without acting on any
  * @param userdata Passed through to @p action on every call, untouched
@@ -132,7 +132,7 @@ struct wm_s {
  * @return Number of managed clients found
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients across every surface and desktop
+ *       clients across every stage and desktop
  */
 uint32_t wm_for_each_client(const wm_td *wm,
         void (*action)(client_td *client,
@@ -140,13 +140,13 @@ uint32_t wm_for_each_client(const wm_td *wm,
 
 /**
  * @brief Release every client, on every desktop of every managed
- *        surface, back to bare X before this whole instance's teardown
+ *        stage, back to bare X before this whole instance's teardown
  *        destroys the window manager's resources
  *
  * @param wm Window manager instance
  *
  * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every desktop of every managed surface
+ *       clients across every desktop of every managed stage
  */
 void wm_client_unmanage_all(const wm_td *wm);
 

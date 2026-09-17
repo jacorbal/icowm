@@ -39,7 +39,7 @@
 #include <menu/search.h>
 
 /* Command includes */
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Policy includes */
 #include <policy/placement/manual.h>
@@ -51,7 +51,7 @@
 /* Project includes */
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <input/kbd/internal.h>
@@ -68,17 +68,17 @@
  * it carries no navigation intent by itself; any other key closes the
  * menu without activating a client.
  *
- * @param keysym   Keysym of the pressed key
- * @param state    Stripped modifier state (lock modifiers removed)
- * @param surface  Surface for drawing and confirming (may be null)
- * @param surfaces Full surface list passed to @c cycle_confirm
- * @param config   Active configuration
+ * @param keysym Keysym of the pressed key
+ * @param state  Stripped modifier state (lock modifiers removed)
+ * @param stage  Stage for drawing and confirming (may be null)
+ * @param stages Full stage list passed to @c cycle_confirm
+ * @param config Active configuration
  */
 static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
-        const surface_td *surface, list_td *surfaces,
+        const stage_td *stage, list_td *stages,
         const config_td *config)
 {
-    xcb_connection_t *const conn = (surface != NULL)
+    xcb_connection_t *const conn = (stage != NULL)
         ? xcb_connection_get() : NULL;
 
     /* Up arrow: go to previous entry */
@@ -97,7 +97,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 
     /* Enter / KP_Enter: confirm selection */
     if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
-        if (conn != NULL) { cycle_confirm(conn, surfaces, config); }
+        if (conn != NULL) { cycle_confirm(conn, stages, config); }
         return;
     }
 
@@ -155,16 +155,16 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
  * activates it; @c Escape always cancels the dialog, regardless of
  * which button happens to be selected at the time.
  *
- * @param keysym  Keysym of the pressed key
- * @param surface Surface for drawing (may be null)
- * @param config  Active configuration
+ * @param keysym Keysym of the pressed key
+ * @param stage  Stage for drawing (may be null)
+ * @param config Active configuration
  *
  * @see @a menu_confirm_dialog_cancel
  */
 static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
-        const surface_td *surface, const config_td *config)
+        const stage_td *stage, const config_td *config)
 {
-    xcb_connection_t *const conn = (surface != NULL)
+    xcb_connection_t *const conn = (stage != NULL)
         ? xcb_connection_get() : NULL;
 
     /* Tab, Left arrow, Right arrow: toggle selected button */
@@ -200,32 +200,32 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
  *
  * @param keysym     Keysym of the pressed key
  * @param connection XCB connection (for submenu creation)
- * @param surface    Surface on which the menu is displayed
+ * @param stage      Stage on which the menu is displayed
  * @param config     Active configuration
  *
  * @return @c true if a menu was closed, @c false otherwise
  */
 static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
-        xcb_connection_t *connection, surface_td *surface,
+        xcb_connection_t *connection, stage_td *stage,
         const config_td *config)
 {
     if (wincmenu_is_open()) {
-        wincmenu_handle_keypress(connection, surface, keysym, config);
+        wincmenu_handle_keypress(connection, stage, keysym, config);
         return true;
     }
 
     if (rootmenu_is_open()) {
-        rootmenu_handle_keypress(connection, surface, keysym, config);
+        rootmenu_handle_keypress(connection, stage, keysym, config);
         return true;
     }
 
     if (winlist_is_open()) {
-        winlist_handle_keypress(connection, surface, keysym, config);
+        winlist_handle_keypress(connection, stage, keysym, config);
         return true;
     }
 
     if (iconmenu_is_open()) {
-        iconmenu_handle_keypress(connection, surface, keysym, config);
+        iconmenu_handle_keypress(connection, stage, keysym, config);
         return true;
     }
 
@@ -236,7 +236,7 @@ static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
 /* Let whatever currently owns the keyboard consume the key */
 bool ik_intercept_keypress(xcb_keysym_t keysym,
         xcb_keysym_t typed_keysym, uint16_t state,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config)
 {
     /* A window being placed by hand holds the keyboard for as long as
@@ -253,30 +253,30 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
     /* Keyboard modal move/resize intercepts all keys while active */
     if (kbd_modal_is_active()) {
         kbd_modal_handle_keypress(
-                (surface != NULL) ? xcb_connection_get() : NULL,
-                surface, keysym, config);
+                (stage != NULL) ? xcb_connection_get() : NULL,
+                stage, keysym, config);
         return true;
     }
 
     /* Cycle menu intercepts all keys while it is open */
     if (cycle_is_open()) {
-        s_handle_cycle_key(keysym, state, surface, surfaces, config);
+        s_handle_cycle_key(keysym, state, stage, stages, config);
         return true;
     }
 
     /* Fuzzy window-search widget intercepts all keys while open */
     if (search_is_open()) {
         search_handle_keypress(
-                (surface != NULL) ? xcb_connection_get() : NULL,
-                surfaces, typed_keysym, state, config);
+                (stage != NULL) ? xcb_connection_get() : NULL,
+                stages, typed_keysym, state, config);
         return true;
     }
 
     /* Built-in run-box intercepts all keys while open */
     if (run_is_open()) {
         run_handle_keypress(
-                (surface != NULL) ? xcb_connection_get() : NULL,
-                surface, typed_keysym, state, config);
+                (stage != NULL) ? xcb_connection_get() : NULL,
+                stage, typed_keysym, state, config);
         return true;
     }
 
@@ -287,7 +287,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
      * ever be open at a time, so which wrapper opened it does not
      * matter here. */
     if (menu_confirm_dialog_is_open()) {
-        s_handle_menu_confirm_dialog_key(keysym, surface, config);
+        s_handle_menu_confirm_dialog_key(keysym, stage, config);
         return true;
     }
 
@@ -296,7 +296,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
      * without scrolling; see 'menu_message_dialog_scroll'), and Enter,
      * Space, or Escape close it same as clicking "OK" would */
     if (dialog_info_is_open()) {
-        if (surface != NULL && xcb_connection_get() != NULL) {
+        if (stage != NULL && xcb_connection_get() != NULL) {
             if (keysym == KS_UP) {
                 menu_message_dialog_scroll(xcb_connection_get(),
                         config, -1);
@@ -337,13 +337,13 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
          * where all four keys always just close it. */
         if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
                 keysym == KS_SPACE) {
-            if (surface != NULL && xcb_connection_get() != NULL &&
+            if (stage != NULL && xcb_connection_get() != NULL &&
                     (!menu_message_dialog_requires_selection() ||
                      menu_message_dialog_ok_selected())) {
                 dialog_info_close(xcb_connection_get());
             }
         } else if (keysym == KS_ESCAPE) {
-            if (surface != NULL && xcb_connection_get() != NULL &&
+            if (stage != NULL && xcb_connection_get() != NULL &&
                     !menu_message_dialog_requires_selection()) {
                 dialog_info_close(xcb_connection_get());
             }
@@ -360,27 +360,27 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
     if (menu_message_dialog_is_open()) {
         if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
                 keysym == KS_SPACE) {
-            if (surface != NULL && xcb_connection_get() != NULL &&
+            if (stage != NULL && xcb_connection_get() != NULL &&
                     (!menu_message_dialog_requires_selection() ||
                      menu_message_dialog_ok_selected())) {
                 menu_message_dialog_close(xcb_connection_get());
             }
         } else if (keysym == KS_ESCAPE) {
-            if (surface != NULL && xcb_connection_get() != NULL &&
+            if (stage != NULL && xcb_connection_get() != NULL &&
                     !menu_message_dialog_requires_selection()) {
                 menu_message_dialog_close(xcb_connection_get());
             }
         } else if (keysym == KS_TAB &&
-                surface != NULL && xcb_connection_get() != NULL) {
+                stage != NULL && xcb_connection_get() != NULL) {
             menu_message_dialog_select_ok(xcb_connection_get(), config);
         }
         return true;
     }
 
     /* Context menus intercept all keys while any menu is open */
-    if (s_dispatch_open_menu_key(keysym, (surface != NULL)
+    if (s_dispatch_open_menu_key(keysym, (stage != NULL)
                 ? xcb_connection_get() : NULL,
-            surface, config)) {
+            stage, config)) {
         return true;
     }
 

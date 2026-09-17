@@ -116,7 +116,7 @@ void ctxmenu_tree_handle_motion_window(ctxmenu_state_td *root,
 /* Forward a click, translated to menu-local coordinates, to whichever
  * submenu under 'root' currently owns 'win' */
 bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
+        stage_td *stage, ctxmenu_state_td *root, xcb_window_t win,
         int y, const config_td *config)
 {
     ctxmenu_state_td *state;
@@ -135,13 +135,13 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
      * relative to that interior and never had to be converted. */
     y -= (int) state->origin_y +
         (int) state->config->theme.menu.border.width;
-    return ctxmenu_handle_click(connection, surface, state, y, config);
+    return ctxmenu_handle_click(connection, stage, state, y, config);
 }
 
 
 /* Forward a keypress to the deepest open submenu under 'root' */
 bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root,
+        stage_td *stage, ctxmenu_state_td *root,
         xcb_keysym_t keysym, const config_td *config)
 {
     ctxmenu_state_td *deepest;
@@ -152,6 +152,6 @@ bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
         deepest = root;
     }
 
-    return ctxmenu_handle_keypress(connection, surface, deepest,
+    return ctxmenu_handle_keypress(connection, stage, deepest,
             keysym, config);
 }

@@ -90,15 +90,15 @@ uint32_t memguard_max_clients(void);
  *
  * @param connection XCB connection, for the warning dialog and to
  *                   read this process's memory usage
- * @param surface    Surface to center the warning dialog on
- * @param config     Active configuration, for the warning dialog
+ * @param stage  Stage to center the warning dialog on
+ * @param config Active configuration, for the warning dialog
  *
  * @note Complexity: @e O(1)
  *
  * @see @a memguard_init and @a menu_message_dialog_is_open
  */
 void memguard_tick(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config);
+        stage_td *stage, const config_td *config);
 
 /**
  * @brief Warn through a message dialog that @a memguard_max_clients
@@ -117,7 +117,7 @@ void memguard_tick(xcb_connection_t *connection,
  *       does not stack up a dialog per window
  *
  * @param connection XCB connection, for the warning dialog
- * @param surface    Surface to center the warning dialog on
+ * @param stage      Stage to center the warning dialog on
  * @param config     Active configuration, for the warning dialog
  *
  * @note Complexity: @e O(1)
@@ -125,7 +125,7 @@ void memguard_tick(xcb_connection_t *connection,
  * @see @a menu_message_dialog_is_open
  */
 void memguard_warn_client_cap(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config);
+        stage_td *stage, const config_td *config);
 
 
 #endif  /* ! MEMGUARD_H */

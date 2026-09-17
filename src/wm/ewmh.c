@@ -38,8 +38,8 @@
 #include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Local includes */
 #include <wm.h>
@@ -231,7 +231,7 @@ static void s_stacking_collect_visit(desktop_td *desktop, void *data)
  * @param data    The @c s_workarea_ctx_s being filled
  *
  * @note Never writes past @p data's capacity, the array being sized
- *       from @c surface->desktop_count while the walk that reaches here
+ *       from @c stage->desktop_count while the walk that reaches here
  *       iterates the desktop list itself, which is a separate count
  *       that nothing here can prove equal
  * @note Complexity: @e O(1)
@@ -330,40 +330,40 @@ static void s_client_list_visit(desktop_td *desktop, void *data)
 
 
 /**
- * @brief Compute and publish @c _NET_WORKAREA for one managed surface
+ * @brief Compute and publish @c _NET_WORKAREA for one managed stage
  *
  * Builds an array of workarea rectangles, one per desktop on the given
- * surface, and writes it to the @c _NET_WORKAREA root property.
+ * stage, and writes it to the @c _NET_WORKAREA root property.
  *
- * @param surface Pointer to the target surface
+ * @param stage Pointer to the target stage
  *
  * @note Desktops without a valid work area fall back to the full
- *       surface geometry
+ *       stage geometry
  * @note Complexity: @e O(n), where @e n is the number of desktops
  */
-static void s_wm_sync_workarea(surface_td *surface)
+static void s_wm_sync_workarea(stage_td *stage)
 {
     struct s_workarea_ctx_s workarea_ctx;
     xcb_ewmh_geometry_t *workareas;
 
-    if (surface == NULL || xcb_ewmh_connection_get() == NULL ||
-            surface->desktop_count == 0) {
+    if (stage == NULL || xcb_ewmh_connection_get() == NULL ||
+            stage->desktop_count == 0) {
         return;
     }
 
     /* Zeroed rather than merely allocated, so that a desktop the walk
      * never reaches leaves a defined rectangle behind instead of
      * whatever the heap held */
-    workareas = calloc(surface->desktop_count,
+    workareas = calloc(stage->desktop_count,
             sizeof(xcb_ewmh_geometry_t));
     if (workareas == NULL) {
         return;
     }
 
     workarea_ctx.out = workareas;
-    workarea_ctx.capacity = surface->desktop_count;
+    workarea_ctx.capacity = stage->desktop_count;
     workarea_ctx.count = 0u;
-    surface_desktop_walk_all(surface, s_workarea_collect_visit,
+    stage_desktop_walk_all(stage, s_workarea_collect_visit,
             &workarea_ctx);
 
     /* One geometry per desktop, as many as '_NET_NUMBER_OF_DESKTOPS'
@@ -372,42 +372,42 @@ static void s_wm_sync_workarea(surface_td *surface)
      * would send it off the end of what it was given.  The 'calloc'
      * above is what makes that safe, a desktop the walk misses being
      * a zeroed rectangle rather than whatever the heap held. */
-    xcb_ewmh_set_workarea(xcb_ewmh_connection_get(), (int) surface->id,
-            surface->desktop_count, workareas);
+    xcb_ewmh_set_workarea(xcb_ewmh_connection_get(), (int) stage->id,
+            stage->desktop_count, workareas);
     free(workareas);
 }
 
 
 /**
- * @brief Compute and publish @c _NET_DESKTOP_LAYOUT for one surface
+ * @brief Compute and publish @c _NET_DESKTOP_LAYOUT for one stage
  *
  * Builds a fixed four-element layout descriptor (orientation, columns,
  * rows, starting corner) describing the desktops as a single horizontal
  * row, and writes it to the @c _NET_DESKTOP_LAYOUT root property.
  *
- * @param surface Pointer to the target surface
+ * @param stage Pointer to the target stage
  *
  * @note Complexity: @e O(1)
  */
-static void s_wm_sync_desktop_layout(surface_td *surface)
+static void s_wm_sync_desktop_layout(stage_td *stage)
 {
     uint32_t layout[4];
 
-    if (surface == NULL || xcb_connection_get() == NULL ||
-            surface->screen == NULL ||
+    if (stage == NULL || xcb_connection_get() == NULL ||
+            stage->screen == NULL ||
             xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
     /* Orientation=0(horizontal), cols=n, rows=1, corner=0(top-left) */
     layout[0] = 0u;
-    layout[1] = (surface->desktop_count > 0u)
-        ? surface->desktop_count : 1u;
+    layout[1] = (stage->desktop_count > 0u)
+        ? stage->desktop_count : 1u;
     layout[2] = 1u;
     layout[3] = 0u;
 
     xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
-            surface->screen->root,
+            stage->screen->root,
             xcb_ewmh_connection_get()->_NET_DESKTOP_LAYOUT,
             XCB_ATOM_CARDINAL, 32, 4, layout);
 }
@@ -418,17 +418,17 @@ static void s_wm_sync_desktop_layout(surface_td *surface)
  *        variant
  *
  * Collects the windows of every managed client across all desktops of
- * the surface, publishing them via @c _NET_CLIENT_LIST in insertion
+ * the stage, publishing them via @c _NET_CLIENT_LIST in insertion
  * order and via @c _NET_CLIENT_LIST_STACKING in bottom-to-top stacking
  * order.  Also updates each client's @c _NET_WM_DESKTOP property, using
  * the special "all desktops" value for pinned clients.
  *
- * @param surface Pointer to the target surface
+ * @param stage Pointer to the target stage
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients across all desktops
  */
-static void s_wm_sync_client_lists(surface_td *surface)
+static void s_wm_sync_client_lists(stage_td *stage)
 {
     struct s_client_list_ctx_s client_ctx;
     struct s_window_list_ctx_s stack_ctx;
@@ -439,18 +439,18 @@ static void s_wm_sync_client_lists(surface_td *surface)
     xcb_ewmh_connection_t *const ewmh =
         xcb_ewmh_connection_get();
 
-    if (surface == NULL || ewmh == NULL) {
+    if (stage == NULL || ewmh == NULL) {
         return;
     }
 
-    surface_desktop_walk_all(surface, s_client_count_visit,
+    stage_desktop_walk_all(stage, s_client_count_visit,
             &total_clients);
 
     if (total_clients == 0u) {
         xcb_ewmh_set_client_list(ewmh,
-                (int) surface->id, 0u, NULL);
+                (int) stage->id, 0u, NULL);
         xcb_ewmh_set_client_list_stacking(ewmh,
-                (int) surface->id, 0u, NULL);
+                (int) stage->id, 0u, NULL);
         return;
     }
 
@@ -465,22 +465,22 @@ static void s_wm_sync_client_lists(surface_td *surface)
     client_ctx.out = client_list;
     client_ctx.capacity = total_clients;
     client_ctx.count = 0u;
-    surface_desktop_walk_all(surface, s_client_list_visit, &client_ctx);
+    stage_desktop_walk_all(stage, s_client_list_visit, &client_ctx);
     idx = client_ctx.count;
 
     xcb_ewmh_set_client_list(ewmh,
-            (int) surface->id,
+            (int) stage->id,
             (uint32_t) idx, client_list);
 
     idx = 0u;
     stack_ctx.out = stacking_list;
     stack_ctx.capacity = total_clients;
     stack_ctx.count = &idx;
-    surface_desktop_walk_all(surface,
+    stage_desktop_walk_all(stage,
             s_stacking_collect_visit, &stack_ctx);
 
     xcb_ewmh_set_client_list_stacking(ewmh,
-            (int) surface->id, (uint32_t) idx, stacking_list);
+            (int) stage->id, (uint32_t) idx, stacking_list);
 
     free(client_list);
     free(stacking_list);
@@ -488,14 +488,14 @@ static void s_wm_sync_client_lists(surface_td *surface)
 
 
 /**
- * @brief Compute and publish @c _NET_DESKTOP_NAMES for one surface
+ * @brief Compute and publish @c _NET_DESKTOP_NAMES for one stage
  *
  * Builds a null-separated UTF-8 list with every desktop name of the
- * target surface and writes it to the root-window EWMH property.
+ * target stage and writes it to the root-window EWMH property.
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops
  */
-static void s_wm_sync_desktop_names(surface_td *surface)
+static void s_wm_sync_desktop_names(stage_td *stage)
 {
     size_t names_len;
     struct s_name_measure_ctx_s measure_ctx;
@@ -503,15 +503,15 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     size_t offset;
     char *names;
 
-    if (surface == NULL || xcb_ewmh_connection_get() == NULL ||
-            surface->desktop_count == 0u) {
+    if (stage == NULL || xcb_ewmh_connection_get() == NULL ||
+            stage->desktop_count == 0u) {
         return;
     }
 
     names_len = 0u;
     measure_ctx.total = &names_len;
     measure_ctx.index = 0u;
-    surface_desktop_walk_all(surface, s_desktop_name_measure_visit,
+    stage_desktop_walk_all(stage, s_desktop_name_measure_visit,
             &measure_ctx);
 
     if (names_len == 0u || names_len > UINT32_MAX) {
@@ -528,12 +528,12 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     write_ctx.capacity = names_len;
     write_ctx.offset = &offset;
     write_ctx.index = 0u;
-    surface_desktop_walk_all(surface, s_desktop_name_write_visit,
+    stage_desktop_walk_all(stage, s_desktop_name_write_visit,
             &write_ctx);
 
     if (offset > 0u) {
         xcb_ewmh_set_desktop_names(xcb_ewmh_connection_get(),
-                (int) surface->id, (uint32_t) offset, names);
+                (int) stage->id, (uint32_t) offset, names);
     }
     free(names);
 }
@@ -544,7 +544,7 @@ int wm_ewmh_init(const wm_td *wm)
 {
     xcb_connection_t *connection = wm_connection(wm);
     xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
     xcb_atom_t supported_atoms[WM_EWMH_SUPPORTED_COUNT];
     uint32_t n_supported = 0u;
     xcb_window_t support = wm_ewmh_support_win(wm);
@@ -673,25 +673,25 @@ int wm_ewmh_init(const wm_td *wm)
     supported_atoms[n_supported++] = ewmh->_NET_WM_PID;
     supported_atoms[n_supported++] = ewmh->_NET_WM_USER_TIME_WINDOW;
 
-    for (list_item_td *snode = list_head(surfaces);
+    for (list_item_td *snode = list_head(stages);
             snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
 
-        if (surface == NULL || surface->screen == NULL) {
+        if (stage == NULL || stage->screen == NULL) {
             continue;
         }
 
         xcb_ewmh_set_supporting_wm_check(ewmh,
-                surface->screen->root, support);
-        xcb_ewmh_set_supported(ewmh, (int) surface->id,
+                stage->screen->root, support);
+        xcb_ewmh_set_supported(ewmh, (int) stage->id,
                 n_supported, supported_atoms);
 
         /* ICCCM §4.1.3: announce fixed icon dimensions on the root
          * window */
         if (wm_icon_size_atom != XCB_ATOM_NONE) {
             xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-                    surface->screen->root, wm_icon_size_atom,
+                    stage->screen->root, wm_icon_size_atom,
                     wm_icon_size_atom, 32, 6, icon_size_hints);
         }
     }
@@ -701,60 +701,60 @@ int wm_ewmh_init(const wm_td *wm)
 }
 
 
-/* Synchronize EWMH root properties for all managed surfaces */
+/* Synchronize EWMH root properties for all managed stages */
 void wm_ewmh_sync(wm_td *wm)
 {
     xcb_connection_t *connection = wm_connection(wm);
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
     xcb_ewmh_connection_t *const ewmh =
         xcb_ewmh_connection_get();
 
-    if (wm == NULL || surfaces == NULL || wm_ewmh(wm) == NULL) {
+    if (wm == NULL || stages == NULL || wm_ewmh(wm) == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(surfaces);
+    for (list_item_td *snode = list_head(stages);
             snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        stage_td *const stage = (stage_td *) list_data(snode);
         desktop_td *current;
         xcb_window_t active = XCB_NONE;
         xcb_ewmh_coordinates_t *viewport;
         uint32_t viewport_columns = 1u;
         uint32_t viewport_rows = 1u;
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
 
         /* The pannable area can be wider and/or taller than the
-         * physical screen by this many whole screens; a surface with no
+         * physical screen by this many whole screens; a stage with no
          * 'config', or an 'id' past 'CONFIG_MAX_SCREENS', simply
          * reports the physical screen size back, the same 1x1
          * 'config_viewport_s' fallback every other reader of this field
          * already falls back to. */
-        if (surface->config != NULL &&
-                surface->id < (uint32_t) CONFIG_MAX_SCREENS) {
-            viewport_columns = surface->config->base
-                .screens[surface->id].viewport.columns;
-            viewport_rows = surface->config->base
-                .screens[surface->id].viewport.rows;
+        if (stage->config != NULL &&
+                stage->id < (uint32_t) CONFIG_MAX_SCREENS) {
+            viewport_columns = stage->config->base
+                .screens[stage->id].viewport.columns;
+            viewport_rows = stage->config->base
+                .screens[stage->id].viewport.rows;
         }
 
         xcb_ewmh_set_number_of_desktops(ewmh,
-                (int) surface->id, surface->desktop_count);
+                (int) stage->id, stage->desktop_count);
         xcb_ewmh_set_current_desktop(ewmh,
-                (int) surface->id, surface->desktop_cur);
+                (int) stage->id, stage->desktop_cur);
         xcb_ewmh_set_desktop_geometry(ewmh,
-                (int) surface->id,
-                surface->properties.dim.w * viewport_columns,
-                surface->properties.dim.h * viewport_rows);
-        viewport = calloc(surface->desktop_count,
+                (int) stage->id,
+                stage->properties.dim.w * viewport_columns,
+                stage->properties.dim.h * viewport_rows);
+        viewport = calloc(stage->desktop_count,
                 sizeof(xcb_ewmh_coordinates_t));
         if (viewport != NULL) {
-            for (uint32_t i = 0; i < surface->desktop_count; i++) {
+            for (uint32_t i = 0; i < stage->desktop_count; i++) {
                 const desktop_td *const d =
-                    surface_desktop_get(surface, i);
+                    stage_desktop_get(stage, i);
 
                 if (d != NULL) {
                     viewport[i].x = (uint32_t) d->viewport_origin.x;
@@ -762,15 +762,15 @@ void wm_ewmh_sync(wm_td *wm)
                 }
             }
             xcb_ewmh_set_desktop_viewport(ewmh,
-                    (int) surface->id, surface->desktop_count,
+                    (int) stage->id, stage->desktop_count,
                     viewport);
             free(viewport);
         }
 
-        current = surface_desktop_get(surface, surface->desktop_cur);
+        current = stage_desktop_get(stage, stage->desktop_cur);
         if (current != NULL && current->client_active_id != XCB_NONE) {
             const client_td *active_client =
-                lookup_find_client(surfaces,
+                lookup_find_client(stages,
                         current->client_active_id, NULL, NULL);
             if (active_client != NULL) {
                 active = active_client->window;
@@ -778,14 +778,14 @@ void wm_ewmh_sync(wm_td *wm)
         }
 
         xcb_ewmh_set_active_window(ewmh,
-                (int) surface->id, active);
+                (int) stage->id, active);
         xcb_ewmh_set_showing_desktop(ewmh,
-                (int) surface->id,
-                (surface->is_showing_desktop) ? 1u : 0u);
-        s_wm_sync_desktop_names(surface);
-        s_wm_sync_desktop_layout(surface);
-        s_wm_sync_workarea(surface);
-        s_wm_sync_client_lists(surface);
+                (int) stage->id,
+                (stage->is_showing_desktop) ? 1u : 0u);
+        s_wm_sync_desktop_names(stage);
+        s_wm_sync_desktop_layout(stage);
+        s_wm_sync_workarea(stage);
+        s_wm_sync_client_lists(stage);
     }
 
     xcb_flush(connection);

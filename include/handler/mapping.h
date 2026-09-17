@@ -38,16 +38,16 @@
  * Refreshes the cached keyboard-mapping table and re-establishes all
  * passive key and button grabs.
  *
- * @param keysyms  XCB key-symbols table to refresh
- * @param surfaces All managed surfaces
- * @param event    Mapping notify event
- * @param cfg      Active configuration
+ * @param keysyms XCB key-symbols table to refresh
+ * @param stages  All managed stages
+ * @param event   Mapping notify event
+ * @param cfg     Active configuration
  *
  * @note Complexity: @e O(k * s), where @e k is the number of bindings
- *       and @e s is the number of surfaces
+ *       and @e s is the number of stages
  */
 void handler_mapping_notify(xcb_key_symbols_t *keysyms,
-        list_td *surfaces, xcb_mapping_notify_event_t *event,
+        list_td *stages, xcb_mapping_notify_event_t *event,
         const config_td *cfg);
 
 

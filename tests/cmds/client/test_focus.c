@@ -15,13 +15,13 @@
  * helper 's_ccmd_client_restore_one' are deliberately left untested
  * here: both reach deep into the maximize/fullscreen command set and
  * the transient-family snapshot machinery, a second, independent
- * dependency surface entirely apart from focus itself, better suited to
+ * dependency stage entirely apart from focus itself, better suited to
  * its own battery once 'cmds/client/maximize.c' and 'cmds/state.c' have
  * test coverage of their own to build on, per this file's own report.
  *
  * Every other external dependency is a test-controlled or recording
- * stand-in: 'wm_get_surface_by_id', 'wm_get_client_desktop',
- * 'wm_get_surfaces', 'wm_get_config', 'wm_request_client_redraw',
+ * stand-in: 'wm_get_stage_by_id', 'wm_get_client_desktop',
+ * 'wm_get_stages', 'wm_get_config', 'wm_request_client_redraw',
  * 'focus_order_best', 'focus_order_to_top', 'focus_apply',
  * 'ccmd_client_focus_target' (identity by default),
  * 'client_theme_layout_resync', 'client_last_user_time',
@@ -68,20 +68,20 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <policy/focus.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
 /**
- * @brief Test-controlled stand-in for @a wm_get_surface_by_id
+ * @brief Test-controlled stand-in for @a wm_get_stage_by_id
  * @note Complexity: @e O(1)
  */
-static surface_td *s_surface_by_id;
+static stage_td *s_stage_by_id;
 
-surface_td *wm_get_surface_by_id(uint32_t surface_id)
+stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
-    (void) surface_id;
-    return s_surface_by_id;
+    (void) stage_id;
+    return s_stage_by_id;
 }
 
 
@@ -99,14 +99,14 @@ desktop_td *wm_get_client_desktop(const client_td *client)
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_surfaces
+ * @brief Link-only stand-in for @a wm_get_stages
  *
  * Handed straight through to @a focus_apply's own stand-in below,
  * which ignores it entirely; never dereferenced here.
  *
  * @note Complexity: @e O(1)
  */
-list_td *wm_get_surfaces(void)
+list_td *wm_get_stages(void)
 {
     return NULL;
 }
@@ -183,19 +183,19 @@ void focus_order_to_top(client_td *client)
  */
 static int s_focus_apply_calls;
 static client_td *s_focus_apply_last_client;
-static surface_td *s_focus_apply_last_surface;
+static stage_td *s_focus_apply_last_stage;
 static desktop_td *s_focus_apply_last_desktop;
 static bool s_focus_apply_last_raise;
 
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client,
         bool raise, const config_td *cfg)
 {
-    (void) surfaces;
+    (void) stages;
     (void) cfg;
 
     s_focus_apply_calls++;
-    s_focus_apply_last_surface = surface;
+    s_focus_apply_last_stage = stage;
     s_focus_apply_last_desktop = desktop;
     s_focus_apply_last_client = client;
     s_focus_apply_last_raise = raise;
@@ -597,7 +597,7 @@ static void s_reset(void)
     static int s_fake_connection_storage;
     static xcb_ewmh_connection_t s_fake_ewmh_storage;
 
-    s_surface_by_id = NULL;
+    s_stage_by_id = NULL;
     s_client_desktop = NULL;
     s_redraw_calls = 0;
     s_focus_order_best_calls = 0;
@@ -606,7 +606,7 @@ static void s_reset(void)
     s_focus_order_to_top_last = NULL;
     s_focus_apply_calls = 0;
     s_focus_apply_last_client = NULL;
-    s_focus_apply_last_surface = NULL;
+    s_focus_apply_last_stage = NULL;
     s_focus_apply_last_desktop = NULL;
     s_focus_apply_last_raise = false;
     s_focus_target_override = NULL;
@@ -1146,22 +1146,22 @@ static void s_test_make_active_non_focusable_is_a_no_op(void)
 }
 
 
-/* ccmd_client_make_active: with no resolvable surface or desktop,
+/* ccmd_client_make_active: with no resolvable stage or desktop,
  * falls back to a direct ccmd_client_focus rather than focus_apply */
-static void s_test_make_active_falls_back_without_surface_or_desktop(void)
+static void s_test_make_active_falls_back_without_stage_or_desktop(void)
 {
     client_td *client;
 
     s_reset();
     client = s_make_client(23u);
     client->hints_icccm.hints.accepts_input = true;
-    s_surface_by_id = NULL;
+    s_stage_by_id = NULL;
     s_client_desktop = NULL;
 
     ccmd_client_make_active(client);
 
     TAP_EQ_INT(s_focus_apply_calls, 0,
-            "no surface or desktop means focus_apply is never reached");
+            "no stage or desktop means focus_apply is never reached");
     TAP_EQ_INT(s_set_input_focus_calls, 1,
             "a direct focus call is made instead");
 
@@ -1169,30 +1169,30 @@ static void s_test_make_active_falls_back_without_surface_or_desktop(void)
 }
 
 
-/* ccmd_client_make_active: with both a surface and a desktop
+/* ccmd_client_make_active: with both a stage and a desktop
  * resolved, delegates to focus_apply, always raising */
 static void s_test_make_active_delegates_to_focus_apply(void)
 {
     client_td *client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     client = s_make_client(24u);
-    s_surface_by_id = &surface;
+    s_stage_by_id = &stage;
     s_client_desktop = &desktop;
 
     ccmd_client_make_active(client);
 
     TAP_EQ_INT(s_focus_apply_calls, 1,
-            "a resolvable surface and desktop delegate to focus_apply"
+            "a resolvable stage and desktop delegate to focus_apply"
             " exactly once");
     TAP_OK(s_focus_apply_last_client == client,
             "naming this exact client");
-    TAP_OK(s_focus_apply_last_surface == &surface,
-            "on its resolved surface");
+    TAP_OK(s_focus_apply_last_stage == &stage,
+            "on its resolved stage");
     TAP_OK(s_focus_apply_last_desktop == &desktop,
             "and resolved desktop");
     TAP_OK(s_focus_apply_last_raise,
@@ -1224,15 +1224,15 @@ static void s_test_focus_fallback_null_is_a_no_op(void)
 static void s_test_focus_fallback_not_active_is_a_no_op(void)
 {
     client_td *client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     client = s_make_client(30u);
     desktop.client_active_id = (xcb_window_t) 999u;
-    s_surface_by_id = &surface;
+    s_stage_by_id = &stage;
     s_client_desktop = &desktop;
 
     ccmd_client_focus_fallback(client);
@@ -1245,21 +1245,21 @@ static void s_test_focus_fallback_not_active_is_a_no_op(void)
 }
 
 
-/* ccmd_client_focus_fallback: with no resolvable surface or desktop,
+/* ccmd_client_focus_fallback: with no resolvable stage or desktop,
  * is also a no-op */
-static void s_test_focus_fallback_without_surface_or_desktop(void)
+static void s_test_focus_fallback_without_stage_or_desktop(void)
 {
     client_td *client;
 
     s_reset();
     client = s_make_client(31u);
-    s_surface_by_id = NULL;
+    s_stage_by_id = NULL;
     s_client_desktop = NULL;
 
     ccmd_client_focus_fallback(client);
 
     TAP_EQ_INT(s_focus_order_best_calls, 0,
-            "no surface or desktop means the fallback search never"
+            "no stage or desktop means the fallback search never"
             " runs");
 
     s_teardown();
@@ -1271,15 +1271,15 @@ static void s_test_focus_fallback_without_surface_or_desktop(void)
 static void s_test_focus_fallback_delegates_when_active(void)
 {
     client_td *client;
-    surface_td surface;
+    stage_td stage;
     desktop_td desktop;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     client = s_make_client(32u);
     desktop.client_active_id = client->id;
-    s_surface_by_id = &surface;
+    s_stage_by_id = &stage;
     s_client_desktop = &desktop;
 
     ccmd_client_focus_fallback(client);
@@ -1312,27 +1312,27 @@ static void s_test_client_focus_fallback_null_desktop_is_a_no_op(void)
 static void s_test_client_focus_fallback_winner_is_focused(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     client_td *exclude;
     client_td *winner;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     exclude = s_make_client(40u);
     winner = s_make_client(41u);
     winner->hints_icccm.hints.accepts_input = true;
     s_focus_order_best_result = winner;
 
-    client_focus_fallback(&desktop, &surface, exclude);
+    client_focus_fallback(&desktop, &stage, exclude);
 
     TAP_EQ_INT(s_focus_apply_calls, 1,
             "the winning candidate delegates to focus_apply exactly"
             " once");
     TAP_OK(s_focus_apply_last_client == winner,
             "naming the winner itself");
-    TAP_OK(s_focus_apply_last_surface == &surface,
-            "on the surface it was called with");
+    TAP_OK(s_focus_apply_last_stage == &stage,
+            "on the stage it was called with");
     TAP_OK(s_focus_apply_last_desktop == &desktop,
             "and the desktop it was called with");
     TAP_OK(s_focus_apply_last_raise,
@@ -1350,17 +1350,17 @@ static void s_test_client_focus_fallback_winner_is_focused(void)
 static void s_test_client_focus_fallback_tries_group_first(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     client_td *exclude;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     exclude = s_make_client(42u);
     exclude->hints_icccm.hints.client_leader = (xcb_window_t) 500u;
     s_focus_order_best_result = NULL;
 
-    client_focus_fallback(&desktop, &surface, exclude);
+    client_focus_fallback(&desktop, &stage, exclude);
 
     TAP_EQ_INT(s_focus_order_best_calls, 2,
             "excluding a client with a real group leader runs both the"
@@ -1378,16 +1378,16 @@ static void
     s_test_client_focus_fallback_skips_group_pass_without_leader(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     client_td *exclude;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     exclude = s_make_client(43u);
     s_focus_order_best_result = NULL;
 
-    client_focus_fallback(&desktop, &surface, exclude);
+    client_focus_fallback(&desktop, &stage, exclude);
 
     TAP_EQ_INT(s_focus_order_best_calls, 1,
             "no group leader on the excluded client means only the"
@@ -1404,17 +1404,17 @@ static void
     s_test_client_focus_fallback_unfocuses_exclude_when_none_found(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
     client_td *exclude;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     exclude = s_make_client(44u);
     exclude->properties.flags |= (uint16_t) CLIENT_FLAG_FOCUSED;
     s_focus_order_best_result = NULL;
 
-    client_focus_fallback(&desktop, &surface, exclude);
+    client_focus_fallback(&desktop, &stage, exclude);
 
     TAP_EQ_INT(s_focused_bit(exclude),
             0,
@@ -1434,14 +1434,14 @@ static void
     s_test_client_focus_fallback_relinquishes_with_no_exclude(void)
 {
     desktop_td desktop;
-    surface_td surface;
+    stage_td stage;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     s_focus_order_best_result = NULL;
 
-    client_focus_fallback(&desktop, &surface, NULL);
+    client_focus_fallback(&desktop, &stage, NULL);
 
     TAP_EQ_INT(s_set_input_focus_calls, 1,
             "input focus is relinquished exactly once");
@@ -1480,11 +1480,11 @@ int main(void)
     s_test_unfocus_with_no_connection_skips_wire_update();
     s_test_make_active_null_is_a_no_op();
     s_test_make_active_non_focusable_is_a_no_op();
-    s_test_make_active_falls_back_without_surface_or_desktop();
+    s_test_make_active_falls_back_without_stage_or_desktop();
     s_test_make_active_delegates_to_focus_apply();
     s_test_focus_fallback_null_is_a_no_op();
     s_test_focus_fallback_not_active_is_a_no_op();
-    s_test_focus_fallback_without_surface_or_desktop();
+    s_test_focus_fallback_without_stage_or_desktop();
     s_test_focus_fallback_delegates_when_active();
     s_test_client_focus_fallback_null_desktop_is_a_no_op();
     s_test_client_focus_fallback_winner_is_focused();

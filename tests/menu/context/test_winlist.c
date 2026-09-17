@@ -14,7 +14,7 @@
  * in that entry's own 'items'/'item_count'), with nothing about how
  * it got assembled needing to be exposed on purpose just for this.
  *
- * Every test here runs a surface with exactly one desktop, so
+ * Every test here runs a stage with exactly one desktop, so
  * 'winlist_show' takes its flattened, single-desktop path: no root
  * "one submenu per desktop" layer sits above the window list itself,
  * which keeps each captured entry array a direct, easy-to-check
@@ -54,7 +54,7 @@
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/tree.h>
 #include <menu/context/winlist.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 
@@ -69,12 +69,12 @@
  */
 static ctxmenu_state_td *s_captured_state;
 
-void ctxmenu_show(xcb_connection_t *connection, surface_td *surface,
+void ctxmenu_show(xcb_connection_t *connection, stage_td *stage,
         ctxmenu_state_td *state, struct position_s pos,
         const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) pos;
     (void) config;
 
@@ -140,11 +140,11 @@ bool ctxmenu_is_open(const ctxmenu_state_td *state)
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root, xcb_window_t win,
+        stage_td *stage, ctxmenu_state_td *root, xcb_window_t win,
         int y, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) root;
     (void) win;
     (void) y;
@@ -161,11 +161,11 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *root,
+        stage_td *stage, ctxmenu_state_td *root,
         xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) root;
     (void) keysym;
     (void) config;
@@ -255,33 +255,33 @@ void enact_client_unshade(client_td *client)
 
 
 /**
- * @brief Link-only stand-in for @a enact_surface_desktop_add
+ * @brief Link-only stand-in for @a enact_stage_desktop_add
  * @note Complexity: @e O(1)
  */
-void enact_surface_desktop_add(surface_td *surface)
+void enact_stage_desktop_add(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 }
 
 
 /**
- * @brief Link-only stand-in for @a enact_surface_desktop_remove
+ * @brief Link-only stand-in for @a enact_stage_desktop_remove
  * @note Complexity: @e O(1)
  */
-void enact_surface_desktop_remove(surface_td *surface)
+void enact_stage_desktop_remove(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 }
 
 
 /**
- * @brief Link-only stand-in for @a enact_surface_desktop_switch
+ * @brief Link-only stand-in for @a enact_stage_desktop_switch
  * @note Complexity: @e O(1)
  */
-void enact_surface_desktop_switch(surface_td *surface,
+void enact_stage_desktop_switch(stage_td *stage,
         uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
 }
 
@@ -294,12 +294,12 @@ void enact_surface_desktop_switch(surface_td *surface,
  *
  * @note Complexity: @e O(1)
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
-    (void) surface;
+    (void) stages;
+    (void) stage;
     (void) desktop;
     (void) client;
     (void) raise;
@@ -341,7 +341,7 @@ void menu_draw_truncate(char *label, uint16_t max_width)
 }
 
 
-/** Desktops this file's own 'surface_desktop_get' stand-in answers
+/** Desktops this file's own 'stage_desktop_get' stand-in answers
  *  from, registered by @a s_make_desktop */
 #define MAX_TEST_DESKTOPS (4)
 static desktop_td *s_desktops_by_id[MAX_TEST_DESKTOPS];
@@ -349,13 +349,13 @@ static int s_desktops_registered;
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_desktop_get
+ * @brief Test-controlled stand-in for @a stage_desktop_get
  * @note Complexity: @e O(n), where @e n is the number of desktops
  *       registered
  */
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
 
     for (int i = 0; i < s_desktops_registered; ++i) {
         if (s_desktops_by_id[i] != NULL &&
@@ -369,18 +369,18 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_label
+ * @brief Link-only stand-in for @a stage_desktop_label
  *
  * Reached only by the multi-desktop submenu path, which a
- * single-desktop surface never takes.
+ * single-desktop stage never takes.
  *
  * @note Complexity: @e O(1)
  */
-void surface_desktop_label(const surface_td *surface,
+void stage_desktop_label(const stage_td *stage,
         uint32_t desktop_id, const char *desktop_name, bool is_pinned,
         bool shows_name, char *out_label, size_t length)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     (void) desktop_name;
     (void) is_pinned;
@@ -393,17 +393,17 @@ void surface_desktop_label(const surface_td *surface,
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_walk_all
+ * @brief Link-only stand-in for @a stage_desktop_walk_all
  *
  * Reached only by the multi-desktop submenu path, which a
- * single-desktop surface never takes.
+ * single-desktop stage never takes.
  *
  * @note Complexity: @e O(1)
  */
-void surface_desktop_walk_all(const surface_td *surface,
-        surface_desktop_visitor_fn visit, void *data)
+void stage_desktop_walk_all(const stage_td *stage,
+        stage_desktop_visitor_fn visit, void *data)
 {
-    (void) surface;
+    (void) stage;
     (void) visit;
     (void) data;
 }
@@ -427,14 +427,14 @@ int text_renderer_use_font(xcb_connection_t *connection,
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_surfaces
+ * @brief Link-only stand-in for @a wm_get_stages
  *
  * Reached only through a click on an already-built entry, which
  * nothing here does.
  *
  * @note Complexity: @e O(1)
  */
-list_td *wm_get_surfaces(void)
+list_td *wm_get_stages(void)
 {
     return NULL;
 }
@@ -536,12 +536,12 @@ static void s_teardown(void)
  * its own once the group itself is full */
 static void s_test_no_drop_past_appgroup_cap(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     int total_icon_windows;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     desktop = s_make_desktop(0u);
     for (int i = 0; i < 40; ++i) {
@@ -550,12 +550,12 @@ static void s_test_no_drop_past_appgroup_cap(void)
         ohtbl_insert(desktop->clients, client);
     }
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     TAP_OK(s_captured_state != NULL, "winlist_show hands its state to"
@@ -585,7 +585,7 @@ static void s_test_no_drop_past_appgroup_cap(void)
             "all 40 windows of one over-sized application group are"
             " listed somewhere, none dropped past the old 32 cap");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -594,14 +594,14 @@ static void s_test_no_drop_past_appgroup_cap(void)
  * application-group submenu instead of being listed one row each */
 static void s_test_small_group_collapses_to_one_submenu(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *members[3];
     bool found_submenu;
     int submenu_item_count;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     desktop = s_make_desktop(0u);
     for (int i = 0; i < 3; ++i) {
@@ -609,12 +609,12 @@ static void s_test_small_group_collapses_to_one_submenu(void)
         ohtbl_insert(desktop->clients, members[i]);
     }
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     found_submenu = false;
@@ -630,7 +630,7 @@ static void s_test_small_group_collapses_to_one_submenu(void)
     TAP_EQ_INT(submenu_item_count, 3,
             "and that submenu holds all three of them");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -639,12 +639,12 @@ static void s_test_small_group_collapses_to_one_submenu(void)
  * folded into a group */
 static void s_test_ungrouped_clients_listed_singly(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     int command_count;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     desktop = s_make_desktop(0u);
     for (int i = 0; i < 3; ++i) {
@@ -653,12 +653,12 @@ static void s_test_ungrouped_clients_listed_singly(void)
         ohtbl_insert(desktop->clients, client);
     }
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     command_count = 0;
@@ -673,7 +673,7 @@ static void s_test_ungrouped_clients_listed_singly(void)
             "three leaderless windows appear as three separate rows,"
             " never grouped together");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -682,7 +682,7 @@ static void s_test_ungrouped_clients_listed_singly(void)
  * of the window list menu entirely */
 static void s_test_skip_taskbar_client_is_omitted(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *ordinary;
     client_td *skipped;
@@ -690,7 +690,7 @@ static void s_test_skip_taskbar_client_is_omitted(void)
     bool skipped_seen;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     desktop = s_make_desktop(0u);
     ordinary = s_make_client(400u, 0u, XCB_WINDOW_NONE);
@@ -699,12 +699,12 @@ static void s_test_skip_taskbar_client_is_omitted(void)
     ohtbl_insert(desktop->clients, ordinary);
     ohtbl_insert(desktop->clients, skipped);
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     command_count = 0;
@@ -724,7 +724,7 @@ static void s_test_skip_taskbar_client_is_omitted(void)
     TAP_OK(!skipped_seen,
             "the taskbar-skipping client never appears at all");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -734,7 +734,7 @@ static void s_test_skip_taskbar_client_is_omitted(void)
  * CLIENT_FLAG_SKIP_TASKBAR */
 static void s_test_transient_client_is_omitted(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
     client_td *ordinary;
     client_td *transient;
@@ -742,7 +742,7 @@ static void s_test_transient_client_is_omitted(void)
     bool transient_seen;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     desktop = s_make_desktop(0u);
     ordinary = s_make_client(400u, 0u, XCB_WINDOW_NONE);
@@ -751,12 +751,12 @@ static void s_test_transient_client_is_omitted(void)
     ohtbl_insert(desktop->clients, ordinary);
     ohtbl_insert(desktop->clients, transient);
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     command_count = 0;
@@ -777,7 +777,7 @@ static void s_test_transient_client_is_omitted(void)
     TAP_OK(!transient_seen,
             "the transient client never appears at all");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -787,14 +787,14 @@ static void s_test_transient_client_is_omitted(void)
  * every desktop switch */
 static void s_test_pinned_client_pulled_from_other_desktop(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *shown_desktop;
     desktop_td *other_desktop;
     client_td *pinned;
     bool pinned_seen;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     shown_desktop = s_make_desktop(0u);
     other_desktop = s_make_desktop(1u);
@@ -802,13 +802,13 @@ static void s_test_pinned_client_pulled_from_other_desktop(void)
     pinned->properties.flags |= CLIENT_FLAG_PIN;
     ohtbl_insert(other_desktop->clients, pinned);
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, shown_desktop);
-    cdlist_ins_next(surface.desktops, NULL, other_desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, shown_desktop);
+    cdlist_ins_next(stage.desktops, NULL, other_desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     pinned_seen = false;
@@ -821,7 +821,7 @@ static void s_test_pinned_client_pulled_from_other_desktop(void)
             "a pinned client stored on another desktop still shows up"
             " in this desktop's listing");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -832,14 +832,14 @@ static void s_test_pinned_client_pulled_from_other_desktop(void)
 static void s_test_transient_pinned_client_from_other_desktop_omitted(
         void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *shown_desktop;
     desktop_td *other_desktop;
     client_td *pinned;
     bool pinned_seen;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     shown_desktop = s_make_desktop(0u);
     other_desktop = s_make_desktop(1u);
@@ -848,13 +848,13 @@ static void s_test_transient_pinned_client_from_other_desktop_omitted(
     pinned->transient_for = (xcb_window_t) 1;
     ohtbl_insert(other_desktop->clients, pinned);
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, shown_desktop);
-    cdlist_ins_next(surface.desktops, NULL, other_desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, shown_desktop);
+    cdlist_ins_next(stage.desktops, NULL, other_desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     pinned_seen = false;
@@ -867,7 +867,7 @@ static void s_test_transient_pinned_client_from_other_desktop_omitted(
             "a transient client stored on another desktop never shows"
             " up here, even while pinned");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 
@@ -876,20 +876,20 @@ static void s_test_transient_pinned_client_from_other_desktop_omitted(
  * placeholder entry rather than an empty or malformed one */
 static void s_test_empty_desktop_shows_placeholder(void)
 {
-    surface_td surface;
+    stage_td stage;
     desktop_td *desktop;
 
     s_reset();
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
 
     desktop = s_make_desktop(0u);
 
-    surface.desktops = cdlist_init(NULL);
-    cdlist_ins_next(surface.desktops, NULL, desktop);
-    surface.desktop_count = 1u;
-    surface.desktop_cur = 0u;
+    stage.desktops = cdlist_init(NULL);
+    cdlist_ins_next(stage.desktops, NULL, desktop);
+    stage.desktop_count = 1u;
+    stage.desktop_cur = 0u;
 
-    winlist_show((xcb_connection_t *) 1, &surface,
+    winlist_show((xcb_connection_t *) 1, &stage,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     TAP_OK(s_captured_state != NULL && s_captured_state->entry_count >= 1,
@@ -899,7 +899,7 @@ static void s_test_empty_desktop_shows_placeholder(void)
             "its first entry is the non-clickable placeholder, not a"
             " stray command");
 
-    cdlist_destroy(surface.desktops);
+    cdlist_destroy(stage.desktops);
     s_teardown();
 }
 

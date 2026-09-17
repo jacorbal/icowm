@@ -31,7 +31,7 @@ bool loop_context_init(loop_ctx_td *ctx, wm_td *wm)
     }
 
     ctx->wm = wm;
-    ctx->surfaces = wm_surfaces(wm);
+    ctx->stages = wm_stages(wm);
     ctx->config = wm_config(wm);
     ctx->keysyms = NULL;
     ctx->pending_event = NULL;

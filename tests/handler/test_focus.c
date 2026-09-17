@@ -24,7 +24,7 @@
  * clauses: the null-event guard, the PROPERTY_DELETE short-circuit,
  * the root-window background-pixmap path (via
  * render_desktop_background_property_is_pixmap and
- * surface_render_current_desktop_repaint stand-ins), the unconditional
+ * stage_render_current_desktop_repaint stand-ins), the unconditional
  * systray_handle_property_notify call, and the no-managed-client-found
  * early return.  The deeper per-atom refresh branches
  * (WM_NAME/_NET_WM_NAME, WM_ICON_NAME, _NET_WM_ICON/WM_HINTS, WM_CLASS,
@@ -70,7 +70,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -89,7 +89,7 @@
 static int s_call_mouse_enter_focus_clear;
 static bool s_mouse_enter_focus_is_active_result;
 static client_td *s_lookup_result;
-static surface_td *s_lookup_surface_out;
+static stage_td *s_lookup_stage_out;
 static int s_call_systray_property_notify;
 static int s_call_bg_pixmap_invalidate;
 static int s_call_repaint;
@@ -106,7 +106,7 @@ static void s_reset(void)
     s_call_mouse_enter_focus_clear = 0;
     s_mouse_enter_focus_is_active_result = false;
     s_lookup_result = NULL;
-    s_lookup_surface_out = NULL;
+    s_lookup_stage_out = NULL;
     s_call_systray_property_notify = 0;
     s_call_bg_pixmap_invalidate = 0;
     s_call_repaint = 0;
@@ -150,14 +150,14 @@ void mouse_enter_focus_clear(void)
 
 
 /** Controlled stand-in for lookup_find_client */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **surface, desktop_td **desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **stage, desktop_td **desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
-    if (surface != NULL) {
-        *surface = s_lookup_surface_out;
+    if (stage != NULL) {
+        *stage = s_lookup_stage_out;
     }
     if (desktop != NULL) {
         *desktop = NULL;
@@ -197,7 +197,7 @@ void render_desktop_background_cache_invalidate(void)
 }
 
 
-/** Link-only stand-in for surface_render_current_desktop_repaint */
+/** Link-only stand-in for stage_render_current_desktop_repaint */
 /** Link-only stand-in for @a viewport_mesh_cache_invalidate: the mesh
  *  is dropped whenever the desktop background may have changed under
  *  it, which this file has no mesh to drop */
@@ -206,9 +206,9 @@ void viewport_mesh_cache_invalidate(void)
 }
 
 
-void surface_render_current_desktop_repaint(surface_td *surface)
+void stage_render_current_desktop_repaint(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 
     s_call_repaint++;
 }
@@ -296,12 +296,12 @@ void client_subscribe_colormap_windows(xcb_connection_t *connection,
 
 /** Link-only stand-in for rules_apply */
 bool rules_apply(const wm_td *wm, client_td *client,
-        surface_td **surface_io, desktop_td **desktop_io,
+        stage_td **stage_io, desktop_td **desktop_io,
         enum rules_trigger_e trigger)
 {
     (void) wm;
     (void) client;
-    (void) surface_io;
+    (void) stage_io;
     (void) desktop_io;
     (void) trigger;
 
@@ -457,10 +457,10 @@ uint8_t xcb_ewmh_get_wm_strut_reply(xcb_ewmh_connection_t *ewmh,
 }
 
 
-/** Link-only stand-in for surface_workarea_refresh_all */
-void surface_workarea_refresh_all(surface_td *surface)
+/** Link-only stand-in for stage_workarea_refresh_all */
+void stage_workarea_refresh_all(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 }
 
 
@@ -514,10 +514,10 @@ xcb_void_cookie_t xcb_ungrab_button(xcb_connection_t *c,
 
 
 /** Link-only stand-in for keyboard_load */
-void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
+void keyboard_load(list_td *stages, xcb_key_symbols_t *keysyms,
         const config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) keysyms;
     (void) config;
 
@@ -526,9 +526,9 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
 
 
 /** Link-only stand-in for mouse_load */
-void mouse_load(list_td *surfaces, const config_td *config)
+void mouse_load(list_td *stages, const config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) config;
 
     s_call_mouse_load++;
@@ -541,13 +541,13 @@ int main(void)
     xcb_focus_out_event_t focus_out_event;
     xcb_mapping_notify_event_t mapping_event;
     wm_td wm;
-    surface_td surface;
+    stage_td stage;
     xcb_screen_t screen;
     client_td client;
     xcb_key_symbols_t *keysyms_sentinel = (xcb_key_symbols_t *) 0x1234;
     config_td config;
-    list_td surfaces_storage;
-    list_td *surfaces = &surfaces_storage;
+    list_td stages_storage;
+    list_td *stages = &stages_storage;
 
     TAP_PLAN(22);
 
@@ -589,44 +589,44 @@ int main(void)
 
     /* handler_focus_out: a mode outside NORMAL/WHILE_GRABBED is
      * ignored regardless of what lookup would have found */
-    memset(&surface, 0, sizeof(surface));
-    surface.is_outdated = false;
+    memset(&stage, 0, sizeof(stage));
+    stage.is_outdated = false;
     s_lookup_result = &client;
-    s_lookup_surface_out = &surface;
+    s_lookup_stage_out = &stage;
     memset(&client, 0, sizeof(client));
     memset(&focus_out_event, 0, sizeof(focus_out_event));
     focus_out_event.mode = XCB_NOTIFY_MODE_UNGRAB;
     handler_focus_out(&wm, &focus_out_event);
-    TAP_OK(!surface.is_outdated,
+    TAP_OK(!stage.is_outdated,
             "focus_out ignores modes other than NORMAL or" \
             " WHILE_GRABBED (here, UNGRAB)");
 
     /* handler_focus_out: NORMAL mode with a matching client marks its
-     * surface outdated */
-    surface.is_outdated = false;
+     * stage outdated */
+    stage.is_outdated = false;
     focus_out_event.mode = XCB_NOTIFY_MODE_NORMAL;
     handler_focus_out(&wm, &focus_out_event);
-    TAP_OK(surface.is_outdated,
-            "focus_out marks the matched surface outdated on" \
+    TAP_OK(stage.is_outdated,
+            "focus_out marks the matched stage outdated on" \
             " NORMAL mode");
 
     /* handler_focus_out: WHILE_GRABBED mode also marks it outdated */
-    surface.is_outdated = false;
+    stage.is_outdated = false;
     focus_out_event.mode = XCB_NOTIFY_MODE_WHILE_GRABBED;
     handler_focus_out(&wm, &focus_out_event);
-    TAP_OK(surface.is_outdated,
-            "focus_out marks the matched surface outdated on" \
+    TAP_OK(stage.is_outdated,
+            "focus_out marks the matched stage outdated on" \
             " WHILE_GRABBED mode too");
 
     /* handler_focus_out: no managed client found never touches the
-     * (unrelated) surface */
-    surface.is_outdated = false;
+     * (unrelated) stage */
+    stage.is_outdated = false;
     s_lookup_result = NULL;
-    s_lookup_surface_out = NULL;
+    s_lookup_stage_out = NULL;
     focus_out_event.mode = XCB_NOTIFY_MODE_NORMAL;
     handler_focus_out(&wm, &focus_out_event);
-    TAP_OK(!surface.is_outdated,
-            "focus_out with no matched client leaves the surface" \
+    TAP_OK(!stage.is_outdated,
+            "focus_out with no matched client leaves the stage" \
             " untouched");
 
     /* handler_mapping_notify: null keysyms, event, or config are all
@@ -634,17 +634,17 @@ int main(void)
     s_reset();
     memset(&mapping_event, 0, sizeof(mapping_event));
     mapping_event.request = XCB_MAPPING_MODIFIER;
-    handler_mapping_notify(NULL, surfaces, &mapping_event, &config);
+    handler_mapping_notify(NULL, stages, &mapping_event, &config);
     TAP_EQ_INT(s_call_keyboard_load, 0,
             "mapping_notify with a null keysyms table is a no-op");
 
     s_reset();
-    handler_mapping_notify(keysyms_sentinel, surfaces, NULL, &config);
+    handler_mapping_notify(keysyms_sentinel, stages, NULL, &config);
     TAP_EQ_INT(s_call_keyboard_load, 0,
             "mapping_notify with a null event is a no-op");
 
     s_reset();
-    handler_mapping_notify(keysyms_sentinel, surfaces, &mapping_event,
+    handler_mapping_notify(keysyms_sentinel, stages, &mapping_event,
             NULL);
     TAP_EQ_INT(s_call_keyboard_load, 0,
             "mapping_notify with a null config is a no-op");
@@ -653,7 +653,7 @@ int main(void)
      * entirely, before even refreshing the keyboard mapping */
     s_reset();
     mapping_event.request = XCB_MAPPING_POINTER;
-    handler_mapping_notify(keysyms_sentinel, surfaces, &mapping_event,
+    handler_mapping_notify(keysyms_sentinel, stages, &mapping_event,
             &config);
     TAP_EQ_INT(s_call_refresh_keyboard_mapping, 0,
             "a pointer mapping change never refreshes the keyboard" \
@@ -663,23 +663,23 @@ int main(void)
             " bindings");
 
     /* handler_mapping_notify: a keyboard-mapping change refreshes the
-     * table, ungrabs every surface's keys, and reloads bindings, but
+     * table, ungrabs every stage's keys, and reloads bindings, but
      * never touches mouse bindings (request != MODIFIER) */
     s_reset();
     memset(&screen, 0, sizeof(screen));
     screen.root = 0x321u;
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = &screen;
-    surfaces = list_init(NULL);
-    (void) list_ins_next(surfaces, NULL, &surface);
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = &screen;
+    stages = list_init(NULL);
+    (void) list_ins_next(stages, NULL, &stage);
     mapping_event.request = XCB_MAPPING_KEYBOARD;
-    handler_mapping_notify(keysyms_sentinel, surfaces, &mapping_event,
+    handler_mapping_notify(keysyms_sentinel, stages, &mapping_event,
             &config);
     TAP_EQ_INT(s_call_refresh_keyboard_mapping, 1,
             "a keyboard mapping change refreshes the keysym table" \
             " exactly once");
     TAP_EQ_INT(s_call_ungrab_key, 1,
-            "every surface's keys are ungrabbed exactly once each");
+            "every stage's keys are ungrabbed exactly once each");
     TAP_EQ_INT(s_call_keyboard_load, 1,
             "keyboard bindings are reloaded exactly once");
     TAP_EQ_INT(s_call_ungrab_button, 0,
@@ -689,29 +689,29 @@ int main(void)
             " bindings");
 
     /* handler_mapping_notify: a modifier-mapping change additionally
-     * ungrabs every surface's buttons and reloads mouse bindings */
+     * ungrabs every stage's buttons and reloads mouse bindings */
     s_reset();
     mapping_event.request = XCB_MAPPING_MODIFIER;
-    handler_mapping_notify(keysyms_sentinel, surfaces, &mapping_event,
+    handler_mapping_notify(keysyms_sentinel, stages, &mapping_event,
             &config);
     TAP_EQ_INT(s_call_ungrab_button, 1,
-            "a modifier mapping change ungrabs every surface's" \
+            "a modifier mapping change ungrabs every stage's" \
             " buttons exactly once each");
     TAP_EQ_INT(s_call_mouse_load, 1,
             "a modifier mapping change reloads mouse bindings" \
             " exactly once");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 
     /* handler_property_notify: a null event is a silent no-op,
      * proven by never even reaching the systray call */
     s_reset();
-    surfaces = list_init(NULL);
-    handler_property_notify(&wm, NULL, surfaces, NULL);
+    stages = list_init(NULL);
+    handler_property_notify(&wm, NULL, stages, NULL);
     TAP_EQ_INT(s_call_systray_property_notify, 0,
             "property_notify with a null event never calls into" \
             " the systray");
-    list_destroy(surfaces);
+    list_destroy(stages);
 
     return TAP_DONE();
 }

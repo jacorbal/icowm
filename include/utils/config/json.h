@@ -133,7 +133,9 @@ int json_load_string(cJSON *json, const char *restrict field,
  * @brief Load an unsigned integer value from a JSON object
  *
  * Extracts @p field from @p json and stores its integer value in
- * @p dest.  Field lookup is canonicalized.
+ * @p dest.  Field lookup is canonicalized.  A negative value is
+ * rejected the same as a missing or non-numeric one, rather than
+ * silently wrapping into a large unsigned value.
  *
  * @param json  JSON object
  * @param field Name of the field to read
@@ -147,7 +149,7 @@ int json_load_string(cJSON *json, const char *restrict field,
  * @note Complexity: @e O(k * n), where @e k is the number of fields and
  *       @e n is the average field name length
  */
-int json_load_uint(cJSON *json, const char *field, unsigned int *dest);
+int json_load_uint(cJSON *json, const char *field, uint32_t *dest);
 
 /**
  * @brief Load a boolean value from a JSON object
@@ -194,8 +196,8 @@ int json_load_file(const char *filename, char **data);
  * written to @p *json_out.  Accepts both a bare JSON object and
  * a single-element JSON array whose first element is an object.
  *
- * @param filename  Path to the JSON file
- * @param json_out  Output pointer; receives the parsed object
+ * @param filename Path to the JSON file
+ * @param json_out Output pointer; receives the parsed object
  *
  * @return Status of the operation
  * @retval  0 Success

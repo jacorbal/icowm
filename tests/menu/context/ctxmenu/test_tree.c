@@ -106,11 +106,11 @@ void ctxmenu_handle_motion(ctxmenu_state_td *state, int x, int y)
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_handle_click(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         int y, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
 
     s_call_click++;
@@ -125,11 +125,11 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 bool ctxmenu_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, ctxmenu_state_td *state,
+        stage_td *stage, ctxmenu_state_td *state,
         xcb_keysym_t keysym, const config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
 
     s_call_keypress++;
@@ -139,16 +139,16 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
 }
 
 
-/** Non-null opaque handles standing in for a real connection, surface,
+/** Non-null opaque handles standing in for a real connection, stage,
  *  and config, none of this file's tree.c code path ever dereferences
  *  any of the three itself, only forwards them to the handlers above,
  *  which this file's own stand-ins likewise leave untouched */
 static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
-static int s_fake_surface_storage;
-static surface_td *const s_fake_surface =
-    (surface_td *) &s_fake_surface_storage;
+static int s_fake_stage_storage;
+static stage_td *const s_fake_stage =
+    (stage_td *) &s_fake_stage_storage;
 static config_td s_config;
 
 
@@ -404,7 +404,7 @@ static void s_test_click_window_translates_y_and_forwards(void)
 
     /* y=50, origin_y=7, border.width=2 => local y = 50 - 7 - 2 = 41 */
     result = ctxmenu_tree_handle_click_window(s_fake_connection,
-            s_fake_surface, &root, child.window, 50, &s_config);
+            s_fake_stage, &root, child.window, 50, &s_config);
 
     TAP_EQ_INT(s_call_click, 1, "ctxmenu_handle_click is called"
             " exactly once for a window owned by the child");
@@ -430,7 +430,7 @@ static void s_test_click_window_no_match_returns_false(void)
     s_build_chain(&root, &child, &grandchild);
 
     result = ctxmenu_tree_handle_click_window(s_fake_connection,
-            s_fake_surface, &root, (xcb_window_t) 999, 50, &s_config);
+            s_fake_stage, &root, (xcb_window_t) 999, 50, &s_config);
 
     TAP_OK(result == false, "a window matching nothing under root"
             " returns false");
@@ -454,7 +454,7 @@ static void s_test_keypress_deepest_reaches_innermost(void)
     s_keypress_return = true;
 
     result = ctxmenu_tree_handle_keypress_deepest(s_fake_connection,
-            s_fake_surface, &root, (xcb_keysym_t) 0xff52, &s_config);
+            s_fake_stage, &root, (xcb_keysym_t) 0xff52, &s_config);
 
     TAP_EQ_INT(s_call_keypress, 1, "ctxmenu_handle_keypress is called"
             " exactly once");
@@ -482,7 +482,7 @@ static void s_test_keypress_deepest_falls_back_to_root(void)
     root.child = NULL;
 
     result = ctxmenu_tree_handle_keypress_deepest(s_fake_connection,
-            s_fake_surface, &root, (xcb_keysym_t) 0xff0d, &s_config);
+            s_fake_stage, &root, (xcb_keysym_t) 0xff0d, &s_config);
 
     TAP_OK(s_keypress_state == &root, "with no submenu open, the"
             " keypress is handled by the root itself");
@@ -505,7 +505,7 @@ static void s_test_keypress_deepest_stops_at_unmapped_child(void)
     child.window = XCB_WINDOW_NONE;
 
     (void) ctxmenu_tree_handle_keypress_deepest(s_fake_connection,
-            s_fake_surface, &root, (xcb_keysym_t) 0x61, &s_config);
+            s_fake_stage, &root, (xcb_keysym_t) 0x61, &s_config);
 
     TAP_OK(s_keypress_state == &root, "a linked-but-unmapped child"
             " is not treated as the deepest open menu; the root, its"
@@ -523,7 +523,7 @@ static void s_test_keypress_deepest_null_root(void)
     s_keypress_return = false;
 
     (void) ctxmenu_tree_handle_keypress_deepest(s_fake_connection,
-            s_fake_surface, NULL, (xcb_keysym_t) 0x62, &s_config);
+            s_fake_stage, NULL, (xcb_keysym_t) 0x62, &s_config);
 
     TAP_EQ_INT(s_call_keypress, 1, "even a NULL root still reaches the"
             " keypress handler exactly once");

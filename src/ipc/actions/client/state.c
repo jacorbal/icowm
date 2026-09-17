@@ -19,7 +19,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <enact/client.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -34,9 +34,9 @@
  * @note Complexity: @e O(1)
  */
 static void s_shade(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_shade(client);
 }
 
@@ -48,9 +48,9 @@ static void s_shade(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_unshade(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_unshade(client);
 }
 
@@ -62,9 +62,9 @@ static void s_unshade(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_toggle_shade(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_toggle_shade(client);
 }
 
@@ -76,9 +76,9 @@ static void s_toggle_shade(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_fullscreen(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_fullscreen(client);
 }
 
@@ -90,9 +90,9 @@ static void s_fullscreen(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_unfullscreen(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_unfullscreen(client);
 }
 
@@ -104,9 +104,9 @@ static void s_unfullscreen(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_toggle_fullscreen(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_toggle_fullscreen(client);
 }
 
@@ -118,9 +118,9 @@ static void s_toggle_fullscreen(const wm_td *wm, client_td *client,
  * @note Complexity: @e O(1)
  */
 static void s_toggle_decoration(const wm_td *wm, client_td *client,
-        surface_td *surface, desktop_td *desktop)
+        stage_td *stage, desktop_td *desktop)
 {
-    (void) wm; (void) surface; (void) desktop;
+    (void) wm; (void) stage; (void) desktop;
     enact_client_toggle_decorate(client);
 }
 

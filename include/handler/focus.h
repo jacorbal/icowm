@@ -37,20 +37,20 @@
  * input focus when a managed client receives focus.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces
+ * @param stages     All managed stages
  * @param event      Focus-in event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ *       stages
  */
 void handler_focus_in(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_focus_in_event_t *event);
+        list_td *stages, const xcb_focus_in_event_t *event);
 
 
 /**
  * @brief Handle a @c FOCUS_OUT event
  *
- * Marks the surface owning the client that lost the real X11 input
+ * Marks the stage owning the client that lost the real X11 input
  * focus as outdated, so its decoration colors are repainted on the next
  * render pass.
  *

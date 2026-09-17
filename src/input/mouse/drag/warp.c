@@ -36,7 +36,7 @@
 
 /* Command includes */
 #include <cmds/client/transient.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Project includes */
 #include <client.h>
@@ -44,10 +44,10 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/client.h>
-#include <surface/desktop.h>
-#include <surface/viewport.h>
+#include <stage.h>
+#include <stage/client.h>
+#include <stage/desktop.h>
+#include <stage/viewport.h>
 #include <wm.h>
 
 /* Utils includes */
@@ -71,18 +71,18 @@
  * @brief Resolve which desktop a warp in the pending direction lands
  *        on
  *
- * @param surface Surface the warp happens on
- * @param cycle   Whether the surface wraps around at its bounds
+ * @param stage Stage the warp happens on
+ * @param cycle Whether the stage wraps around at its bounds
  *
  * @return The desktop to warp to, or @c NULL when there is none in
  *         that direction
  *
  * @note Complexity: @e O(1)
  */
-static desktop_td *s_warp_target_desktop(surface_td *surface,
+static desktop_td *s_warp_target_desktop(stage_td *stage,
         bool cycle)
 {
-    const uint32_t old_desktop_id = surface->desktop_cur;
+    const uint32_t old_desktop_id = stage->desktop_cur;
     /* Initialized here, not left to the switch below.  That switch
      * deliberately has no 'default:' so the compiler keeps checking
      * it against every direction, which also means it cannot prove
@@ -91,19 +91,19 @@ static desktop_td *s_warp_target_desktop(surface_td *surface,
 
     switch (s_drag.warp_direction) {
     case COMPASS_NORTH:
-        new_desktop = surface_desktop_north(surface, old_desktop_id,
+        new_desktop = stage_desktop_north(stage, old_desktop_id,
                 cycle);
         break;
     case COMPASS_SOUTH:
-        new_desktop = surface_desktop_south(surface, old_desktop_id,
+        new_desktop = stage_desktop_south(stage, old_desktop_id,
                 cycle);
         break;
     case COMPASS_EAST:
-        new_desktop = surface_desktop_east(surface, old_desktop_id,
+        new_desktop = stage_desktop_east(stage, old_desktop_id,
                 cycle);
         break;
     case COMPASS_WEST:
-        new_desktop = surface_desktop_west(surface, old_desktop_id,
+        new_desktop = stage_desktop_west(stage, old_desktop_id,
                 cycle);
         break;
     }
@@ -125,11 +125,11 @@ static desktop_td *s_warp_target_desktop(surface_td *surface,
  * desktop happened to be left on would break the movement in two.
  *
  * Applied after the switch has settled, so that
- * @a scmd_surface_viewport_set acts on the desktop that is now current
+ * @a scmd_stage_viewport_set acts on the desktop that is now current
  * and translates its own clients along with the origin, which writing
  * the origin straight into the desktop would not do.
  *
- * @param surface   Surface whose current desktop was just changed
+ * @param stage     Stage whose current desktop was just changed
  * @param old_page  Page the desktop just left was showing
  * @param direction Compass direction the warp went in
  *
@@ -138,7 +138,7 @@ static desktop_td *s_warp_target_desktop(surface_td *surface,
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktop entered
  */
-static void s_warp_enter_page(surface_td *surface,
+static void s_warp_enter_page(stage_td *stage,
         struct position_s old_page, enum compass_direction_e direction)
 {
     const desktop_td *desktop;
@@ -146,12 +146,12 @@ static void s_warp_enter_page(surface_td *surface,
     uint32_t rows;
     struct position_s page = old_page;
 
-    surface_viewport_dims(surface, &columns, &rows);
+    stage_viewport_dims(stage, &columns, &rows);
     if (columns <= 1u && rows <= 1u) {
         return;
     }
 
-    desktop = lookup_current_desktop(surface);
+    desktop = lookup_current_desktop(stage);
     if (desktop == NULL) {
         return;
     }
@@ -171,7 +171,7 @@ static void s_warp_enter_page(surface_td *surface,
         break;
     }
 
-    scmd_surface_viewport_set(surface,
+    scmd_stage_viewport_set(stage,
             page.x * (int32_t) desktop->geometry.dim.w,
             page.y * (int32_t) desktop->geometry.dim.h);
 }
@@ -201,8 +201,8 @@ static void s_warp_move_family(desktop_td *old_desktop,
          * on that desktop: left stale like this, exactly like it
          * already is whenever a desktop's active client simply
          * closes while some other desktop is the one currently
-         * shown, is precisely what tells 'surface_client_show_all'
-         * (surface/actions.c) to have 'client_focus_fallback' guess
+         * shown, is precisely what tells 'stage_client_show_all'
+         * (stage/actions.c) to have 'client_focus_fallback' guess
          * a reasonable replacement once the user switches back,
          * rather than relinquishing focus outright the way a
          * 'client_active_id' that was 0 to begin with would.  Actually
@@ -222,7 +222,7 @@ static void s_warp_move_family(desktop_td *old_desktop,
     new_desktop->is_focus_dirty = true;
 
     /* And said in the focus order too, which is what
-     * 'surface_client_show_all' consults when the switch below settles:
+     * 'stage_client_show_all' consults when the switch below settles:
      * it works out a desktop's focus by walking that order rather
      * than reading 'client_active_id', so a client that had only just
      * been added here would sit at the far end of it, as the least
@@ -326,7 +326,7 @@ static void s_warp_pointer_target(int16_t *out_x, int16_t *out_y)
      * unchanged.  'opposite_edge' clamps to INT16_MAX before the final
      * cast: 'screen_w'/'screen_h' (uint32_t, no compile-time bound) are
      * not guaranteed to fit int16_t on an extreme multi-monitor
-     * surface, and this pointer position is sent to the X server as
+     * stage, and this pointer position is sent to the X server as
      * one, via 'xcb_warp_pointer' below. */
     is_horizontal = (s_drag.warp_direction == COMPASS_EAST ||
             s_drag.warp_direction == COMPASS_WEST);
@@ -489,7 +489,7 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
  * reasoning */
 void drag_warp_edge_check(int16_t root_x, int16_t root_y)
 {
-    surface_td *surface;
+    stage_td *stage;
     bool at_left;
     bool at_right;
     bool at_top;
@@ -501,10 +501,10 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
         return;
     }
 
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->config == NULL ||
-            !surface->config->desktops.warp_on_edge_drag ||
-            surface->desktop_count <= 1u) {
+    stage = wm_get_stage_by_id(s_drag.client->screen_id);
+    if (stage == NULL || stage->config == NULL ||
+            !stage->config->desktops.warp_on_edge_drag ||
+            stage->desktop_count <= 1u) {
         s_drag.is_warp_pending = false;
         return;
     }
@@ -530,8 +530,8 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
         return;
     }
 
-    if (surface->config->base.viewport.pan_on_edge_drag &&
-            scmd_surface_viewport_pan_available(surface, direction)) {
+    if (stage->config->base.viewport.pan_on_edge_drag &&
+            scmd_stage_viewport_pan_available(stage, direction)) {
         /* The current desktop's viewport still has room to pan toward
          * this same edge; that takes priority over a desktop switch for
          * as long as it does (see 'pan_on_edge_drag' in
@@ -576,7 +576,7 @@ int drag_warp_ms_remaining(void)
 /* Perform the pending warp, if due */
 void drag_warp_tick(xcb_connection_t *connection)
 {
-    surface_td *surface;
+    stage_td *stage;
     desktop_td *old_desktop;
     desktop_td *new_desktop;
     struct position_s old_page;
@@ -606,16 +606,16 @@ void drag_warp_tick(xcb_connection_t *connection)
 
     is_icon = s_drag.drag_window != XCB_WINDOW_NONE;
 
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->screen == NULL ||
-            surface->config == NULL ||
-            !surface->config->desktops.warp_on_edge_drag ||
-            surface->desktop_count <= 1u) {
+    stage = wm_get_stage_by_id(s_drag.client->screen_id);
+    if (stage == NULL || stage->screen == NULL ||
+            stage->config == NULL ||
+            !stage->config->desktops.warp_on_edge_drag ||
+            stage->desktop_count <= 1u) {
         return;
     }
 
-    if (surface->config->base.viewport.pan_on_edge_drag &&
-            scmd_surface_viewport_pan_available(surface,
+    if (stage->config->base.viewport.pan_on_edge_drag &&
+            scmd_stage_viewport_pan_available(stage,
                 s_drag.warp_direction)) {
         /* Live re-check, same reasoning as 'drag_warp_edge_check': the
          * viewport may have gained room to pan this same edge since
@@ -625,11 +625,11 @@ void drag_warp_tick(xcb_connection_t *connection)
         return;
     }
 
-    old_desktop_id = surface->desktop_cur;
-    old_desktop = surface_desktop_get(surface, old_desktop_id);
-    cycle = surface->config->desktops.wrap_at_bounds;
+    old_desktop_id = stage->desktop_cur;
+    old_desktop = stage_desktop_get(stage, old_desktop_id);
+    cycle = stage->config->desktops.wrap_at_bounds;
 
-    new_desktop = s_warp_target_desktop(surface, cycle);
+    new_desktop = s_warp_target_desktop(stage, cycle);
     if (new_desktop == NULL || new_desktop->id == old_desktop_id) {
         /* Already at the end and 'cycle' is off: nothing to warp to. */
         return;
@@ -643,7 +643,7 @@ void drag_warp_tick(xcb_connection_t *connection)
         uint32_t col;
         uint32_t row;
 
-        if (scmd_surface_viewport_desktop_page(surface, old_desktop,
+        if (scmd_stage_viewport_desktop_page(stage, old_desktop,
                     &col, &row)) {
             old_page.x = (int32_t) col;
             old_page.y = (int32_t) row;
@@ -652,27 +652,27 @@ void drag_warp_tick(xcb_connection_t *connection)
 
     s_warp_move_family(old_desktop, new_desktop);
 
-    surface->desktop_cur = new_desktop->id;
-    surface_client_hide_all(surface, old_desktop_id);
-    surface_client_show_all(surface, new_desktop->id);
-    surface->is_outdated = true;
+    stage->desktop_cur = new_desktop->id;
+    stage_client_hide_all(stage, old_desktop_id);
+    stage_client_show_all(stage, new_desktop->id);
+    stage->is_outdated = true;
 
-    s_warp_enter_page(surface, old_page, s_drag.warp_direction);
+    s_warp_enter_page(stage, old_page, s_drag.warp_direction);
 
     /* Same desktop-switch notification a normal (non-warp) switch shows
-     * (see 's_show_desktop_overlay' in cmds/surface.c, whose thin
+     * (see 's_show_desktop_overlay' in cmds/stage.c, whose thin
      * wrapper over this same call this mirrors).  Without it, a warp is
      * the one way to switch desktops that never shows which one just
      * became active. */
-    notify_desktop_show(xcb_connection_get(), surface,
-            surface->desktop_cur, new_desktop->name,
-            NOTIFY_DESKTOP_CAUSE_SWITCH, surface->config);
+    notify_desktop_show(xcb_connection_get(), stage,
+            stage->desktop_cur, new_desktop->name,
+            NOTIFY_DESKTOP_CAUSE_SWITCH, stage->config);
 
     s_warp_pointer_target(&new_root_x, &new_root_y);
 
     s_warp_move_dragged(connection, is_icon, new_root_x, new_root_y);
 
-    xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
+    xcb_warp_pointer(connection, XCB_NONE, stage->screen->root,
             0, 0, 0, 0, new_root_x, new_root_y);
 
     s_drag.last_root_x = new_root_x;

@@ -28,8 +28,8 @@
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Local includes */
 #include <handler.h>
@@ -134,11 +134,11 @@ static void s_colormap_update_visit(desktop_td *desktop, void *data)
 
 /* Handle a 'COLORMAP_NOTIFY' event */
 void handler_colormap_notify(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_colormap_notify_event_t *event)
+        list_td *stages, const xcb_colormap_notify_event_t *event)
 {
     struct s_colormap_ctx_s ctx;
 
-    if (event == NULL || surfaces == NULL) {
+    if (event == NULL || stages == NULL) {
         return;
     }
 
@@ -156,16 +156,16 @@ void handler_colormap_notify(xcb_connection_t *connection,
      * that a plain walk over every managed client, rather than
      * a dedicated lookup table keyed on colormap-list windows
      * specifically, costs nothing worth avoiding. */
-    for (list_item_td *snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(stages); snode != NULL;
             snode = list_next(snode)) {
-        const surface_td *const surface =
-            (surface_td *) list_data(snode);
+        const stage_td *const stage =
+            (stage_td *) list_data(snode);
 
-        if (surface == NULL) {
+        if (stage == NULL) {
             continue;
         }
 
-        surface_desktop_walk_all(surface, s_colormap_update_visit, &ctx);
+        stage_desktop_walk_all(stage, s_colormap_update_visit, &ctx);
         if (ctx.is_done) {
             return;
         }

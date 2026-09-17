@@ -79,7 +79,7 @@ static bool s_stacking_shows_client(const desktop_td *desktop,
 /**
  * @brief Find the node holding a client, and the one before it
  *
- * @param client  Client to look for
+ * @param client   Client to look for
  * @param out_prev Receives the node before the one found, which
  *                 @a cdlist_rem_next needs, or @c NULL when the client
  *                 sits at the head; may itself be @c NULL

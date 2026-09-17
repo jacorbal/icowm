@@ -111,9 +111,9 @@ xcb_cursor_t mouse_cursor_move(void);
  * resolving to exactly one of the eight border cursors
  * @a mouse_resize_cursors_init already loaded.
  *
- * @param resize_w      Whether this drag changes the width
- * @param resize_h      Whether this drag changes the height
- * @param anchor_right  Whether the right edge stays fixed (only
+ * @param resize_w     Whether this drag changes the width
+ * @param resize_h     Whether this drag changes the height
+ * @param anchor_right Whether the right edge stays fixed (only
  *                      meaningful when @p resize_w is @c true)
  * @param anchor_bottom Whether the bottom edge stays fixed (only
  *                      meaningful when @p resize_h is @c true)
@@ -136,11 +136,11 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * the only signal a given transition actually produces.
  *
  * @param connection XCB connection
- * @param surfaces   Every managed surface, to look up the client
+ * @param stages     Every managed stage, to look up the client
  *                   @p window belongs to
- * @param window     Window the crossing, motion, or poll was
+ * @param window Window the crossing, motion, or poll was
  *                   evaluated for
- * @param root_pos   Pointer position in root-window coordinates
+ * @param root_pos Pointer position in root-window coordinates
  *
  * @return The resolved client @p window belongs to, or @c NULL if it
  *         does not belong to a resizable client
@@ -148,7 +148,7 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * @note Complexity: @e O(1)
  */
 client_td *mouse_resize_cursor_update(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window,
+        list_td *stages, xcb_window_t window,
         struct position_s root_pos);
 
 

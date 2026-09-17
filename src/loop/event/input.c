@@ -36,7 +36,7 @@
  *        @c user_time, for @c _NET_ACTIVE_WINDOW focus-stealing
  *        prevention to compare against later
  *
- * @param ctx Main loop context, for its surface list
+ * @param ctx    Main loop context, for its stage list
  * @param window Window a real @c KeyPress or @c ButtonPress named as
  *               its @c event field, i.e., the one that actually
  *               received it
@@ -52,7 +52,7 @@
  *       @c _NET_ACTIVE_WINDOW, defeating the whole point of the
  *       comparison this feeds
  * @note Complexity: @e O(s * d * c), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e c
+ *       stages, @e d the number of desktops per stage, and @e c
  *       the hash-table lookup cost per desktop, the same as
  *       @a lookup_find_client itself, which this wraps
  */
@@ -71,7 +71,7 @@ static void s_loop_event_note_real_input(const loop_ctx_td *ctx,
      * press landed on a managed client */
     client_note_user_time(time);
 
-    client = lookup_find_client(ctx->surfaces, window, NULL, NULL);
+    client = lookup_find_client(ctx->stages, window, NULL, NULL);
     client_update_user_time(client, time);
 }
 
@@ -89,7 +89,7 @@ void loop_event_key_press(loop_ctx_td *ctx,
     kp = (xcb_key_press_event_t *) *event;
     s_loop_event_note_real_input(ctx, kp->event,
             (*event)->response_type, kp->time);
-    keyboard_handle_press(ctx->wm, ctx->keysyms, kp, ctx->surfaces,
+    keyboard_handle_press(ctx->wm, ctx->keysyms, kp, ctx->stages,
             ctx->config);
 }
 
@@ -103,7 +103,7 @@ void loop_event_key_release(loop_ctx_td *ctx,
     }
 
     keyboard_handle_release(ctx->keysyms,
-            (xcb_key_release_event_t *) *event, ctx->surfaces,
+            (xcb_key_release_event_t *) *event, ctx->stages,
             ctx->config);
 }
 
@@ -121,7 +121,7 @@ void loop_event_button_press(loop_ctx_td *ctx,
     bp = (xcb_button_press_event_t *) *event;
     s_loop_event_note_real_input(ctx, bp->event,
             (*event)->response_type, bp->time);
-    mouse_handle_press(ctx->wm, xcb_connection_get(), ctx->surfaces, bp,
+    mouse_handle_press(ctx->wm, xcb_connection_get(), ctx->stages, bp,
             ctx->config);
 }
 
@@ -134,6 +134,6 @@ void loop_event_button_release(loop_ctx_td *ctx,
         return;
     }
 
-    mouse_handle_release(xcb_connection_get(), ctx->surfaces,
+    mouse_handle_release(xcb_connection_get(), ctx->stages,
             (xcb_button_release_event_t *) *event, ctx->config);
 }

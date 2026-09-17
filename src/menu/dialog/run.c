@@ -36,8 +36,8 @@
 #include <desktop.h>
 #include <i18n.h>
 #include <render/text.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 
 /* Menu includes */
 #include <menu/dialog/info.h>
@@ -57,7 +57,7 @@
  */
 static struct {
     xcb_window_t window;
-    surface_td *surface;
+    stage_td *stage;
     const config_td *config;
     xcb_window_t prev_focus;
     char command[WM_RUN_COMMAND_MAX_LENGTH];
@@ -120,7 +120,7 @@ static void s_run_destroy(xcb_connection_t *connection)
  */
 static void s_run_attempt_launch(xcb_connection_t *connection)
 {
-    surface_td *const surface = s_run.surface;
+    stage_td *const stage = s_run.stage;
     const config_td *cfg = s_run.config;
     desktop_td *desktop;
     char command[WM_RUN_COMMAND_MAX_LENGTH];
@@ -134,8 +134,8 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
 
     s_run_destroy(connection);
 
-    desktop = (surface != NULL)
-        ? surface_desktop_get(surface, surface->desktop_cur) : NULL;
+    desktop = (stage != NULL)
+        ? stage_desktop_get(stage, stage->desktop_cur) : NULL;
     if (desktop == NULL) {
         return;
     }
@@ -145,7 +145,7 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
         char message[WM_RUN_COMMAND_MAX_LENGTH + 32];
         (void) snprintf(message, sizeof(message),
                 _(STR_RUN_COMMAND_NOT_FOUND_FMT), command);
-        dialog_info_show(connection, surface, cfg, message,
+        dialog_info_show(connection, stage, cfg, message,
                 MENU_MSG_LEVEL_INFO);
     }
 }
@@ -281,7 +281,7 @@ static void s_run_view_follow_cursor(uint16_t avail)
  * @param cfg        Active configuration, for the input colors
  * @param text_x     Where the drawn text begins, in window
  *                    coordinates
- * @param baseline   The text's baseline, which the bar is centred on
+ * @param baseline The text's baseline, which the bar is centred on
  *
  * @note Drawn in the foreground color, the bar standing between two
  *       characters where a block would hide the one under it
@@ -327,8 +327,8 @@ static void s_run_draw_cursor(xcb_connection_t *connection,
 
 
 
-/* Open the run-box, centered on 'surface' */
-void run_init(xcb_connection_t *connection, surface_td *surface,
+/* Open the run-box, centered on 'stage' */
+void run_init(xcb_connection_t *connection, stage_td *stage,
         const config_td *cfg)
 {
     xcb_get_input_focus_cookie_t foc_cookie;
@@ -339,7 +339,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
     int16_t widget_x;
     int16_t widget_y;
 
-    if (connection == NULL || surface == NULL || cfg == NULL) {
+    if (connection == NULL || stage == NULL || cfg == NULL) {
         return;
     }
 
@@ -349,7 +349,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
 
     memset(&s_run, 0, sizeof(s_run));
     s_run.window = XCB_WINDOW_NONE;
-    s_run.surface = surface;
+    s_run.stage = stage;
     s_run.config = cfg;
 
     foc_cookie = xcb_get_input_focus(connection);
@@ -369,9 +369,9 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
      * widget's one-third-from-the-top position.  One more visual cue,
      * alongside the "Run:" prompt itself, that the two are not the same
      * widget. */
-    widget_x = (int16_t) (((int32_t) surface->properties.dim.w -
+    widget_x = (int16_t) (((int32_t) stage->properties.dim.w -
                 (int32_t) WM_RUN_WIDTH) / 2);
-    widget_y = (int16_t) (((int32_t) surface->properties.dim.h -
+    widget_y = (int16_t) (((int32_t) stage->properties.dim.h -
                 (int32_t) height) / 2);
     if (widget_x < 0) { widget_x = 0; }
     if (widget_y < 0) { widget_y = 0; }
@@ -389,7 +389,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
     xcb_create_window(connection,
             XCB_COPY_FROM_PARENT,
             s_run.window,
-            surface->screen->root,
+            stage->screen->root,
             widget_x, widget_y,
             (uint16_t) WM_RUN_WIDTH, height,
             (uint16_t) cfg->theme.prompt.border.width,
@@ -411,7 +411,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
     xcb_map_window(connection, s_run.window);
     xcb_grab_keyboard(connection,
             0,
-            surface->screen->root,
+            stage->screen->root,
             XCB_CURRENT_TIME,
             XCB_GRAB_MODE_ASYNC,
             XCB_GRAB_MODE_ASYNC);
@@ -442,12 +442,12 @@ bool run_owns_window(xcb_window_t win)
 
 /* Handle a key press while the run-box is open */
 void run_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym, uint16_t modmask,
+        stage_td *stage, xcb_keysym_t keysym, uint16_t modmask,
         const config_td *cfg)
 {
     const bool is_ctrl = ((modmask & XCB_MOD_MASK_CONTROL) != 0u);
 
-    (void) surface;
+    (void) stage;
 
     if (!run_is_open()) {
         return;

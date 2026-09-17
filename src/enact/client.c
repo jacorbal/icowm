@@ -39,9 +39,6 @@
 /* Policy includes */
 #include <policy/focus.h>
 
-/* Surface includes */
-#include <surface/desktop.h>
-
 /* Command includes */
 #include <cmds/client/flags.h>
 #include <cmds/client/focus.h>
@@ -52,20 +49,21 @@
 #include <cmds/client/resize.h>
 #include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Project includes */
 #include <client.h>
 #include <logger.h>
 #include <scratchpad.h>
-#include <surface.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
 #include <enact.h>
 #include <enact/client.h>
 #include <enact/desktop.h>
-#include <enact/surface.h>
+#include <enact/stage.h>
 #include <enact/internal.h>
 
 
@@ -73,20 +71,22 @@
  * @brief Shared logic for carrying the client to another desktop in
  *        a given compass direction, following it there
  *
- * @param client    Client to move
- * @param surfaces  Full surface list, passed through to @c focus_apply
- * @param config    Active configuration, passed through to @c focus_apply
+ * @param client Client to move
+ * @param stages Full stage list, passed through to
+ *                  @c focus_apply
+ * @param config Active configuration, passed through to
+ *                  @c focus_apply
  * @param direction Compass direction to move the client in
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on the
- *       client's top parent's desktop (see
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's top parent's desktop (see
  *       @a enact_desktop_client_send's comment)
  */
 static void s_enact_client_send_to_desktop(client_td *client,
-        list_td *surfaces, const config_td *config,
+        list_td *stages, const config_td *config,
         enum compass_direction_e direction)
 {
-    surface_td *surface;
+    stage_td *stage;
     const desktop_td *cur_desktop;
     /* Initialized here for the same reason as every other switch in
      * this project that carries no 'default:': the compiler keeps
@@ -99,43 +99,43 @@ static void s_enact_client_send_to_desktop(client_td *client,
         return;
     }
 
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (surface == NULL) {
+    stage = wm_get_stage_by_id(client->screen_id);
+    if (stage == NULL) {
         return;
     }
 
-    cur_desktop = surface_desktop_get(surface, surface->desktop_cur);
+    cur_desktop = stage_desktop_get(stage, stage->desktop_cur);
     if (cur_desktop == NULL) {
         return;
     }
 
-    cycle = (surface->config != NULL)
-        ? surface->config->desktops.wrap_at_bounds : true;
+    cycle = (stage->config != NULL)
+        ? stage->config->desktops.wrap_at_bounds : true;
 
-    /* No different desktop to move to at all: either genuinely only one
-     * exists (restricted-memory mode is always locked to exactly one;
-     * see 'surface_action_desktop_add''s doc comment, in
-     * 'surface/switch.c'), wrapping is disabled and this is already the
-     * edgemost one that way, or (north/south only, on a surface with no
-     * 'topology.screens.desktops' layout configured at all) there is no
-     * second row or column to move to in the first place; is a silent
-     * no-op, the same as every other keybind here that finds nothing to
-     * act on. */
+    /* No different desktop to move to at all: either genuinely
+     * only one exists (restricted-memory mode is always locked to
+     * exactly one; see 'stage_action_desktop_add''s doc
+     * comment, stage/switch.c), wrapping is disabled and this is
+     * already the edgemost one that way, or (north/south only, on a
+     * stage with no 'topology.screens.desktops' layout configured
+     * at all) there is no second row or column to move to in the
+     * first place; is a silent no-op, the same as every other
+      keybind here that finds nothing to act on. */
     switch (direction) {
     case COMPASS_NORTH:
-        target_desktop = surface_desktop_north(surface,
+        target_desktop = stage_desktop_north(stage,
                 cur_desktop->id, cycle);
         break;
     case COMPASS_SOUTH:
-        target_desktop = surface_desktop_south(surface,
+        target_desktop = stage_desktop_south(stage,
                 cur_desktop->id, cycle);
         break;
     case COMPASS_EAST:
-        target_desktop = surface_desktop_east(surface,
+        target_desktop = stage_desktop_east(stage,
                 cur_desktop->id, cycle);
         break;
     case COMPASS_WEST:
-        target_desktop = surface_desktop_west(surface,
+        target_desktop = stage_desktop_west(stage,
                 cur_desktop->id, cycle);
         break;
     }
@@ -144,22 +144,23 @@ static void s_enact_client_send_to_desktop(client_td *client,
     }
 
     enact_desktop_client_send(cur_desktop, client, target_desktop);
-    enact_surface_desktop_switch(surface, target_desktop->id);
+    enact_stage_desktop_switch(stage, target_desktop->id);
 
-    /* 'enact_surface_desktop_switch' just above, via its
-     * 'surface_client_show_all', already restored real input focus on
-     * its, to whichever client this target desktop's 'client_active_id'
-     * still remembered from some earlier, unrelated visit, not this
-     * client, freshly arrived on it as of the very call before this
-     * one.  Explicitly re-applied here, after the fact, rather than
-     * trying to somehow suppress that automatic restore instead:
-     * 'client' becomes this desktop's newly active one, genuinely
-     * focused, and raised above whatever else that restore just raised
-     * in front of it (any client already there before this one arrived
-     * stays exactly where it was, simply no longer topmost), matching
-     * a plain click or any other deliberate focus request landing on it
-     * right after the move, not a stale leftover from before. */
-    focus_apply(surfaces, surface, target_desktop, client, true, config);
+    /* 'enact_stage_desktop_switch' just above, via its
+     * 'stage_client_show_all', already restored real input focus on
+     * its, to whichever client this target desktop's
+     * 'client_active_id' still remembered from some earlier,
+     * unrelated visit, not this client, freshly arrived on it as
+     * of the very call before this one.  Explicitly re-applied here,
+     * after the fact, rather than trying to somehow suppress that
+     * automatic restore instead: 'client' becomes this desktop's
+     * newly active one, genuinely focused, and raised above whatever
+     * else that restore just raised in front of it (any client
+     * already there before this one arrived stays exactly where it
+     * was, simply no longer topmost), matching a plain click or any
+     * other deliberate focus request landing on it right after the
+     * move, not a stale leftover from before. */
+    focus_apply(stages, stage, target_desktop, client, true, config);
 }
 
 
@@ -179,7 +180,7 @@ void enact_broadcast_client_event(client_td *client, uint32_t type)
                 (double) client->id);
         cJSON_AddNumberToObject(fields, "desktop_id",
                 (double) client->desktop_id);
-        cJSON_AddNumberToObject(fields, "surface_id",
+        cJSON_AddNumberToObject(fields, "stage_id",
                 (double) client->screen_id);
     }
     ipc_broadcast_event(type, fields);
@@ -242,8 +243,7 @@ void enact_client_resize(client_td *client, struct geometry_s geom)
 
 /* Resize the client to a specific frame geometry immediately,
  * bypassing any in-flight sync throttling */
-void enact_client_resize_force(client_td *client,
-        struct geometry_s geom)
+void enact_client_resize_force(client_td *client, struct geometry_s geom)
 {
     ccmd_client_resize_force(client, geom);
     if (client != NULL) {
@@ -275,9 +275,9 @@ void enact_client_center(client_td *client)
 /* Carry the client to the desktop north of the current one,
  * following it there */
 void enact_client_send_to_desktop_north(client_td *client,
-        list_td *surfaces, const config_td *config)
+        list_td *stages, const config_td *config)
 {
-    s_enact_client_send_to_desktop(client, surfaces, config,
+    s_enact_client_send_to_desktop(client, stages, config,
             COMPASS_NORTH);
 }
 
@@ -285,9 +285,9 @@ void enact_client_send_to_desktop_north(client_td *client,
 /* Carry the client to the desktop south of the current one,
  * following it there */
 void enact_client_send_to_desktop_south(client_td *client,
-        list_td *surfaces, const config_td *config)
+        list_td *stages, const config_td *config)
 {
-    s_enact_client_send_to_desktop(client, surfaces, config,
+    s_enact_client_send_to_desktop(client, stages, config,
             COMPASS_SOUTH);
 }
 
@@ -295,9 +295,9 @@ void enact_client_send_to_desktop_south(client_td *client,
 /* Carry the client to the desktop east of the current one,
  * following it there */
 void enact_client_send_to_desktop_east(client_td *client,
-        list_td *surfaces, const config_td *config)
+        list_td *stages, const config_td *config)
 {
-    s_enact_client_send_to_desktop(client, surfaces, config,
+    s_enact_client_send_to_desktop(client, stages, config,
             COMPASS_EAST);
 }
 
@@ -305,15 +305,15 @@ void enact_client_send_to_desktop_east(client_td *client,
 /* Carry the client to the desktop west of the current one,
  * following it there */
 void enact_client_send_to_desktop_west(client_td *client,
-        list_td *surfaces, const config_td *config)
+        list_td *stages, const config_td *config)
 {
-    s_enact_client_send_to_desktop(client, surfaces, config,
+    s_enact_client_send_to_desktop(client, stages, config,
             COMPASS_WEST);
 }
 
 
 /* Move the client to the monitor north of the current one on its
- * surface */
+ * stage */
 void enact_client_move_monitor_north(client_td *client)
 {
     ccmd_client_move_to_monitor_north(client);
@@ -324,7 +324,7 @@ void enact_client_move_monitor_north(client_td *client)
 
 
 /* Move the client to the monitor south of the current one on its
- * surface */
+ * stage */
 void enact_client_move_monitor_south(client_td *client)
 {
     ccmd_client_move_to_monitor_south(client);
@@ -335,7 +335,7 @@ void enact_client_move_monitor_south(client_td *client)
 
 
 /* Move the client to the monitor east of the current one on its
- * surface */
+ * stage */
 void enact_client_move_monitor_east(client_td *client)
 {
     ccmd_client_move_to_monitor_east(client);
@@ -346,7 +346,7 @@ void enact_client_move_monitor_east(client_td *client)
 
 
 /* Move the client to the monitor west of the current one on its
- * surface */
+ * stage */
 void enact_client_move_monitor_west(client_td *client)
 {
     ccmd_client_move_to_monitor_west(client);
@@ -383,7 +383,7 @@ void enact_client_reclass(client_td *client,
                     (double) client->id);
             cJSON_AddNumberToObject(fields, "desktop_id",
                     (double) client->desktop_id);
-            cJSON_AddNumberToObject(fields, "surface_id",
+            cJSON_AddNumberToObject(fields, "stage_id",
                     (double) client->screen_id);
             cJSON_AddStringToObject(fields, "class_name",
                     (class_name != NULL) ? class_name : "");
@@ -409,7 +409,7 @@ void enact_client_rerole(client_td *client, const char *role)
                     (double) client->id);
             cJSON_AddNumberToObject(fields, "desktop_id",
                     (double) client->desktop_id);
-            cJSON_AddNumberToObject(fields, "surface_id",
+            cJSON_AddNumberToObject(fields, "stage_id",
                     (double) client->screen_id);
             cJSON_AddStringToObject(fields, "role",
                     (role != NULL) ? role : "");
@@ -433,7 +433,7 @@ void enact_client_rename(client_td *client, const char *name)
                     (double) client->id);
             cJSON_AddNumberToObject(fields, "desktop_id",
                     (double) client->desktop_id);
-            cJSON_AddNumberToObject(fields, "surface_id",
+            cJSON_AddNumberToObject(fields, "stage_id",
                     (double) client->screen_id);
             cJSON_AddStringToObject(fields, "name",
                     (name != NULL) ? name : "");
@@ -566,17 +566,17 @@ void enact_client_toggle_pin(client_td *client)
 }
 
 
-/* Set the client's sticky mode.  No IPC event to broadcast here, unlike
- * its pin counterpart above: every bit of the IPC_EVENT_* mask is
- * already in use, with none free for a new sticky pair */
+/* Set the client's sticky mode.  No IPC event to broadcast here,
+ * unlike its pin counterpart above: every bit of the IPC_EVENT_* mask
+ * is already in use, with none free for a new sticky pair */
 void enact_client_stick(client_td *client)
 {
     ccmd_client_stick(client);
 }
 
 
-/* Remove the client's sticky mode.  Same reasoning as its setter above
- * for why there is no IPC event to broadcast */
+/* Remove the client's sticky mode.  Same reasoning as its setter
+ * above for why there is no IPC event to broadcast */
 void enact_client_unstick(client_td *client)
 {
     ccmd_client_unstick(client);
@@ -593,10 +593,10 @@ void enact_client_toggle_stick(client_td *client)
 
 
 /* Move the client to a given page of its desktop's viewport */
-void enact_client_send_to_page(surface_td *surface, client_td *client,
+void enact_client_send_to_page(stage_td *stage, client_td *client,
         uint32_t col, uint32_t row)
 {
-    scmd_surface_viewport_client_send_to_page(surface, client, col,
+    scmd_stage_viewport_client_send_to_page(stage, client, col,
             row);
 }
 
@@ -721,7 +721,7 @@ void enact_client_set_icon(client_td *client, const char *icon_name)
                     (double) client->id);
             cJSON_AddNumberToObject(fields, "desktop_id",
                     (double) client->desktop_id);
-            cJSON_AddNumberToObject(fields, "surface_id",
+            cJSON_AddNumberToObject(fields, "stage_id",
                     (double) client->screen_id);
             cJSON_AddStringToObject(fields, "icon_name",
                     (icon_name != NULL) ? icon_name : "");
@@ -736,9 +736,8 @@ void enact_client_toggle_decorate(client_td *client)
 {
     ccmd_client_toggle_decorate(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client,
-                client_is_decorated(client)
-                    ? IPC_EVENT_DECORATION_SET
-                    : IPC_EVENT_DECORATION_CLEARED);
+        enact_broadcast_client_event(client, client_is_decorated(client)
+                ? IPC_EVENT_DECORATION_SET
+                : IPC_EVENT_DECORATION_CLEARED);
     }
 }

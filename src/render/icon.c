@@ -45,7 +45,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <surface.h>
+#include <stage.h>
 #include <systray.h>
 #include <wm.h>
 
@@ -66,7 +66,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
     bool display_active;
     uint32_t bg_color;
     uint16_t icon_h;
-    surface_td *surface;
+    stage_td *stage;
     xcb_pixmap_t buffer;
     xcb_drawable_t target;
     xcb_gcontext_t gc;
@@ -172,10 +172,10 @@ void ri_render_client_icon(client_td *client, bool is_current,
     icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
             ((client->config->theme.icon.is_captioned)
                 ? WM_ICON_CAPTION_HEIGHT : 0u));
-    surface = wm_get_surface_by_id(client->screen_id);
-    buffer = (surface != NULL)
+    stage = wm_get_stage_by_id(client->screen_id);
+    buffer = (stage != NULL)
         ? xcb_offscreen_buffer_create(xcb_connection_get(),
-                surface->screen->root_depth, client->icon_window,
+                stage->screen->root_depth, client->icon_window,
                 (uint16_t) WM_ICON_SQUARE_SIZE, icon_h)
         : XCB_NONE;
     target = (buffer != XCB_NONE) ? buffer : client->icon_window;

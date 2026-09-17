@@ -55,9 +55,9 @@ static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
         (xcb_connection_t *) &s_fake_connection_storage;
 
-/** Non-null opaque handle standing in for a real list_td of surfaces */
-static int s_fake_surfaces_storage;
-static list_td *const s_fake_surfaces = (list_td *) &s_fake_surfaces_storage;
+/** Non-null opaque handle standing in for a real list_td of stages */
+static int s_fake_stages_storage;
+static list_td *const s_fake_stages = (list_td *) &s_fake_stages_storage;
 
 /** Call counters and last-seen arguments, reset by s_reset before each
  *  scenario */
@@ -102,10 +102,10 @@ static void s_reset(void)
  * @note Complexity: @e O(1)
  */
 client_td *mouse_resize_cursor_update(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window, struct position_s root_pos)
+        list_td *stages, xcb_window_t window, struct position_s root_pos)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_call_resize_cursor_update++;
     s_last_window = window;
     s_last_root_x = root_pos.x;
@@ -255,20 +255,20 @@ static void s_test_clear_match_stops_tracking(void)
 }
 
 
-/* Tick is a no-op with a NULL connection or NULL surfaces */
+/* Tick is a no-op with a NULL connection or NULL stages */
 static void s_test_tick_null_args(void)
 {
     s_reset();
 
     mouse_hover_track((xcb_window_t) 3);
 
-    mouse_hover_poll_tick(NULL, s_fake_surfaces);
+    mouse_hover_poll_tick(NULL, s_fake_stages);
     TAP_EQ_INT(s_call_query_pointer, 0,
             "a NULL connection never reaches xcb_query_pointer");
 
     mouse_hover_poll_tick(s_fake_connection, NULL);
     TAP_EQ_INT(s_call_query_pointer, 0,
-            "NULL surfaces never reaches xcb_query_pointer either");
+            "NULL stages never reaches xcb_query_pointer either");
 
     mouse_hover_poll_clear((xcb_window_t) 3);
 }
@@ -279,7 +279,7 @@ static void s_test_tick_nothing_tracked(void)
 {
     s_reset();
 
-    mouse_hover_poll_tick(s_fake_connection, s_fake_surfaces);
+    mouse_hover_poll_tick(s_fake_connection, s_fake_stages);
 
     TAP_EQ_INT(s_call_query_pointer, 0,
             "ticking with nothing tracked never queries the pointer");
@@ -292,7 +292,7 @@ static void s_test_tick_not_due_yet(void)
     s_reset();
 
     mouse_hover_track((xcb_window_t) 9);
-    mouse_hover_poll_tick(s_fake_connection, s_fake_surfaces);
+    mouse_hover_poll_tick(s_fake_connection, s_fake_stages);
 
     TAP_EQ_INT(s_call_query_pointer, 0,
             "ticking right after tracking starts is never due yet" \
@@ -320,7 +320,7 @@ static void s_test_tick_due_other_screen(void)
     until_due.tv_nsec = 105L * 1000L * 1000L;
     nanosleep(&until_due, NULL);
 
-    mouse_hover_poll_tick(s_fake_connection, s_fake_surfaces);
+    mouse_hover_poll_tick(s_fake_connection, s_fake_stages);
 
     TAP_EQ_INT(s_call_query_pointer, 1,
             "a due tick queries the pointer exactly once");
@@ -352,7 +352,7 @@ static void s_test_tick_due_updates_cursor(void)
     until_due.tv_nsec = 105L * 1000L * 1000L;
     nanosleep(&until_due, NULL);
 
-    mouse_hover_poll_tick(s_fake_connection, s_fake_surfaces);
+    mouse_hover_poll_tick(s_fake_connection, s_fake_stages);
 
     TAP_EQ_INT(s_call_resize_cursor_update, 1,
             "same_screen true runs the resize-cursor update once");
@@ -387,7 +387,7 @@ static void s_test_tick_due_no_reply(void)
     until_due.tv_nsec = 105L * 1000L * 1000L;
     nanosleep(&until_due, NULL);
 
-    mouse_hover_poll_tick(s_fake_connection, s_fake_surfaces);
+    mouse_hover_poll_tick(s_fake_connection, s_fake_stages);
 
     TAP_EQ_INT(s_call_resize_cursor_update, 0,
             "no reply at all never runs the resize-cursor update");
@@ -405,7 +405,7 @@ static void s_test_motion_null_event(void)
 {
     s_reset();
 
-    mouse_handle_motion_hover(s_fake_connection, s_fake_surfaces, NULL);
+    mouse_handle_motion_hover(s_fake_connection, s_fake_stages, NULL);
 
     TAP_EQ_INT(s_call_resize_cursor_update, 0,
             "a NULL motion event never reaches the resize-cursor update");
@@ -425,7 +425,7 @@ static void s_test_motion_forwards_event(void)
     event.root_x = 200;
     event.root_y = 300;
 
-    mouse_handle_motion_hover(s_fake_connection, s_fake_surfaces, &event);
+    mouse_handle_motion_hover(s_fake_connection, s_fake_stages, &event);
 
     TAP_EQ_INT(s_call_resize_cursor_update, 1,
             "a real motion event runs the resize-cursor update exactly once");

@@ -5,7 +5,7 @@
  *
  * Declares the focus-policy predicate and the function that applies
  * input focus to a managed client, handling the previous focus,
- * optional raise, and surface/desktop outdated marking.
+ * optional raise, and stage/desktop outdated marking.
  *
  * @defgroup policy Client focus and placement policy
  * @ingroup client
@@ -171,7 +171,7 @@ bool focus_is_sloppy(const config_td *cfg);
  *
  * Updates the active client for the desktop, sends focus and unfocus
  * events as needed, optionally raises the client, marks affected
- * surface and desktop as outdated, and triggers an immediate repaint.
+ * stage and desktop as outdated, and triggers an immediate repaint.
  * Also, regardless of @p raise or @p cfg's raise-on-focus policy,
  * re-enforces @p desktop's layer stacking whenever @p client or the
  * client just losing focus is fullscreen, so a focused fullscreen
@@ -179,14 +179,14 @@ bool focus_is_sloppy(const config_td *cfg);
  * falls back into its real layer immediately either way (see
  * @a ccmd_desktop_enforce_layers's comment).
  *
- * @param surfaces All managed surfaces (needed for unfocus lookup)
- * @param surface  Surface containing the client
- * @param desktop  Desktop tracking the active client
- * @param client   Client to focus
- * @param raise    Whether the client should be raised immediately
- * @param cfg      Active configuration (for raise-on-focus policy)
+ * @param stages  All managed stages (needed for unfocus lookup)
+ * @param stage   Stage containing the client
+ * @param desktop Desktop tracking the active client
+ * @param client  Client to focus
+ * @param raise   Whether the client should be raised immediately
+ * @param cfg     Active configuration (for raise-on-focus policy)
  *
- * @note A @c NULL @p surfaces suppresses the unfocus-previous step,
+ * @note A @c NULL @p stages suppresses the unfocus-previous step,
  *       which is safe where the caller has already attended to it
  * @note A no-op, leaving whichever client already holds real keyboard
  *       focus untouched, where @a client_accepts_input_focus
@@ -199,11 +199,11 @@ bool focus_is_sloppy(const config_td *cfg);
  *       ICCCM input model, the two being distinct (see the comments
  *       on both macros in @c client.h)
  * @note Complexity: @e O(1) for focus bookkeeping, rising to
- *       @e O(n * m) where raising triggers an immediate surface
+ *       @e O(n * m) where raising triggers an immediate stage
  *       redraw, and @e O(n) where only the fullscreen re-enforcement
  *       above runs
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client,
         bool raise, const config_td *cfg);
 

@@ -57,7 +57,7 @@
  * elapsing, and never at all for one that disappears before then.
  */
 typedef void (*place_manual_done_fn)(const wm_td *wm,
-        surface_td *surface, desktop_td *desktop, client_td *client);
+        stage_td *stage, desktop_td *desktop, client_td *client);
 
 
 /* Public interface */
@@ -69,11 +69,11 @@ typedef void (*place_manual_done_fn)(const wm_td *wm,
  * policy would have chosen, which is both where the outline starts and
  * where the window stays if the user gives up or never answers.
  *
- * @param wm      Window manager instance
- * @param surface Surface the window will appear on
- * @param client  Client being placed
- * @param out_x   Where the chosen X coordinate is written
- * @param out_y   Where the chosen Y coordinate is written
+ * @param wm     Window manager instance
+ * @param stage  Stage the window will appear on
+ * @param client Client being placed
+ * @param out_x  Where the chosen X coordinate is written
+ * @param out_y  Where the chosen Y coordinate is written
  *
  * @return @c true when a position was chosen
  *
@@ -86,7 +86,7 @@ typedef void (*place_manual_done_fn)(const wm_td *wm,
  *       positions tested and @e n is the number of clients on the
  *       desktop
  */
-bool place_window_manual(const wm_td *wm, surface_td *surface,
+bool place_window_manual(const wm_td *wm, stage_td *stage,
         client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y);
 
@@ -101,12 +101,12 @@ bool place_window_manual(const wm_td *wm, surface_td *surface,
  *
  * @param connection XCB connection
  * @param wm         Window manager instance
- * @param surface    Surface the window will appear on
+ * @param stage      Stage the window will appear on
  * @param desktop    Desktop it belongs to
  * @param client     Client being placed
  * @param cursor     Shape the pointer takes while the question is
  *                   open, or @c XCB_NONE to leave it as it is
- * @param done       What finishes the map once the position settles
+ * @param done What finishes the map once the position settles
  *
  * @return @c true when the window was taken, meaning the caller must
  *         not finish the map itself
@@ -119,7 +119,7 @@ bool place_window_manual(const wm_td *wm, surface_td *surface,
  * @note Complexity: @e O(1)
  */
 bool place_manual_enqueue(xcb_connection_t *connection, const wm_td *wm,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         xcb_cursor_t cursor, place_manual_done_fn done);
 
 /**

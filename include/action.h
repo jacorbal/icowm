@@ -2,7 +2,7 @@
  * @file action.h
  *
  * @brief Enumeration for all possible actions regarding clients,
- *        desktops, surfaces, and the window manager itself
+ *        desktops, stages, and the window manager itself
  *
  * @ingroup enact
  */
@@ -139,28 +139,28 @@ enum action_desktop_e {
 /**
  * @brief Screen-related actions
  */
-enum action_surface_e {
-    ACTION_SURFACE_MIN,
+enum action_stage_e {
+    ACTION_STAGE_MIN,
 
     /** Switch to a desktop named directly */
-    ACTION_SURFACE_DESKTOP_SWITCH = ACTION_SURFACE_MIN,
+    ACTION_STAGE_DESKTOP_SWITCH = ACTION_STAGE_MIN,
 
     /* Switch to the desktop in a direction, relative to the
      * current one */
-    ACTION_SURFACE_DESKTOP_SWITCH_NORTH,
-    ACTION_SURFACE_DESKTOP_SWITCH_SOUTH,
-    ACTION_SURFACE_DESKTOP_SWITCH_EAST,
-    ACTION_SURFACE_DESKTOP_SWITCH_WEST,
+    ACTION_STAGE_DESKTOP_SWITCH_NORTH,
+    ACTION_STAGE_DESKTOP_SWITCH_SOUTH,
+    ACTION_STAGE_DESKTOP_SWITCH_EAST,
+    ACTION_STAGE_DESKTOP_SWITCH_WEST,
 
     /* Pan the current desktop's own viewport in a direction, clamped
      * rather than cyclic, and never changing which desktop is
      * current */
-    ACTION_SURFACE_VIEWPORT_PAN_NORTH,
-    ACTION_SURFACE_VIEWPORT_PAN_SOUTH,
-    ACTION_SURFACE_VIEWPORT_PAN_EAST,
-    ACTION_SURFACE_VIEWPORT_PAN_WEST,
+    ACTION_STAGE_VIEWPORT_PAN_NORTH,
+    ACTION_STAGE_VIEWPORT_PAN_SOUTH,
+    ACTION_STAGE_VIEWPORT_PAN_EAST,
+    ACTION_STAGE_VIEWPORT_PAN_WEST,
 
-    ACTION_SURFACE_MAX = ACTION_SURFACE_VIEWPORT_PAN_WEST,
+    ACTION_STAGE_MAX = ACTION_STAGE_VIEWPORT_PAN_WEST,
 };
 
 

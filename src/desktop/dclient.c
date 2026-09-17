@@ -34,7 +34,7 @@
 
 /* Command includes */
 #include <cmds/client/layer.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 #include <cmds/client/transient.h>
 
 /* Project includes */
@@ -218,31 +218,31 @@ static void s_desktop_transients_raise(desktop_td *desktop,
  * own titlebar blink (@c policy/urgency.c), and a dialog would only
  * repeat what is in front of the user.
  *
- * @param desktop      Desktop just recomputed
- * @param surface      Surface owning it, or @c NULL
- * @param was_urgent   Whether it held an urgent client before
- * @param had_page     Whether @p was_page holds a page at all
- * @param was_page     Page the previous request sat on
- * @param is_urgent    Whether it holds one now
- * @param has_page     Whether @p page holds a page at all
- * @param page         Page the current request sits on
+ * @param desktop    Desktop just recomputed
+ * @param stage      Stage owning it, or @c NULL
+ * @param was_urgent Whether it held an urgent client before
+ * @param had_page   Whether @p was_page holds a page at all
+ * @param was_page   Page the previous request sat on
+ * @param is_urgent  Whether it holds one now
+ * @param has_page   Whether @p page holds a page at all
+ * @param page       Page the current request sits on
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
 static void s_notify_urgency(const desktop_td *desktop,
-        surface_td *surface, bool was_urgent, bool had_page,
+        stage_td *stage, bool was_urgent, bool had_page,
         struct position_s was_page, bool is_urgent, bool has_page,
         struct position_s page)
 {
     const config_td *config = wm_get_config();
-    const list_td *surfaces;
-    uint32_t surface_count;
+    const list_td *stages;
+    uint32_t stage_count;
     uint32_t shown_col;
     uint32_t shown_row;
     /* The name, plus every fixed part that can be appended to it,
      * each sized for a 'uint32_t' spelled out in full: the base
      * message, the ' {column, row}' page suffix and the
-     * ' (on surface n)' one.  Sized rather than trimmed because a
+     * ' (on stage n)' one.  Sized rather than trimmed because a
      * truncation here would cut a coordinate in half and leave the
      * notice naming a page that does not exist. */
     char text[WM_DESKTOP_MAX_LENGTH_NAME + 96];
@@ -251,7 +251,7 @@ static void s_notify_urgency(const desktop_td *desktop,
     bool other_page;
     bool is_fresh;
 
-    if (!is_urgent || surface == NULL || config == NULL ||
+    if (!is_urgent || stage == NULL || config == NULL ||
             !config->base.urgency.notify_activity ||
             menu_message_dialog_is_open()) {
         return;
@@ -263,9 +263,9 @@ static void s_notify_urgency(const desktop_td *desktop,
         return;
     }
 
-    other_desktop = (desktop->id != surface->desktop_cur);
+    other_desktop = (desktop->id != stage->desktop_cur);
     other_page = has_page &&
-        scmd_surface_viewport_desktop_page(surface, desktop,
+        scmd_stage_viewport_desktop_page(stage, desktop,
                 &shown_col, &shown_row) &&
         (page.x != (int32_t) shown_col || page.y != (int32_t) shown_row);
 
@@ -278,7 +278,7 @@ static void s_notify_urgency(const desktop_td *desktop,
     if (!other_desktop) {
         (void) snprintf(text, sizeof(text), _(STR_PAGE_ACTIVITY_FMT),
                 (unsigned int) page.x, (unsigned int) page.y);
-        menu_message_dialog_show(xcb_connection_get(), surface, config,
+        menu_message_dialog_show(xcb_connection_get(), stage, config,
                 text, MENU_MSG_LEVEL_INFO);
         return;
     }
@@ -305,19 +305,19 @@ static void s_notify_urgency(const desktop_td *desktop,
         }
     }
 
-    surfaces = wm_get_surfaces();
-    surface_count = (surfaces != NULL)
-        ? (uint32_t) list_size(surfaces) : 0u;
-    if (surface_count > 1u) {
+    stages = wm_get_stages();
+    stage_count = (stages != NULL)
+        ? (uint32_t) list_size(stages) : 0u;
+    if (stage_count > 1u) {
         used = safe_strlen(text);
         if (used < sizeof(text)) {
             (void) snprintf(text + used, sizeof(text) - used,
-                    _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
-                    (unsigned int) surface->id);
+                    _(STR_DESKTOP_ACTIVITY_STAGE_SUFFIX_FMT),
+                    (unsigned int) stage->id);
         }
     }
 
-    menu_message_dialog_show(xcb_connection_get(), surface, config,
+    menu_message_dialog_show(xcb_connection_get(), stage, config,
             text, MENU_MSG_LEVEL_INFO);
 }
 
@@ -499,7 +499,7 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
 void desktop_action_recompute_urgent(desktop_td *desktop)
 {
     void *elem;
-    surface_td *surface;
+    stage_td *stage;
     const client_td *urgent = NULL;
     struct position_s page = { 0, 0 };
     bool was_urgent;
@@ -515,7 +515,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
     was_urgent = desktop->is_urgent;
     had_page = desktop->has_urgent_page;
     was_page = desktop->urgent_page;
-    surface = wm_get_desktop_surface(desktop);
+    stage = wm_get_desktop_stage(desktop);
 
     ohtbl_foreach(desktop->clients, elem) {
         client_td *c = (client_td *) elem;
@@ -536,7 +536,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
         uint32_t col;
         uint32_t row;
 
-        has_page = scmd_surface_viewport_client_page(surface, desktop,
+        has_page = scmd_stage_viewport_client_page(stage, desktop,
                 urgent, &col, &row);
         page.x = (int32_t) col;
         page.y = (int32_t) row;
@@ -546,7 +546,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
     desktop->has_urgent_page = has_page;
     desktop->urgent_page = page;
 
-    s_notify_urgency(desktop, surface, was_urgent, had_page, was_page,
+    s_notify_urgency(desktop, stage, was_urgent, had_page, was_page,
             found, has_page, page);
 }
 
@@ -665,7 +665,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
      * handed to 'spawn_command' below simply stays null. */
     have_startup_id = (xcb_connection_get() != NULL) &&
         desktop->config->base.startup_notification.is_enabled &&
-        cctl_sn_begin(xcb_connection_get(), wm_get_surfaces(),
+        cctl_sn_begin(xcb_connection_get(), wm_get_stages(),
                 executable_path, desktop->id, startup_id,
                 sizeof(startup_id));
 
@@ -675,7 +675,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
     spawn_result = spawn_command(executable_path, &opts, &pid);
     if (spawn_result != 0) {
         if (have_startup_id) {
-            cctl_sn_cancel(xcb_connection_get(), wm_get_surfaces(),
+            cctl_sn_cancel(xcb_connection_get(), wm_get_stages(),
                     startup_id);
         }
         return spawn_result;

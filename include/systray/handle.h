@@ -2,7 +2,7 @@
  * @file systray/handle.h
  *
  * @brief Systray event routing: client messages, destroyed icons,
- *        property changes, and surface resizes
+ *        property changes, and stage resizes
  *
  * Split out of @c systray.h, alongside @c systray/icon.h and
  * @c systray/clock.h, so a file that only needs one of these does not
@@ -96,16 +96,16 @@ void systray_handle_property_notify(const wm_td *wm,
         const xcb_property_notify_event_t *event);
 
 /**
- * @brief Reposition the tray dock window for its surface's current size
+ * @brief Reposition the tray dock window for its stage's current size
  *
- * Called after a surface resize (e.g., an XRandR screen-change) so the
+ * Called after a stage resize (e.g., an XRandR screen-change) so the
  * tray stays pinned to its configured corner.
  *
  * @param wm Window manager state
  *
  * @note Complexity: @e O(1)
  */
-void systray_handle_surface_resize(wm_td *wm);
+void systray_handle_stage_resize(wm_td *wm);
 
 
 #endif  /* ! SYSTRAY_HANDLE_H */

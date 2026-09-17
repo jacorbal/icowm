@@ -79,11 +79,11 @@ void client_note_user_time(uint32_t time)
 
 
 /** Link-only stand-in for lookup_find_client (lookup.c) */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
-    (void) out_surface;
+    (void) stages;
+    (void) out_stage;
     (void) out_desktop;
     s_lookup_find_client_calls++;
     s_lookup_find_client_last_window = window;
@@ -102,13 +102,13 @@ void client_update_user_time(client_td *client, uint32_t time)
 
 /** Link-only stand-in for keyboard_handle_press (input/kbd/event.c) */
 void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
-        xcb_key_press_event_t *event, list_td *surfaces,
+        xcb_key_press_event_t *event, list_td *stages,
         const config_td *cfg)
 {
     (void) wm;
     (void) keysyms;
     (void) event;
-    (void) surfaces;
+    (void) stages;
     (void) cfg;
     s_keyboard_handle_press_calls++;
 }
@@ -117,12 +117,12 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
 /** Link-only stand-in for keyboard_handle_release
  *  (input/kbd/event.c) */
 void keyboard_handle_release(xcb_key_symbols_t *keysyms,
-        xcb_key_release_event_t *event, list_td *surfaces,
+        xcb_key_release_event_t *event, list_td *stages,
         const config_td *cfg)
 {
     (void) keysyms;
     (void) event;
-    (void) surfaces;
+    (void) stages;
     (void) cfg;
     s_keyboard_handle_release_calls++;
 }
@@ -130,12 +130,12 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
 
 /** Link-only stand-in for mouse_handle_press (input/mouse/event.c) */
 void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config)
 {
     (void) wm;
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) event;
     (void) config;
     s_mouse_handle_press_calls++;
@@ -145,11 +145,11 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
 /** Link-only stand-in for mouse_handle_release
  *  (input/mouse/event.c) */
 void mouse_handle_release(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_button_release_event_t *event,
+        list_td *stages, const xcb_button_release_event_t *event,
         const config_td *config)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) event;
     (void) config;
     s_mouse_handle_release_calls++;

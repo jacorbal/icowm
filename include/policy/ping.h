@@ -33,7 +33,7 @@
  *
  * Meant to be called once per main-loop iteration, unconditionally,
  * the same way @a urgency_blink_tick is.  Walks every client across
- * every surface and desktop; a client that does not advertise
+ * every stage and desktop; a client that does not advertise
  * @c _NET_WM_PING support is skipped entirely.
  *
  * At the actual @c WM_EWMH_PING_INTERVAL_SECONDS cadence, each
@@ -43,7 +43,7 @@
  * @c WM_EWMH_PING_TIMEOUT_SECONDS worth of rounds, the client is
  * marked unresponsive.
  *
- * @param surfaces All managed surfaces
+ * @param stages All managed stages
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients
@@ -51,7 +51,7 @@
  * @see @c WM_EWMH_PING_INTERVAL_SECONDS and
  *      @c WM_EWMH_PING_TIMEOUT_SECONDS in @c defs/ewmh.h
  */
-void ping_tick(list_td *surfaces);
+void ping_tick(list_td *stages);
 
 /**
  * @brief How many milliseconds until the ping cycle next needs a tick

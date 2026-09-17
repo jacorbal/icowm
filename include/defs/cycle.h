@@ -41,7 +41,9 @@
 /** Horizontal padding inside the cycle menu window */
 #define WM_CYCLE_MENU_PAD_X (14)
 
-/** Vertical padding (top/bottom) inside the cycle menu window */
+/** Vertical padding (top/bottom) inside the cycle menu window, when
+ *  no configuration is available to read the theme's own value from
+ *  (@c theme.menu.padding.vertical) */
 #define WM_CYCLE_MENU_PAD_Y (14)
 
 /**

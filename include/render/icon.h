@@ -73,10 +73,10 @@
  * @param client     The iconified client to render
  * @param is_current @c true when the client's desktop is the one
  *                   currently visible
- * @param force      Render even when nothing about the icon changed
+ * @param force Render even when nothing about the icon changed
  *                   since its last one, for a caller that needs the
  *                   window repainted now rather than on the next pass
- * @param restack    Whether to also restack the icon window (just below
+ * @param restack Whether to also restack the icon window (just below
  *                   the tray, or lowest of all if there is none) after
  *                   drawing it.
  *
@@ -114,9 +114,9 @@ void ri_render_client_icon(client_td *client, bool is_current,
  * icon's caption text below it, so both pieces of text read as one
  * consistent style.
  *
- * @param connection   Active XCB connection
- * @param client       The iconified client these hints belong to
- * @param target       Drawable the hints are actually drawn onto:
+ * @param connection Active XCB connection
+ * @param client     The iconified client these hints belong to
+ * @param target     Drawable the hints are actually drawn onto:
  *                     @p client's real icon window, or an off-screen
  *                     buffer standing in for it while the caller
  *                     assembles a full repaint before copying it over
@@ -124,7 +124,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
  *                     cycle-menu-selected icon (selects active vs.
  *                     inactive icon colors, matching whichever the
  *                     caller already drew the rest of the icon in)
- * @param theme        Active theme
+ * @param theme Active theme
  *
  * @see @c client_properties_s.state in @c client.h, for the state
  *      bits each letter comes from

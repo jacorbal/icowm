@@ -37,10 +37,10 @@
  * @param root_x Pointer X position in root-window coordinates
  * @param root_y Pointer Y position in root-window coordinates
  *
- * @note A no-op, clearing any pending pan, unless the surface the drag
+ * @note A no-op, clearing any pending pan, unless the stage the drag
  *       is on has @c viewport.pan_on_edge_drag enabled and its current
  *       desktop's viewport still has room to pan toward the held edge
- *       (see @a scmd_surface_viewport_pan_available, @c cmds/surface.h)
+ *       (see @a scmd_stage_viewport_pan_available, @c cmds/stage.h)
  * @note Complexity: @e O(1)
  */
 void drag_pan_edge_check(int16_t root_x, int16_t root_y);
@@ -76,7 +76,7 @@ int drag_pan_ms_remaining(void);
  *
  * Pans the current desktop's viewport by one screen toward the held
  * edge, translating every non-sticky client the same way
- * @a scmd_surface_viewport_pan_north and its three siblings already do,
+ * @a scmd_stage_viewport_pan_north and its three siblings already do,
  * then keeps the dragged window or icon (unless it is itself sticky,
  * in which case the pan already left it untouched) under the pointer
  * across the pan, adjusting the drag's internal state so the shift

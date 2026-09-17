@@ -43,8 +43,8 @@
  * until the client draws itself again, and this repaint runs for any
  * reason at all.
  *
- * @param connection       Active XCB connection
- * @param client           Client whose frame decoration will be
+ * @param connection Active XCB connection
+ * @param client     Client whose frame decoration will be
  *                         repainted
  * @param use_active_style Whether to use the active theme colors
  * @param theme            Theme providing frame and grip colors
@@ -65,13 +65,13 @@ void render_client_decoration_repaint_frame(xcb_connection_t *connection,
  * function's @c hide_decoration for what forces this.  Currently only
  * a fullscreen client that was decorated before going fullscreen).
  *
- * @param connection      XCB connection
- * @param client          Client whose frame decoration to repaint
- * @param is_focused      Whether to use the active or inactive color
+ * @param connection XCB connection
+ * @param client     Client whose frame decoration to repaint
+ * @param is_focused Whether to use the active or inactive color
  *                        set
  * @param hide_decoration Whether decoration is currently suppressed
  *                        entirely; a no-op when @c true
- * @param theme           Active theme
+ * @param theme Active theme
  *
  * @note Complexity: @e O(1)
  */

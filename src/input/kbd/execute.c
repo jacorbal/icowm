@@ -27,7 +27,7 @@
 #include <utils/xcb/connection.h>
 
 /* Render includes */
-#include <render/surface.h>
+#include <render/stage.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
@@ -47,7 +47,7 @@
 
 /* Command includes */
 #include <cmds/client/state.h>
-#include <cmds/surface.h>
+#include <cmds/stage.h>
 
 /* Default initial values */
 #include <defs/kbd.h>
@@ -59,12 +59,12 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <enact/desktop.h>
-#include <enact/surface.h>
+#include <enact/stage.h>
 #include <logger.h>
 #include <lookup.h>
 #include <scratchpad.h>
-#include <surface.h>
-#include <surface/desktop.h>
+#include <stage.h>
+#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -79,7 +79,7 @@
  * Shared by @c KEYBIND_WM_ROOT_MENU and @c KEYBIND_WM_WINDOWS_MENU in
  * @c keyboard_handle_press, which only differ in which configuration
  * field's @c position resolves here and which function they go on to
- * call with the resolved position.  Falls back to the surface center if
+ * call with the resolved position.  Falls back to the stage center if
  * @p position is @c CONFIG_MENU_POSITION_UNDER_MOUSE but the pointer
  * query itself fails.
  *
@@ -92,19 +92,19 @@
  * a corner without either caller needing to know the tray's or menu's
  * size up front.
  *
- * @param surface  Surface the menu will open on
+ * @param stage    Stage the menu will open on
  * @param position Configured menu position
  * @param out_pos  Receives the resolved position
  *
  * @note Complexity: @e O(1)
  */
-static void s_menu_position_resolve(surface_td *surface,
+static void s_menu_position_resolve(stage_td *stage,
         enum config_menu_position_e position,
         struct position_s *restrict out_pos)
 {
-    struct geometry_s work = { { 0, 0 }, surface->properties.dim };
+    struct geometry_s work = { { 0, 0 }, stage->properties.dim };
     const desktop_td *desktop =
-        surface_desktop_get(surface, surface->desktop_cur);
+        stage_desktop_get(stage, stage->desktop_cur);
 
     if (desktop != NULL) {
         work = desktop->workarea;
@@ -136,14 +136,14 @@ static void s_menu_position_resolve(surface_td *surface,
             break;
     }
 
-    out_pos->x = (int32_t) (surface->properties.dim.w / 2u);
-    out_pos->y = (int32_t) (surface->properties.dim.h / 2u);
+    out_pos->x = (int32_t) (stage->properties.dim.w / 2u);
+    out_pos->y = (int32_t) (stage->properties.dim.h / 2u);
 
     if (position == CONFIG_MENU_POSITION_UNDER_MOUSE &&
-            surface->screen != NULL) {
+            stage->screen != NULL) {
         xcb_query_pointer_cookie_t qc =
             xcb_query_pointer(xcb_connection_get(),
-                    surface->screen->root);
+                    stage->screen->root);
         xcb_query_pointer_reply_t *const qr =
             xcb_query_pointer_reply(xcb_connection_get(), qc, NULL);
         if (qr != NULL) {
@@ -167,34 +167,34 @@ static void s_menu_position_resolve(surface_td *surface,
  * comment on why changing its layer there would have no visible
  * effect).
  *
- * @param btype    Keyboard binding type (one of the @c KEYBIND_CLIENT_*
+ * @param btype Keyboard binding type (one of the @c KEYBIND_CLIENT_*
  *                 constants)
- * @param surface  Current surface (used to resolve the active client)
- * @param surfaces Full surface list
- * @param bmm      Raw modifier mask of the matched binding (needed by
+ * @param stage  Current stage (used to resolve the active client)
+ * @param stages Full stage list
+ * @param bmm    Raw modifier mask of the matched binding (needed by
  *                 the info popup)
- * @param detail   Raw keycode detail from the event (needed by the info
+ * @param detail Raw keycode detail from the event (needed by the info
  *                 popup)
- * @param config   Active configuration
+ * @param config Active configuration
  */
 static void s_dispatch_client_action(enum wm_keybind_type_e btype,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         uint16_t bmm, xcb_keycode_t detail,
         const config_td *config)
 {
     const desktop_td *desktop;
     client_td *client;
 
-    if (surface == NULL) {
+    if (stage == NULL) {
         return;
     }
 
-    desktop = lookup_current_desktop(surface);
+    desktop = lookup_current_desktop(stage);
     if (desktop == NULL) {
         return;
     }
 
-    client = ik_get_active_client(surface, surfaces, NULL, NULL);
+    client = ik_get_active_client(stage, stages, NULL, NULL);
     if (client == NULL) {
         return;
     }
@@ -277,12 +277,12 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_INFO:
-            popup_show(xcb_connection_get(), surface, desktop, client,
+            popup_show(xcb_connection_get(), stage, desktop, client,
                     bmm, detail, config);
             return;
 
         case KEYBIND_CLIENT_INSPECT:
-            dialog_inspect_show(xcb_connection_get(), surface, config,
+            dialog_inspect_show(xcb_connection_get(), stage, config,
                     client);
             return;
 
@@ -328,19 +328,19 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH:
-            enact_client_send_to_desktop_north(client, surfaces, config);
+            enact_client_send_to_desktop_north(client, stages, config);
             return;
 
         case KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH:
-            enact_client_send_to_desktop_south(client, surfaces, config);
+            enact_client_send_to_desktop_south(client, stages, config);
             return;
 
         case KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST:
-            enact_client_send_to_desktop_east(client, surfaces, config);
+            enact_client_send_to_desktop_east(client, stages, config);
             return;
 
         case KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST:
-            enact_client_send_to_desktop_west(client, surfaces, config);
+            enact_client_send_to_desktop_west(client, stages, config);
             return;
 
         case KEYBIND_CLIENT_SHADE:
@@ -420,79 +420,79 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
  * cannot be silently forgotten. */
 void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         uint16_t modmask, xcb_keycode_t keycode,
-        surface_td *surface, list_td *surfaces,
+        stage_td *stage, list_td *stages,
         const config_td *config)
 {
     switch (btype) {
         case KEYBIND_DESKTOP_NORTH:
-            if (surface != NULL) {
-                enact_surface_desktop_switch_north(surface);
+            if (stage != NULL) {
+                enact_stage_desktop_switch_north(stage);
             }
             return;
 
         case KEYBIND_DESKTOP_SOUTH:
-            if (surface != NULL) {
-                enact_surface_desktop_switch_south(surface);
+            if (stage != NULL) {
+                enact_stage_desktop_switch_south(stage);
             }
             return;
 
         case KEYBIND_DESKTOP_EAST:
-            if (surface != NULL) {
-                enact_surface_desktop_switch_east(surface);
+            if (stage != NULL) {
+                enact_stage_desktop_switch_east(stage);
             }
             return;
 
         case KEYBIND_DESKTOP_WEST:
-            if (surface != NULL) {
-                enact_surface_desktop_switch_west(surface);
+            if (stage != NULL) {
+                enact_stage_desktop_switch_west(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_PAN_NORTH:
-            if (surface != NULL) {
-                enact_surface_viewport_pan_north(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_pan_north(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_PAN_SOUTH:
-            if (surface != NULL) {
-                enact_surface_viewport_pan_south(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_pan_south(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_PAN_EAST:
-            if (surface != NULL) {
-                enact_surface_viewport_pan_east(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_pan_east(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_PAN_WEST:
-            if (surface != NULL) {
-                enact_surface_viewport_pan_west(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_pan_west(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_SWITCH_NORTH:
-            if (surface != NULL) {
-                enact_surface_viewport_switch_north(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_switch_north(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_SWITCH_SOUTH:
-            if (surface != NULL) {
-                enact_surface_viewport_switch_south(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_switch_south(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_SWITCH_EAST:
-            if (surface != NULL) {
-                enact_surface_viewport_switch_east(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_switch_east(stage);
             }
             return;
 
         case KEYBIND_VIEWPORT_SWITCH_WEST:
-            if (surface != NULL) {
-                enact_surface_viewport_switch_west(surface);
+            if (stage != NULL) {
+                enact_stage_viewport_switch_west(stage);
             }
             return;
 
@@ -506,43 +506,43 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_VIEWPORT_GOTO_7:
         case KEYBIND_VIEWPORT_GOTO_8:
         case KEYBIND_VIEWPORT_GOTO_9:
-            if (surface != NULL) {
-                enact_surface_viewport_goto(surface,
+            if (stage != NULL) {
+                enact_stage_viewport_goto(stage,
                         (uint32_t) (btype - KEYBIND_VIEWPORT_GOTO_0));
             }
             return;
 
         case KEYBIND_DESKTOP_SHOW:
-            if (surface != NULL) {
-                enact_desktop_show(lookup_current_desktop(surface),
-                        !surface->is_showing_desktop);
+            if (stage != NULL) {
+                enact_desktop_show(lookup_current_desktop(stage),
+                        !stage->is_showing_desktop);
             }
             return;
 
         case KEYBIND_WM_SCRATCHPAD_TOGGLE:
-            if (surface != NULL) {
-                scratchpad_toggle(wm, lookup_current_desktop(surface));
+            if (stage != NULL) {
+                scratchpad_toggle(wm, lookup_current_desktop(stage));
             }
             return;
 
         case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
-            if (surface != NULL) {
+            if (stage != NULL) {
                 enact_desktop_client_iconify_all(
-                        lookup_current_desktop(surface));
+                        lookup_current_desktop(stage));
             }
             return;
 
         case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
-            if (surface != NULL) {
+            if (stage != NULL) {
                 enact_desktop_client_deiconify_all(
-                        lookup_current_desktop(surface));
+                        lookup_current_desktop(stage));
             }
             return;
 
         case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
-            if (surface != NULL) {
-                enact_desktop_client_rearrange_all(wm, surface,
-                        lookup_current_desktop(surface));
+            if (stage != NULL) {
+                enact_desktop_client_rearrange_all(wm, stage,
+                        lookup_current_desktop(stage));
             }
             return;
 
@@ -556,43 +556,43 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_GOTO_7:
         case KEYBIND_DESKTOP_GOTO_8:
         case KEYBIND_DESKTOP_GOTO_9:
-            if (surface != NULL) {
-                enact_surface_desktop_switch(surface,
+            if (stage != NULL) {
+                enact_stage_desktop_switch(stage,
                         (uint32_t) (btype - KEYBIND_DESKTOP_GOTO_0));
             }
             return;
 
         case KEYBIND_DESKTOP_ADD:
-            if (surface != NULL) {
-                enact_surface_desktop_add(surface);
+            if (stage != NULL) {
+                enact_stage_desktop_add(stage);
             }
             return;
 
         case KEYBIND_DESKTOP_REMOVE:
-            if (surface != NULL) {
-                enact_surface_desktop_remove(surface);
+            if (stage != NULL) {
+                enact_stage_desktop_remove(stage);
             }
             return;
 
         case KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE:
-            if (surface != NULL) {
-                enact_surface_toggle_strutless_maximize(surface);
+            if (stage != NULL) {
+                enact_stage_toggle_strutless_maximize(stage);
             }
             return;
 
         case KEYBIND_CLIENT_CYCLE_NEXT:
         case KEYBIND_CLIENT_CYCLE_PREV:
-            if (surface != NULL) {
+            if (stage != NULL) {
                 desktop_td *desktop =
-                    lookup_current_desktop(surface);
+                    lookup_current_desktop(stage);
                 if (desktop != NULL) {
                     if (btype == KEYBIND_CLIENT_CYCLE_NEXT) {
                         enact_desktop_cycle_clients_active(
-                                xcb_connection_get(), surface,
+                                xcb_connection_get(), stage,
                                 desktop, modmask, config);
                     } else {
                         enact_desktop_cycle_clients_prev(
-                                xcb_connection_get(), surface,
+                                xcb_connection_get(), stage,
                                 desktop, modmask, config);
                     }
                 }
@@ -601,18 +601,18 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
 
         case KEYBIND_DESKTOP_ICON_NEXT:
         case KEYBIND_DESKTOP_ICON_PREV:
-            if (surface != NULL) {
+            if (stage != NULL) {
                 desktop_td *desktop =
-                    lookup_current_desktop(surface);
+                    lookup_current_desktop(stage);
                 if (desktop != NULL) {
                     if (btype == KEYBIND_DESKTOP_ICON_NEXT) {
                         enact_desktop_cycle_clients_icons_next(
                                 xcb_connection_get(),
-                                surface, desktop, modmask, config);
+                                stage, desktop, modmask, config);
                     } else {
                         enact_desktop_cycle_clients_icons_prev(
                                 xcb_connection_get(),
-                                surface, desktop, modmask, config);
+                                stage, desktop, modmask, config);
                     }
                 }
             }
@@ -624,8 +624,8 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
 
         case KEYBIND_WM_FORTUNE:
             if (config->base.fortune.is_enabled &&
-                    surface != NULL && xcb_connection_get() != NULL) {
-                dialog_fortune_show(xcb_connection_get(), surface,
+                    stage != NULL && xcb_connection_get() != NULL) {
+                dialog_fortune_show(xcb_connection_get(), stage,
                         config);
             }
             return;
@@ -635,15 +635,15 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_WM_QUIT:
-            if (surface != NULL && xcb_connection_get() != NULL) {
-                dialog_quit_show(xcb_connection_get(), surface,
+            if (stage != NULL && xcb_connection_get() != NULL) {
+                dialog_quit_show(xcb_connection_get(), stage,
                         config);
             }
             return;
 
         case KEYBIND_WM_SHORTCUTS_LIST:
-            if (surface != NULL && xcb_connection_get() != NULL) {
-                dialog_shortcuts_show(xcb_connection_get(), surface,
+            if (stage != NULL && xcb_connection_get() != NULL) {
+                dialog_shortcuts_show(xcb_connection_get(), stage,
                         config);
             }
             return;
@@ -653,45 +653,45 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_WM_ROOT_MENU:
-            if (surface != NULL && xcb_connection_get() != NULL) {
+            if (stage != NULL && xcb_connection_get() != NULL) {
                 struct position_s pos;
 
                 /* Resolves 'menus.root.position' to an actual point,
                  * falling back to always-centered if there is no
                  * configuration to read it from */
-                s_menu_position_resolve(surface,
+                s_menu_position_resolve(stage,
                         (config != NULL)
                             ? config->base.menus.root.position
                             : CONFIG_MENU_POSITION_CENTER,
                         &pos);
 
-                rootmenu_show(wm, xcb_connection_get(), surface,
+                rootmenu_show(wm, xcb_connection_get(), stage,
                         pos, config);
             }
             return;
 
         case KEYBIND_WM_WINDOWS_MENU:
-            if (surface != NULL && xcb_connection_get() != NULL) {
+            if (stage != NULL && xcb_connection_get() != NULL) {
                 struct position_s pos;
 
                 /* Same position resolution as the root menu (see
                  * 'KEYBIND_WM_ROOT_MENU' above), just governed by its
                  * 'menus.windows.position' setting */
-                s_menu_position_resolve(surface,
+                s_menu_position_resolve(stage,
                         (config != NULL)
                             ? config->base.menus.windows.position
                             : CONFIG_MENU_POSITION_CENTER,
                         &pos);
 
-                winlist_show(xcb_connection_get(), surface,
+                winlist_show(xcb_connection_get(), stage,
                         pos, config);
             }
             return;
 
         case KEYBIND_WM_SEARCH_WINDOWS:
-            if (surface != NULL && xcb_connection_get() != NULL) {
-                search_init(surfaces, xcb_connection_get(),
-                        surface, config);
+            if (stage != NULL && xcb_connection_get() != NULL) {
+                search_init(stages, xcb_connection_get(),
+                        stage, config);
             }
             return;
 
@@ -699,13 +699,13 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             /* Hardcoded 'Alt+Space': opens the context menu of the
              * currently active client, anchored at its position
              * (unrelated to 'KEYBIND_WM_WINDOWS_MENU') */
-            client_td *const client = ik_get_active_client(surface,
-                    surfaces, NULL, NULL);
-            if (client != NULL && surface != NULL &&
+            client_td *const client = ik_get_active_client(stage,
+                    stages, NULL, NULL);
+            if (client != NULL && stage != NULL &&
                     xcb_connection_get() != NULL) {
                 desktop_td *desktop =
-                    lookup_current_desktop(surface);
-                wincmenu_show(xcb_connection_get(), surface,
+                    lookup_current_desktop(stage);
+                wincmenu_show(xcb_connection_get(), stage,
                         desktop, client,
                         client->layout.geometry.cur.pos, config);
             }
@@ -734,68 +734,68 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_INSPECT:
         case KEYBIND_CLIENT_TOGGLE_DECORATION:
         case KEYBIND_CLIENT_CYCLE_LAYER:
-            s_dispatch_client_action(btype, surface, surfaces,
+            s_dispatch_client_action(btype, stage, stages,
                     modmask, keycode, config);
             return;
 
         case KEYBIND_LAUNCH_TERMINAL:
-            ik_handle_launch(IK_LAUNCH_TERMINAL, surface, config);
+            ik_handle_launch(IK_LAUNCH_TERMINAL, stage, config);
             return;
         case KEYBIND_LAUNCH_LAUNCHER:
-            ik_handle_launch(IK_LAUNCH_LAUNCHER, surface, config);
+            ik_handle_launch(IK_LAUNCH_LAUNCHER, stage, config);
             return;
         case KEYBIND_LAUNCH_FILE_MANAGER:
-            ik_handle_launch(IK_LAUNCH_FILE_MANAGER, surface, config);
+            ik_handle_launch(IK_LAUNCH_FILE_MANAGER, stage, config);
             return;
         case KEYBIND_LAUNCH_WEB_BROWSER:
-            ik_handle_launch(IK_LAUNCH_WEB_BROWSER, surface, config);
+            ik_handle_launch(IK_LAUNCH_WEB_BROWSER, stage, config);
             return;
         case KEYBIND_LAUNCH_EDITOR:
-            ik_handle_launch(IK_LAUNCH_EDITOR, surface, config);
+            ik_handle_launch(IK_LAUNCH_EDITOR, stage, config);
             return;
 
         case KEYBIND_CLIENT_MOVE_LEFT:
-            ik_handle_move(IK_MOVE_LEFT, surface, surfaces, config);
+            ik_handle_move(IK_MOVE_LEFT, stage, stages, config);
             return;
         case KEYBIND_CLIENT_MOVE_RIGHT:
-            ik_handle_move(IK_MOVE_RIGHT, surface, surfaces, config);
+            ik_handle_move(IK_MOVE_RIGHT, stage, stages, config);
             return;
         case KEYBIND_CLIENT_MOVE_UP:
-            ik_handle_move(IK_MOVE_UP, surface, surfaces, config);
+            ik_handle_move(IK_MOVE_UP, stage, stages, config);
             return;
         case KEYBIND_CLIENT_MOVE_DOWN:
-            ik_handle_move(IK_MOVE_DOWN, surface, surfaces, config);
+            ik_handle_move(IK_MOVE_DOWN, stage, stages, config);
             return;
         case KEYBIND_CLIENT_MOVE_TOP_LEFT:
-            ik_handle_move(IK_MOVE_TOP_LEFT, surface, surfaces,
+            ik_handle_move(IK_MOVE_TOP_LEFT, stage, stages,
                     config);
             return;
         case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
-            ik_handle_move(IK_MOVE_TOP_RIGHT, surface, surfaces,
+            ik_handle_move(IK_MOVE_TOP_RIGHT, stage, stages,
                     config);
             return;
         case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-            ik_handle_move(IK_MOVE_BOTTOM_LEFT, surface, surfaces,
+            ik_handle_move(IK_MOVE_BOTTOM_LEFT, stage, stages,
                     config);
             return;
         case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-            ik_handle_move(IK_MOVE_BOTTOM_RIGHT, surface, surfaces,
+            ik_handle_move(IK_MOVE_BOTTOM_RIGHT, stage, stages,
                     config);
             return;
 
         case KEYBIND_CLIENT_RESIZE_LEFT:
-            ik_handle_resize(IK_RESIZE_LEFT, surface, surfaces,
+            ik_handle_resize(IK_RESIZE_LEFT, stage, stages,
                     config);
             return;
         case KEYBIND_CLIENT_RESIZE_RIGHT:
-            ik_handle_resize(IK_RESIZE_RIGHT, surface, surfaces,
+            ik_handle_resize(IK_RESIZE_RIGHT, stage, stages,
                     config);
             return;
         case KEYBIND_CLIENT_RESIZE_UP:
-            ik_handle_resize(IK_RESIZE_UP, surface, surfaces, config);
+            ik_handle_resize(IK_RESIZE_UP, stage, stages, config);
             return;
         case KEYBIND_CLIENT_RESIZE_DOWN:
-            ik_handle_resize(IK_RESIZE_DOWN, surface, surfaces,
+            ik_handle_resize(IK_RESIZE_DOWN, stage, stages,
                     config);
             return;
 

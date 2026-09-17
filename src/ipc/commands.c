@@ -6,7 +6,7 @@
  * Every handler this table names lives under ipc/actions/, grouped
  * the same way @c cmds/client/ already groups the @c enact_client_*
  * catalog itself (basic, geom, layer, meta, state), plus one file
- * each for desktop-scoped actions, surface (desktop-switching)
+ * each for desktop-scoped actions, stage (desktop-switching)
  * actions, whole-window-manager actions, and the read-only queries.
  * This file owns only the table itself and the top-level parsing
  * (is it JSON, does it have a string "cmd") that has to happen
@@ -46,7 +46,7 @@
 #include <ipc/actions/desktop.h>
 #include <ipc/actions/query.h>
 #include <ipc/actions/scratchpad.h>
-#include <ipc/actions/surface.h>
+#include <ipc/actions/stage.h>
 #include <ipc/actions/wm.h>
 #include <ipc/commands.h>
 
@@ -163,8 +163,8 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "deiconify_all",            ipc_action_deiconify_all },
     { "rearrange_desktop",        ipc_action_rearrange },
 
-    /* Surface actions, which switch, add and remove desktops, live
-     * in 'ipc/actions/surface.h' */
+    /* Stage actions, which switch, add and remove desktops, live
+     * in 'ipc/actions/stage.h' */
     { "goto_desktop",             ipc_action_goto_desktop },
     { "goto_north_desktop",       ipc_action_goto_north_desktop },
     { "goto_south_desktop",       ipc_action_goto_south_desktop },

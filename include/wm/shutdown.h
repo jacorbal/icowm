@@ -43,7 +43,7 @@
 /**
  * @brief Begin a coordinated shutdown
  *
- * Asks every currently managed client, across every surface and
+ * Asks every currently managed client, across every stage and
  * desktop, to close itself, then lets @a wm_shutdown_tick finish the
  * job once every client has actually closed or the configured timeout
  * elapses, whichever comes first.
@@ -56,7 +56,7 @@
  * @param wm Window manager instance
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients across every surface and desktop
+ *       clients across every stage and desktop
  *
  * @see see @a ccmd_client_close in @c cmds/client/focus.h
  */
@@ -129,7 +129,7 @@ bool wm_shutdown_is_in_progress(void);
  *
  * @note A no-op unless a shutdown is currently in progress
  * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients across every surface and desktop
+ *       clients across every stage and desktop
  *
  * @see @a ccmd_client_kill in @c cmds/client/focus.h
  */

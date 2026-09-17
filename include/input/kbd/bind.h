@@ -9,7 +9,7 @@
  * querying the active binding table.
  *
  * This module has no knowledge of the window manager singleton; every
- * function receives explicit parameters for the XCB connection, surface
+ * function receives explicit parameters for the XCB connection, stage
  * list, and configuration pointer.
  *
  * @ingroup input_kbd
@@ -193,7 +193,7 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_GOTO_8,
     KEYBIND_DESKTOP_GOTO_9,
 
-    /* Add or remove the surface's last desktop */
+    /* Add or remove the stage's last desktop */
     KEYBIND_DESKTOP_ADD,
     KEYBIND_DESKTOP_REMOVE,
 
@@ -243,25 +243,25 @@ typedef struct {
  *
  * Reads every keyboard binding from @p config, resolves each one to
  * a keysym and modifier mask, stores it in the internal binding table,
- * and calls @c xcb_grab_key on every root window in @p surfaces
+ * and calls @c xcb_grab_key on every root window in @p stages
  * (including all lock-modifier variants).
  *
- * @param surfaces Singly-linked list of @c surface_td pointers
- * @param keysyms  Allocated XCB key-symbols table
- * @param config   Configuration from which to read binding strings
+ * @param stages  Singly-linked list of @c stage_td pointers
+ * @param keysyms Allocated XCB key-symbols table
+ * @param config  Configuration from which to read binding strings
  *
  * @note Complexity: @e O(b * s * k), where @e b is the number of
- *       bindings, @e s is the number of surfaces, and @e k is the
+ *       bindings, @e s is the number of stages, and @e k is the
  *       number of keycodes per keysym
  */
-void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
+void keyboard_load(list_td *stages, xcb_key_symbols_t *keysyms,
         const config_td *config);
 
 /**
  * @brief Look up the first binding registered for a given action type
  *
- * @param type        Action type to search for
- * @param keysym_out  Receives the matching keysym (set to
+ * @param type       Action type to search for
+ * @param keysym_out Receives the matching keysym (set to
  *                    @c XCB_NO_SYMBOL on failure)
  * @param modmask_out Receives the matching modifier mask (set to 0 on
  *                    failure)

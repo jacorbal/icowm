@@ -36,7 +36,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -44,20 +44,20 @@
 #include <menu/dialog/quit.h>
 
 
-/** Fake, non-null XCB connection/surface/config handles, standing in
+/** Fake, non-null XCB connection/stage/config handles, standing in
  *  for live ones wherever quit.c merely forwards them onward without
  *  ever dereferencing them itself */
 static int s_fake_connection_storage;
 static xcb_connection_t *const s_fake_connection =
     (xcb_connection_t *) &s_fake_connection_storage;
-static surface_td s_fake_surface;
+static stage_td s_fake_stage;
 static config_td s_fake_config;
 
 /** Recording stand-in's own call counter and captured arguments,
  *  reset by s_reset between scenarios */
 static int s_call_confirm_show;
 static xcb_connection_t *s_confirm_connection;
-static surface_td *s_confirm_surface;
+static stage_td *s_confirm_stage;
 static const config_td *s_confirm_config;
 static char s_confirm_prompt[256];
 static char s_confirm_cancel_label[64];
@@ -79,7 +79,7 @@ static void s_reset(void)
 {
     s_call_confirm_show = 0;
     s_confirm_connection = NULL;
-    s_confirm_surface = NULL;
+    s_confirm_stage = NULL;
     s_confirm_config = NULL;
     s_confirm_prompt[0] = '\0';
     s_confirm_cancel_label[0] = '\0';
@@ -96,7 +96,7 @@ static void s_reset(void)
  * @note Complexity: @e O(1)
  */
 void menu_confirm_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *prompt, const char *cancel_label,
         const char *confirm_label,
         void (*on_confirm)(xcb_connection_t *),
@@ -105,7 +105,7 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
 {
     s_call_confirm_show++;
     s_confirm_connection = connection;
-    s_confirm_surface = surface;
+    s_confirm_stage = stage;
     s_confirm_config = config;
     (void) strncpy(s_confirm_prompt, (prompt != NULL) ? prompt : "",
             sizeof(s_confirm_prompt) - 1u);
@@ -135,19 +135,19 @@ void wm_request_graceful_stop(void)
 
 
 /* dialog_quit_show delegates to menu_confirm_dialog_show exactly once,
- * forwarding the connection, surface, and config unchanged */
+ * forwarding the connection, stage, and config unchanged */
 static void s_test_show_delegates_to_confirm(void)
 {
     s_reset();
-    dialog_quit_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_quit_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_EQ_INT(s_call_confirm_show, 1,
             "quit_show: delegates to menu_confirm_dialog_show exactly"
             " once");
     TAP_OK(s_confirm_connection == s_fake_connection,
             "quit_show: forwards the connection unchanged");
-    TAP_OK(s_confirm_surface == &s_fake_surface,
-            "quit_show: forwards the surface unchanged");
+    TAP_OK(s_confirm_stage == &s_fake_stage,
+            "quit_show: forwards the stage unchanged");
     TAP_OK(s_confirm_config == &s_fake_config,
             "quit_show: forwards the config unchanged");
 }
@@ -158,7 +158,7 @@ static void s_test_show_delegates_to_confirm(void)
 static void s_test_show_builds_prompt_with_wm_name(void)
 {
     s_reset();
-    dialog_quit_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_quit_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_OK(strstr(s_confirm_prompt, "IcoWM") != NULL,
             "quit_show: prompt mentions the window manager's EWMH name");
@@ -172,7 +172,7 @@ static void s_test_show_builds_prompt_with_wm_name(void)
 static void s_test_show_passes_labels_and_no_timeout(void)
 {
     s_reset();
-    dialog_quit_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_quit_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_OK(s_confirm_cancel_label[0] != '\0',
             "quit_show: passes a non-empty cancel label");
@@ -192,7 +192,7 @@ static void s_test_show_passes_labels_and_no_timeout(void)
 static void s_test_confirm_callback_requests_graceful_stop(void)
 {
     s_reset();
-    dialog_quit_show(s_fake_connection, &s_fake_surface, &s_fake_config);
+    dialog_quit_show(s_fake_connection, &s_fake_stage, &s_fake_config);
 
     TAP_NOT_NULL(s_confirm_on_confirm,
             "quit_show: on_confirm callback was captured before"

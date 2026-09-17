@@ -17,7 +17,7 @@
  * not because wm_action_rearrange itself ever does) is a link-only
  * stand-in below, never actually reached by any scenario in this file,
  * exactly the same shape test_desktop_add_remove.c already uses for
- * the handful of symbols surface/switch.c pulls in that its own tests
+ * the handful of symbols stage/switch.c pulls in that its own tests
  * never reach either.
  *
  * wm_action_rearrange itself calls exactly two functions:
@@ -60,7 +60,7 @@
 #include <harness/tap.h>
 #include <lookup.h>
 #include <session.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 #include <wm/internal.h>
 
@@ -74,7 +74,7 @@ static desktop_td *s_stub_current_desktop = NULL;
  *  scenario below asserts on */
 static int s_rearrange_call_count = 0;
 static const wm_td *s_rearrange_last_wm = NULL;
-static surface_td *s_rearrange_last_surface = NULL;
+static stage_td *s_rearrange_last_stage = NULL;
 static const desktop_td *s_rearrange_last_desktop = NULL;
 
 
@@ -87,18 +87,18 @@ static void s_stub_reset(void)
     s_stub_current_desktop = NULL;
     s_rearrange_call_count = 0;
     s_rearrange_last_wm = NULL;
-    s_rearrange_last_surface = NULL;
+    s_rearrange_last_stage = NULL;
     s_rearrange_last_desktop = NULL;
 }
 
 
 /** Link-only stand-in for lookup_current_desktop (lookup.c): hands
  *  back whichever desktop the scenario set up beforehand, ignoring
- *  'surface' itself, since nothing here builds a real surface/desktop
+ *  'stage' itself, since nothing here builds a real stage/desktop
  *  cdlist relationship for it to search */
-desktop_td *lookup_current_desktop(surface_td *surface)
+desktop_td *lookup_current_desktop(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return s_stub_current_desktop;
 }
 
@@ -106,12 +106,12 @@ desktop_td *lookup_current_desktop(surface_td *surface)
 /** Link-only stand-in for enact_desktop_client_rearrange_all (enact.c):
  *  records that it was reached, and with what, instead of actually
  *  touching any client */
-void enact_desktop_client_rearrange_all(const wm_td *wm, surface_td *surface,
+void enact_desktop_client_rearrange_all(const wm_td *wm, stage_td *stage,
         const desktop_td *desktop)
 {
     ++s_rearrange_call_count;
     s_rearrange_last_wm = wm;
-    s_rearrange_last_surface = surface;
+    s_rearrange_last_stage = stage;
     s_rearrange_last_desktop = desktop;
 }
 
@@ -171,11 +171,11 @@ void config_missing_theme_reset(void)
 
 
 /** Link-only stand-in for dialog_rrsafe_show (menu/dialog/rrsafe.c) */
-void dialog_rrsafe_show(xcb_connection_t *connection, surface_td *surface,
+void dialog_rrsafe_show(xcb_connection_t *connection, stage_td *stage,
         config_td *config)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
 }
 
@@ -188,19 +188,19 @@ void json_syntax_errors_reset(void)
 
 
 /** Link-only stand-in for keyboard_load (input/kbd/bind.c) */
-void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
+void keyboard_load(list_td *stages, xcb_key_symbols_t *keysyms,
         config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) keysyms;
     (void) config;
 }
 
 
 /** Link-only stand-in for mouse_load (input/mouse/bind.c) */
-void mouse_load(list_td *surfaces, const config_td *config)
+void mouse_load(list_td *stages, const config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) config;
 }
 
@@ -261,66 +261,66 @@ void session_run_hook(const session_td *session, enum session_hook_e hook)
 }
 
 
-/** Link-only stand-in for surface_action_randr_snapshot_begin
- *  (surface/actions/randr.c) */
-void surface_action_randr_snapshot_begin(void)
+/** Link-only stand-in for stage_action_randr_snapshot_begin
+ *  (stage/actions/randr.c) */
+void stage_action_randr_snapshot_begin(void)
 {
 }
 
 
-/** Link-only stand-in for surface_action_randr_apply_profiles
- *  (surface/actions/randr.c) */
-bool surface_action_randr_apply_profiles(surface_td *surface,
+/** Link-only stand-in for stage_action_randr_apply_profiles
+ *  (stage/actions/randr.c) */
+bool stage_action_randr_apply_profiles(stage_td *stage,
         bool take_snapshot)
 {
-    (void) surface;
+    (void) stage;
     (void) take_snapshot;
     return false;
 }
 
 
 /**
- * @brief Link-only stand-in for scmd_surface_viewport_reclamp
+ * @brief Link-only stand-in for scmd_stage_viewport_reclamp
  *
  * Reached only from 's_desktop_reload_visit' (wm/actions.c, static,
  * unreachable from here except through 'wm_action_config_reload'
  * itself), which no test in this file drives far enough to call it:
- * 'config_load' below always fails, and 'surface_desktop_walk_all' just
+ * 'config_load' below always fails, and 'stage_desktop_walk_all' just
  * below visits nothing, so nothing in the reload path past that point
  * is exercised here at all, this one line no differently than every
  * other one already in it.
  */
-void scmd_surface_viewport_reclamp(surface_td *surface,
+void scmd_stage_viewport_reclamp(stage_td *stage,
         desktop_td *desktop)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop;
 }
 
 
-/** Link-only stand-in for surface_desktop_walk_all (surface/desktops.c) */
-void surface_desktop_walk_all(const surface_td *surface,
-        surface_desktop_visitor_fn visit, void *data)
+/** Link-only stand-in for stage_desktop_walk_all (stage/desktops.c) */
+void stage_desktop_walk_all(const stage_td *stage,
+        stage_desktop_visitor_fn visit, void *data)
 {
-    (void) surface;
+    (void) stage;
     (void) visit;
     (void) data;
 }
 
 
-/** Link-only stand-in for surface_workarea_refresh_all
- *  (surface/workareas.c) */
-void surface_workarea_refresh_all(surface_td *surface)
+/** Link-only stand-in for stage_workarea_refresh_all
+ *  (stage/workareas.c) */
+void stage_workarea_refresh_all(stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
 }
 
 
 /** Link-only stand-in for systray_get_geometry (systray.c) */
-bool systray_get_geometry(const surface_td *surface,
+bool systray_get_geometry(const stage_td *stage,
         struct geometry_s *restrict out_tray)
 {
-    (void) surface;
+    (void) stage;
     (void) out_tray;
     return false;
 }
@@ -418,8 +418,8 @@ session_td *wm_session(const wm_td *wm)
 }
 
 
-/** Link-only stand-in for wm_surfaces (wm/instance.c) */
-list_td *wm_surfaces(const wm_td *wm)
+/** Link-only stand-in for wm_stages (wm/instance.c) */
+list_td *wm_stages(const wm_td *wm)
 {
     (void) wm;
     return NULL;
@@ -457,22 +457,22 @@ static wm_td s_make_wm(void)
 
 
 /**
- * @brief Build a minimal surface_td, distinguishable from another by
+ * @brief Build a minimal stage_td, distinguishable from another by
  *        its 'id' alone
  */
-static surface_td s_make_surface(uint32_t id)
+static stage_td s_make_stage(uint32_t id)
 {
-    surface_td surface;
+    stage_td stage;
 
-    memset(&surface, 0, sizeof(surface));
-    surface.id = id;
-    return surface;
+    memset(&stage, 0, sizeof(stage));
+    stage.id = id;
+    return stage;
 }
 
 
-/* A null surface is refused outright: neither lookup_current_desktop
+/* A null stage is refused outright: neither lookup_current_desktop
  * nor enact_desktop_client_rearrange_all is ever reached */
-static void s_test_null_surface_is_refused(void)
+static void s_test_null_stage_is_refused(void)
 {
     wm_td wm = s_make_wm();
 
@@ -480,22 +480,22 @@ static void s_test_null_surface_is_refused(void)
     wm_action_rearrange(&wm, NULL);
 
     TAP_EQ_INT(s_rearrange_call_count, 0,
-            "a null surface never reaches"
+            "a null stage never reaches"
             " enact_desktop_client_rearrange_all");
 }
 
 
-/* A surface with no current desktop (lookup_current_desktop returns
- * NULL, e.g., an uninitialized or torn-down surface) is also a safe
+/* A stage with no current desktop (lookup_current_desktop returns
+ * NULL, e.g., an uninitialized or torn-down stage) is also a safe
  * no-op */
-static void s_test_surface_with_no_current_desktop_is_a_no_op(void)
+static void s_test_stage_with_no_current_desktop_is_a_no_op(void)
 {
     wm_td wm = s_make_wm();
-    surface_td surface = s_make_surface(0u);
+    stage_td stage = s_make_stage(0u);
 
     s_stub_reset();
     s_stub_current_desktop = NULL;
-    wm_action_rearrange(&wm, &surface);
+    wm_action_rearrange(&wm, &stage);
 
     TAP_EQ_INT(s_rearrange_call_count, 0,
             "no current desktop never reaches"
@@ -503,14 +503,14 @@ static void s_test_surface_with_no_current_desktop_is_a_no_op(void)
 }
 
 
-/* The ordinary case: a surface with a real current desktop reaches
+/* The ordinary case: a stage with a real current desktop reaches
  * enact_desktop_client_rearrange_all exactly once, with the exact same
- * wm, surface, and desktop pointers wm_action_rearrange itself
+ * wm, stage, and desktop pointers wm_action_rearrange itself
  * received or looked up */
 static void s_test_rearrange_dispatches_with_exact_arguments(void)
 {
     wm_td wm = s_make_wm();
-    surface_td surface = s_make_surface(7u);
+    stage_td stage = s_make_stage(7u);
     desktop_td desktop;
 
     memset(&desktop, 0, sizeof(desktop));
@@ -518,16 +518,16 @@ static void s_test_rearrange_dispatches_with_exact_arguments(void)
     s_stub_reset();
     s_stub_current_desktop = &desktop;
 
-    wm_action_rearrange(&wm, &surface);
+    wm_action_rearrange(&wm, &stage);
 
     TAP_EQ_INT(s_rearrange_call_count, 1,
-            "a surface with a current desktop reaches"
+            "a stage with a current desktop reaches"
             " enact_desktop_client_rearrange_all exactly once");
     TAP_OK(s_rearrange_last_wm == &wm,
             "the exact wm pointer wm_action_rearrange received is"
             " forwarded unchanged");
-    TAP_OK(s_rearrange_last_surface == &surface,
-            "the exact surface pointer wm_action_rearrange received"
+    TAP_OK(s_rearrange_last_stage == &stage,
+            "the exact stage pointer wm_action_rearrange received"
             " is forwarded unchanged");
     TAP_OK(s_rearrange_last_desktop == &desktop,
             "the exact desktop lookup_current_desktop resolved is"
@@ -535,15 +535,15 @@ static void s_test_rearrange_dispatches_with_exact_arguments(void)
 }
 
 
-/* Calling wm_action_rearrange again on a second, distinct surface (a
- * second monitor's own surface, say) dispatches independently: the
- * most recent call's arguments reflect that second surface and
+/* Calling wm_action_rearrange again on a second, distinct stage (a
+ * second monitor's own stage, say) dispatches independently: the
+ * most recent call's arguments reflect that second stage and
  * desktop, not the first */
-static void s_test_repeated_calls_reflect_the_latest_surface(void)
+static void s_test_repeated_calls_reflect_the_latest_stage(void)
 {
     wm_td wm = s_make_wm();
-    surface_td surface_a = s_make_surface(0u);
-    surface_td surface_b = s_make_surface(1u);
+    stage_td stage_a = s_make_stage(0u);
+    stage_td stage_b = s_make_stage(1u);
     desktop_td desktop_a;
     desktop_td desktop_b;
 
@@ -554,15 +554,15 @@ static void s_test_repeated_calls_reflect_the_latest_surface(void)
     s_stub_reset();
 
     s_stub_current_desktop = &desktop_a;
-    wm_action_rearrange(&wm, &surface_a);
+    wm_action_rearrange(&wm, &stage_a);
     s_stub_current_desktop = &desktop_b;
-    wm_action_rearrange(&wm, &surface_b);
+    wm_action_rearrange(&wm, &stage_b);
 
     TAP_EQ_INT(s_rearrange_call_count, 2,
-            "two rearrange calls on two distinct surfaces both reach"
+            "two rearrange calls on two distinct stages both reach"
             " enact_desktop_client_rearrange_all");
-    TAP_OK(s_rearrange_last_surface == &surface_b,
-            "the most recent call's surface is the second surface,"
+    TAP_OK(s_rearrange_last_stage == &stage_b,
+            "the most recent call's stage is the second stage,"
             " not the first");
     TAP_OK(s_rearrange_last_desktop == &desktop_b,
             "the most recent call's desktop is the second desktop,"
@@ -574,10 +574,10 @@ int main(void)
 {
     TAP_PLAN(9);
 
-    s_test_null_surface_is_refused();
-    s_test_surface_with_no_current_desktop_is_a_no_op();
+    s_test_null_stage_is_refused();
+    s_test_stage_with_no_current_desktop_is_a_no_op();
     s_test_rearrange_dispatches_with_exact_arguments();
-    s_test_repeated_calls_reflect_the_latest_surface();
+    s_test_repeated_calls_reflect_the_latest_stage();
 
     return TAP_DONE();
 }

@@ -44,19 +44,19 @@
  * against two edges at once (a screen corner), the horizontal edge
  * wins, the same convention @a drag_warp_edge_check already uses.
  *
- * @param surfaces Every managed surface, to resolve @p root to the one
+ * @param stages Every managed stage, to resolve @p root to the one
  *                 whose configuration and viewport size govern whether
  *                 this may fire
- * @param root     Root window the motion happened on
- * @param root_x   Pointer X position in root-window coordinates
- * @param root_y   Pointer Y position in root-window coordinates
+ * @param root   Root window the motion happened on
+ * @param root_x Pointer X position in root-window coordinates
+ * @param root_y Pointer Y position in root-window coordinates
  *
  * @note A no-op, clearing any pending pan, unless @p root resolves to a
- *       surface with @c viewport.pan_on_edge_hover enabled and a
+ *       stage with @c viewport.pan_on_edge_hover enabled and a
  *       @c viewport wider or taller than one physical screen
  * @note Complexity: @e O(1)
  */
-void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
+void mouse_viewport_edge_check(list_td *stages, xcb_window_t root,
         int16_t root_x, int16_t root_y);
 
 /**
@@ -85,7 +85,7 @@ int mouse_viewport_edge_ms_remaining(void);
  * this back up.  Re-queries the live pointer position first, rather
  * than trusting whichever coordinates the countdown was originally
  * armed with in @a mouse_viewport_edge_check, so a pointer that
- * already moved away from the edge (or a surface whose configuration
+ * already moved away from the edge (or a stage whose configuration
  * changed) is never acted on stale; a drag that started in the
  * meantime (@a drag_is_active) is likewise deferred to entirely, so
  * this never second-guesses that drag's own edge-triggered desktop
@@ -97,7 +97,7 @@ int mouse_viewport_edge_ms_remaining(void);
  * @param connection XCB connection
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the current desktop (from @a scmd_surface_viewport_pan_north
+ *       the current desktop (from @a scmd_stage_viewport_pan_north
  *       and its three siblings)
  */
 void mouse_viewport_edge_tick(xcb_connection_t *connection);

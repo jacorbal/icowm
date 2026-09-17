@@ -94,7 +94,7 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
  * into the provided buffer as a human-readable timestamp with timezone
  * offset in the form `YYYY-MM-DD HH:MM:SS.UUUUUU +/-HHMM`.
  *
- * @param buffer    Pointer to the character array where the formatted
+ * @param buffer Pointer to the character array where the formatted
  *                  timestamp will be stored
  * @param buffer_sz Size of the buffer in bytes
  *

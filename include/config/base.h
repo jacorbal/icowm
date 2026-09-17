@@ -41,7 +41,7 @@
  * desktop's work area instead, unaffected by wherever the pointer
  * happens to be; @a s_menu_position_resolve (@c input/kbd/execute.c)
  * resolves each to the exact point that leaves the menu flush against
- * it once @a ctxmenu_show's own edge clamping runs.
+ * it once @a ctxmenu_show's edge clamping runs.
  */
 enum config_menu_position_e {
     CONFIG_MENU_POSITION_CENTER = 0,   /**< Always screen-centered */
@@ -86,8 +86,8 @@ enum config_desktop_corner_e {
  *
  * Purely an interpretation over the same flat, zero-based desktop
  * list @c desktops[] itself already is: north/south/east/west
- * navigation (@a surface_desktop_north and its three siblings,
- * surface/desktops.c) reads this to translate a desktop's flat
+ * navigation (@a stage_desktop_north and its three siblings,
+ * stage/desktops.c) reads this to translate a desktop's flat
  * index to and from a row/column position, but nothing about
  * @c desktops[] itself, or a desktop's settings within it, changes
  * depending on whether one is configured at all.
@@ -99,7 +99,7 @@ enum config_desktop_corner_e {
  * reading order the desktop list itself already had before this
  * existed, so a config that never mentions layout at all behaves
  * identically to before.  The same fallback also applies whenever a
- * given @c layout fails validation (see @c ci_config_load_screens's
+ * given @c layout fails validation (see @c ci_config_screens_load's
  * comment, @c config/base/desktops.c, for what "fails validation" means
  * here).
  */
@@ -117,8 +117,8 @@ struct config_desktop_layout_s {
  * Not to be confused with @c config_desktop_layout_s above: that one
  * arranges separate desktop entities in a grid for north/south/east/
  * west switching between them, while this one instead sizes a single
- * desktop's own pannable area, wider and/or taller than the physical
- * screen by this many whole screens, that @c CLIENT_FLAG_STICKY
+ * desktop's pannable area, wider and/or taller than the physical screen
+ * by this many whole screens, that @c CLIENT_FLAG_STICKY
  * (@c client/state.h) is defined against.
  *
  * Always populated with a valid value, whether
@@ -143,7 +143,8 @@ struct config_base_s {
 
     /* Icon placement policy settings */
     struct {
-        bool show_geom;   /**< Show geometry overlay on move/resize */
+        /** Show geometry overlay on move/resize */
+        bool show_geom;
         enum config_icon_placement_e {
             /** Bottom row, the default */
             CONFIG_ICON_PLACEMENT_BOTTOM = 0,
@@ -296,7 +297,7 @@ struct config_base_s {
 
         /**
          * @brief Which physical monitor a placement decision is
-         *        resolved against, on a surface made of more than one
+         *        resolved against, on a stage made of more than one
          *        sharing the same combined X screen
          *
          * @c pointer (default) picks whichever monitor the pointer is
@@ -307,7 +308,7 @@ struct config_base_s {
          * currently active client, falling back to @c pointer when
          * there is none, @c primary always picks the one RandR reports
          * as primary, and @c index picks @p monitor_index explicitly (a
-         * zero-based index into the surface's monitor list, falling
+         * zero-based index into the stage's monitor list, falling
          * back to monitor 0 if it does not exist, logging a warning,
          * the same as @c systray.monitor.index and @c rules.json's
          * @c apply.monitor).
@@ -406,13 +407,12 @@ struct config_base_s {
     /**
      * @brief What the manager does when a window asks for attention
      *
-     * Not to be confused with @c a11y.json's own @c urgency section,
-     * which holds @c sound-bell and @c blink-interval-ms: those say
-     * how the attention request is made perceptible once the
-     * accessibility mode is switched on, while this says whether the
-     * manager announces one the user cannot see at all.  Ordinary
-     * behavior, on by default, rather than something behind
-     * @c a11y.json's own opt-in.
+     * Not to be confused with @c a11y.json's @c urgency section, which
+     * holds @c sound-bell and @c blink-interval-ms: those say how the
+     * attention request is made perceptible once the accessibility mode
+     * is switched on, while this says whether the manager announces one
+     * the user cannot see at all.  Ordinary behavior, on by default,
+     * rather than something behind @c a11y.json's opt-in.
      *
      * @see @a desktop_clients_recompute_urgent in @c desktop/dclient.h
      */
@@ -444,8 +444,8 @@ struct config_base_s {
     struct {
         uint32_t pan_step;  /**< Keyboard pan step in pixels; mouse
                                  dragging on the desktop background
-                                 moves by the exact drag delta instead,
-                                 never by this */
+                                 moves by the exact drag delta
+                                 instead, never by this */
 
         /**
          * @brief Whether panning also moves the desktop icons, rather
@@ -482,9 +482,9 @@ struct config_base_s {
         bool pan_on_edge_drag;
 
         /**
-         * @brief Whether resting the pointer against a screen edge, with
-         *        no drag in progress, pans the current desktop's viewport
-         *        toward that edge
+         * @brief Whether resting the pointer against a screen edge,
+         *        with no drag in progress, pans the current desktop's
+         *        viewport toward that edge
          *
          * Held there past @c WM_VIEWPORT_PAN_DELAY_MS
          * (@c defs/desktop.h), pans one screen toward the held edge,
@@ -494,9 +494,8 @@ struct config_base_s {
          * @note Meaningless on a screen whose @c viewport is @c 1x1 (no
          *       panning configured), or while a window or icon is being
          *       dragged: an edge held during a drag is
-         *       @c pan_on_edge_drag and
-         *       @c desktops.warp_on_edge_drag's to answer instead,
-         *       never this one's
+         *       @c pan_on_edge_drag and @c desktops.warp_on_edge_drag's
+         *       to answer instead, never this one's
          */
         bool pan_on_edge_hover;
 
@@ -513,7 +512,7 @@ struct config_base_s {
          * viewport moved or where in it the current page sits.
          *
          * @p is_enabled alone does not decide whether anything is
-         * painted: a mesh is only ever drawn on a surface whose
+         * painted: a mesh is only ever drawn on a stage whose
          * viewport can actually pan, and never while an external tool
          * owns the root window's pixels (@a viewport_mesh_is_visible,
          * @c render/viewport/mesh.c).
@@ -622,15 +621,15 @@ struct config_base_s {
 
         /**
          * @brief Which physical monitor the tray dock is anchored to,
-         *        on a surface made of more than one sharing the same
+         *        on a stage made of more than one sharing the same
          *        combined X screen
          *
-         * @p anchor picks the strategy: @p surface (default) anchors
-         * @p position's corner to the whole combined surface, exactly
+         * @p anchor picks the strategy: @p stage (default) anchors
+         * @p position's corner to the whole combined stage, exactly
          * as if there were only one monitor; @p primary anchors it to
          * the monitor RandR reports as primary; @p index anchors it to
          * @p monitor.index specifically, a zero-based index into that
-         * surface's monitor list (falls back to monitor 0 if it does
+         * stage's monitor list (falls back to monitor 0 if it does
          * not exist, logging a warning, the same as @c rules.json's
          * @c apply.monitor).
          *
@@ -643,7 +642,7 @@ struct config_base_s {
          */
         struct {
             enum config_systray_monitor_anchor_e {
-                CONFIG_SYSTRAY_MONITOR_SURFACE = 0,
+                CONFIG_SYSTRAY_MONITOR_STAGE = 0,
                 CONFIG_SYSTRAY_MONITOR_PRIMARY,
                 CONFIG_SYSTRAY_MONITOR_INDEX
             } anchor;
@@ -861,7 +860,7 @@ struct config_base_s {
              *        left-to-right order
              *
              * An item absent from this list does not show even if its
-             * own @p is_enabled is @c true, and one with @p is_enabled
+             * @p is_enabled is @c true, and one with @p is_enabled
              * @c false is skipped even if listed here.
              */
             enum config_systray_text_item_e {
@@ -896,8 +895,8 @@ struct config_base_s {
                     /* Pixmap image; */         /**< Background image */
                     uint32_t color;             /**< Background color */
                 } background;
-            } settings;                 /**< Desktop settings */
-        } desktops[CONFIG_MAX_DESKTOPS];    /**< Desktops per screen */
+            } settings;                         /**< Desktop settings */
+        } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
     } screens[CONFIG_MAX_SCREENS];              /**< All screens */
 
     /**

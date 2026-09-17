@@ -42,7 +42,7 @@
  * @brief Maximum desktops shown as top-level entries
  *
  * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
- * for how many desktops a surface can ever have, rather than an
+ * for how many desktops a stage can ever have, rather than an
  * independent number of its own: a smaller, separately-chosen value
  * here would silently make every desktop past it unreachable from this
  * menu, exactly the kind of drift that set in when
@@ -112,7 +112,7 @@
 /**
  * @brief Open the window list menu
  *
- * Iterates over all desktops on @p surface, and for each desktop that
+ * Iterates over all desktops on @p stage, and for each desktop that
  * has at least one client, adds a label entry for the desktop and one
  * command entry per client.  Any previously open window list menu is
  * closed first.  Runs a first, counting-only pass over every client
@@ -125,7 +125,7 @@
  * session actually has.
  *
  * @param connection XCB connection
- * @param surface    Surface whose clients are listed
+ * @param stage      Stage whose clients are listed
  * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
@@ -135,7 +135,7 @@
  *       became dynamically sized
  */
 void winlist_show(xcb_connection_t *connection,
-        surface_td *surface, struct position_s pos,
+        stage_td *stage, struct position_s pos,
         const config_td *config);
 
 /**
@@ -165,7 +165,7 @@ void winlist_repaint(xcb_window_t win);
  * @brief Handle a button-press event inside the window list menu
  *
  * @param connection XCB connection
- * @param surface    Surface associated with the event
+ * @param stage      Stage associated with the event
  * @param win        Window that received the press
  * @param root_y     Pointer Y in root (screen) coordinates
  * @param config     Active configuration
@@ -175,7 +175,7 @@ void winlist_repaint(xcb_window_t win);
  * @note Complexity: @e O(1)
  */
 bool winlist_handle_click(xcb_connection_t *connection,
-        surface_td *surface, xcb_window_t win, int root_y,
+        stage_td *stage, xcb_window_t win, int root_y,
         const config_td *config);
 
 /**
@@ -221,7 +221,7 @@ void winlist_notice_client_destroyed(const client_td *client);
  * Forwards the key event to the window list menu context.
  *
  * @param connection XCB connection
- * @param surface    Surface on which the menu is displayed
+ * @param stage      Stage on which the menu is displayed
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
@@ -230,7 +230,7 @@ void winlist_notice_client_destroyed(const client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of menu entries
  */
 bool winlist_handle_keypress(xcb_connection_t *connection,
-        surface_td *surface, xcb_keysym_t keysym,
+        stage_td *stage, xcb_keysym_t keysym,
         const config_td *config);
 
 /**
@@ -240,8 +240,8 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
  *
  * @param win Window that received the motion event (unused; window list
  *            has a single-state hierarchy)
- * @param x   Pointer X relative to the menu window
- * @param y   Pointer Y relative to the menu window
+ * @param x Pointer X relative to the menu window
+ * @param y Pointer Y relative to the menu window
  *
  * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */

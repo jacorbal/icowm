@@ -29,7 +29,7 @@
 /* Project includes */
 #include <config.h>
 #include <i18n.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <menu/dialog/fortune.h>
@@ -39,7 +39,7 @@
 /* Show the output of the configured 'fortune' command, or an
  * invitation to install/configure it */
 void dialog_fortune_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config)
+        stage_td *stage, const config_td *config)
 {
     char buffer[DIALOG_FORTUNE_MAX_LENGTH];
     char cmd[CONFIG_MAX_LENGTH_COMMAND + 16];
@@ -47,7 +47,7 @@ void dialog_fortune_show(xcb_connection_t *connection,
     size_t len;
     const char *text;
 
-    if (connection == NULL || surface == NULL || config == NULL) {
+    if (connection == NULL || stage == NULL || config == NULL) {
         return;
     }
 
@@ -79,6 +79,6 @@ void dialog_fortune_show(xcb_connection_t *connection,
 
     text = (len > 0u) ? buffer : _(STR_FORTUNE_FALLBACK);
 
-    menu_message_dialog_show(connection, surface, config,
+    menu_message_dialog_show(connection, stage, config,
             text, MENU_MSG_LEVEL_NONE);
 }

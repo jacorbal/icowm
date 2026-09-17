@@ -4,7 +4,7 @@
  * @brief Shared "Send to page" context menu submenu
  *
  * Builds the entries for a "Send to page" submenu: one row per page of
- * the surface's configured viewport grid, followed by a separator and
+ * the stage's configured viewport grid, followed by a separator and
  * an "All pages"/"Unstick" toggle row.  Parallels @c submenu/desktop.h,
  * which sends a client to a different desktop entirely; this only moves
  * it within the current desktop's own pannable canvas.  Shared by every
@@ -35,13 +35,13 @@
 /**
  * @brief Build the "Send to page" submenu entries for @p client
  *
- * @param surface     Surface whose viewport grid to enumerate
+ * @param stage       Stage whose viewport grid to enumerate
  * @param desktop     Desktop @p client is currently on
  * @param client      Target client
  * @param out_entries Set, on success, to this module's own entry
  *                    storage; valid until the next call to this
  *                    function
- * @param out_state   Set, on success, to this module's own submenu
+ * @param out_state Set, on success, to this module's own submenu
  *                    state; valid until the next call to this function
  *
  * @return Number of entries built, or @c 0 on a viewport that cannot
@@ -50,7 +50,7 @@
  *
  * @note Complexity: @e O(n), where @e n is the number of pages
  */
-int ctxmenu_submenu_page_build(surface_td *surface,
+int ctxmenu_submenu_page_build(stage_td *stage,
         desktop_td *desktop, client_td *client,
         ctxmenu_entry_td **out_entries, ctxmenu_state_td **out_state);
 

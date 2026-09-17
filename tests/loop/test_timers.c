@@ -41,7 +41,7 @@
 #include <harness/tap.h>
 #include <loop/context.h>
 #include <loop/timers.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /* Controllable return values for every X_ms_remaining stand-in below,
@@ -92,7 +92,7 @@ enum {
 
 /* Recording for memguard_tick, the one tick call that is conditional */
 static int s_memguard_tick_calls;
-static const surface_td *s_memguard_last_surface;
+static const stage_td *s_memguard_last_stage;
 
 
 static void s_reset(void)
@@ -117,7 +117,7 @@ static void s_reset(void)
     s_notify_desktop_is_open = false;
     memset(s_tick_calls, 0, sizeof(s_tick_calls));
     s_memguard_tick_calls = 0;
-    s_memguard_last_surface = NULL;
+    s_memguard_last_stage = NULL;
 }
 
 
@@ -274,45 +274,45 @@ void systray_clock_tick(void)
 
 
 /** Link-only stand-in for urgency_blink_tick (policy/urgency.c) */
-void urgency_blink_tick(list_td *surfaces, const config_td *config)
+void urgency_blink_tick(list_td *stages, const config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) config;
     s_tick_calls[S_TICK_URGENCY]++;
 }
 
 
 /** Link-only stand-in for ping_tick (policy/ping.c) */
-void ping_tick(list_td *surfaces)
+void ping_tick(list_td *stages)
 {
-    (void) surfaces;
+    (void) stages;
     s_tick_calls[S_TICK_PING]++;
 }
 
 
 /** Link-only stand-in for cctl_sn_tick (cctl/sn.c) */
-void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces)
+void cctl_sn_tick(xcb_connection_t *connection, list_td *stages)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_tick_calls[S_TICK_CCTL_SN]++;
 }
 
 
 /** Link-only stand-in for mouse_hover_poll_tick (input/mouse/hover.c) */
-void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces)
+void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *stages)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     s_tick_calls[S_TICK_HOVER]++;
 }
 
 
 /** Link-only stand-in for mouse_enter_focus_tick (input/mouse/
  *  event.c) */
-void mouse_enter_focus_tick(list_td *surfaces, const config_td *config)
+void mouse_enter_focus_tick(list_td *stages, const config_td *config)
 {
-    (void) surfaces;
+    (void) stages;
     (void) config;
     s_tick_calls[S_TICK_ENTER_FOCUS]++;
 }
@@ -388,13 +388,13 @@ void place_manual_tick(xcb_connection_t *connection)
 
 
 /** Link-only stand-in for memguard_tick (memguard.c) */
-void memguard_tick(xcb_connection_t *connection, surface_td *surface,
+void memguard_tick(xcb_connection_t *connection, stage_td *stage,
         const config_td *config)
 {
     (void) connection;
     (void) config;
     s_memguard_tick_calls++;
-    s_memguard_last_surface = surface;
+    s_memguard_last_stage = stage;
 }
 
 
@@ -623,7 +623,7 @@ static void s_test_tick_calls_every_subsystem_once(void)
 
     s_reset();
     ctx.restricted_memory_mib = 0u;
-    ctx.surfaces = NULL;
+    ctx.stages = NULL;
     loop_timers_tick(&ctx);
 
     for (int i = 0; i < 14; ++i) {
@@ -635,49 +635,49 @@ static void s_test_tick_calls_every_subsystem_once(void)
 
 
 /* memguard_tick runs only when restricted_memory_mib is nonzero and
- * the surfaces list is both non-NULL and non-empty, and, when it does
- * run, is handed exactly the first surface in that list */
+ * the stages list is both non-NULL and non-empty, and, when it does
+ * run, is handed exactly the first stage in that list */
 static void s_test_tick_memguard_gating(void)
 {
     loop_ctx_td ctx = s_make_ctx();
-    list_td *surfaces;
-    surface_td surface_a;
-    surface_td surface_b;
+    list_td *stages;
+    stage_td stage_a;
+    stage_td stage_b;
 
-    memset(&surface_a, 0, sizeof(surface_a));
-    memset(&surface_b, 0, sizeof(surface_b));
+    memset(&stage_a, 0, sizeof(stage_a));
+    memset(&stage_b, 0, sizeof(stage_b));
 
     s_reset();
     ctx.restricted_memory_mib = 0u;
-    ctx.surfaces = NULL;
+    ctx.stages = NULL;
     loop_timers_tick(&ctx);
     TAP_EQ_INT(s_memguard_tick_calls, 0,
             "memguard_tick does not run with restricted_memory_mib"
-            " at 0, even with no surfaces list at all");
+            " at 0, even with no stages list at all");
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
     s_reset();
     ctx.restricted_memory_mib = 128u;
-    ctx.surfaces = surfaces;
+    ctx.stages = stages;
     loop_timers_tick(&ctx);
     TAP_EQ_INT(s_memguard_tick_calls, 0,
-            "memguard_tick does not run against an empty surfaces"
+            "memguard_tick does not run against an empty stages"
             " list, even with a nonzero memory cap");
 
-    list_ins_next(surfaces, NULL, &surface_a);
-    list_ins_next(surfaces, list_tail(surfaces), &surface_b);
+    list_ins_next(stages, NULL, &stage_a);
+    list_ins_next(stages, list_tail(stages), &stage_b);
     s_reset();
     ctx.restricted_memory_mib = 128u;
-    ctx.surfaces = surfaces;
+    ctx.stages = stages;
     loop_timers_tick(&ctx);
     TAP_EQ_INT(s_memguard_tick_calls, 1,
             "memguard_tick runs exactly once with a nonzero memory"
-            " cap and a non-empty surfaces list");
-    TAP_OK(s_memguard_last_surface == &surface_a,
-            "memguard_tick is handed exactly the first surface in"
+            " cap and a non-empty stages list");
+    TAP_OK(s_memguard_last_stage == &stage_a,
+            "memguard_tick is handed exactly the first stage in"
             " the list");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 

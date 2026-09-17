@@ -48,7 +48,7 @@
 #include <menu/draw.h>
 #include <render/text.h>
 #include <render/wmicon.h>
-#include <surface.h>
+#include <stage.h>
 #include <utils/xcb/connection.h>
 
 

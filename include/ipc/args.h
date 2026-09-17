@@ -37,7 +37,7 @@
 /**
  * @brief Read a required unsigned integer field
  *
- * Meant for IDs (client, desktop, surface) and other values that are
+ * Meant for IDs (client, desktop, stage) and other values that are
  * never meaningfully negative.  A negative JSON number is rejected
  * rather than silently reinterpreted.
  *

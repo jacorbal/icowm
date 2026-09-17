@@ -6,7 +6,7 @@
  *
  * 'keyboard_handle_release' and 'keyboard_handle_press' are exercised
  * against the real, linked source file, including its own file-static
- * 's_lookup_surface_fallback' helper reached only through either
+ * 's_lookup_stage_fallback' helper reached only through either
  * entry point.  Every function past that, 'cycle_is_open'/'cycle_
  * modifier'/'cycle_confirm' (the cycle menu), 'keyboard_is_modifier_
  * for_mask'/'keyboard_keysym_for_state' (input/kbd/bind.c's own
@@ -15,7 +15,7 @@
  * already covered on its own by 'tests/input/kbd/test_intercept.c'),
  * 'ik_resolve_binding'/'ik_execute_binding' (input/kbd/bind.c's
  * table lookup and input/kbd/execute.c's huge dispatch switch,
- * covered elsewhere), 'lookup_surface_for_root', 'wm_emergency_exit_
+ * covered elsewhere), 'lookup_stage_for_root', 'wm_emergency_exit_
  * enable', and 'logger_msg', is a cross-module or heavy dependency
  * this file has no business re-verifying, so each is a controlled or
  * recording stand-in here, letting every scenario below assert on
@@ -77,7 +77,7 @@
 #include <config.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -109,8 +109,8 @@ static uint16_t s_cycle_modifier_val;
 /** keyboard_is_modifier_for_mask controllable return value */
 static bool s_flag_is_modifier_for_mask;
 
-/** lookup_surface_for_root controllable return value */
-static surface_td *s_lookup_surface_result;
+/** lookup_stage_for_root controllable return value */
+static stage_td *s_lookup_stage_result;
 
 /** ik_intercept_keypress controllable return value */
 static bool s_flag_intercept_consumes;
@@ -133,7 +133,7 @@ static void s_reset(void)
     s_flag_cycle_open = false;
     s_cycle_modifier_val = 0;
     s_flag_is_modifier_for_mask = false;
-    s_lookup_surface_result = NULL;
+    s_lookup_stage_result = NULL;
     s_flag_intercept_consumes = false;
     s_resolve_binding_result = KEYBIND_NONE;
     s_resolve_binding_modmask = 0;
@@ -170,11 +170,11 @@ uint16_t cycle_modifier(void)
 }
 
 
-void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
+void cycle_confirm(xcb_connection_t *connection, list_td *stages,
         const config_td *cfg)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) cfg;
     s_call_cycle_confirm++;
 }
@@ -198,23 +198,23 @@ xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
 }
 
 
-surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
+stage_td *lookup_stage_for_root(list_td *stages, xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
-    return s_lookup_surface_result;
+    return s_lookup_stage_result;
 }
 
 
 bool ik_intercept_keypress(xcb_keysym_t keysym, xcb_keysym_t typed_keysym,
-        uint16_t state, surface_td *surface, list_td *surfaces,
+        uint16_t state, stage_td *stage, list_td *stages,
         const config_td *config)
 {
     (void) keysym;
     (void) typed_keysym;
     (void) state;
-    (void) surface;
-    (void) surfaces;
+    (void) stage;
+    (void) stages;
     (void) config;
     s_call_ik_intercept_keypress++;
     return s_flag_intercept_consumes;
@@ -234,14 +234,14 @@ enum wm_keybind_type_e ik_resolve_binding(xcb_keysym_t keysym,
 
 
 void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
-        uint16_t modmask, xcb_keycode_t keycode, surface_td *surface,
-        list_td *surfaces, const config_td *config)
+        uint16_t modmask, xcb_keycode_t keycode, stage_td *stage,
+        list_td *stages, const config_td *config)
 {
     (void) wm;
     (void) modmask;
     (void) keycode;
-    (void) surface;
-    (void) surfaces;
+    (void) stage;
+    (void) stages;
     (void) config;
     s_call_ik_execute_binding++;
     s_last_execute_btype = btype;
@@ -338,7 +338,7 @@ static void s_test_release_wrong_key_is_noop(void)
 }
 
 
-static void s_test_release_no_surface_is_noop(void)
+static void s_test_release_no_stage_is_noop(void)
 {
     xcb_key_release_event_t event;
 
@@ -347,33 +347,33 @@ static void s_test_release_no_surface_is_noop(void)
     s_flag_cycle_open = true;
     s_cycle_modifier_val = XCB_MOD_MASK_1;
     s_flag_is_modifier_for_mask = true;
-    s_lookup_surface_result = NULL;
+    s_lookup_stage_result = NULL;
 
     keyboard_handle_release(s_fake_keysyms, &event, NULL, NULL);
 
     TAP_EQ_INT(s_call_cycle_confirm, 0,
             "releasing the cycle modifier with no resolvable" \
-            " surface never auto-confirms the cycle menu");
+            " stage never auto-confirms the cycle menu");
 }
 
 
 static void s_test_release_confirms_on_modifier_release(void)
 {
     xcb_key_release_event_t event;
-    surface_td fake_surface;
+    stage_td fake_stage;
 
     s_reset();
     memset(&event, 0, sizeof(event));
-    memset(&fake_surface, 0, sizeof(fake_surface));
+    memset(&fake_stage, 0, sizeof(fake_stage));
     s_flag_cycle_open = true;
     s_cycle_modifier_val = XCB_MOD_MASK_1;
     s_flag_is_modifier_for_mask = true;
-    s_lookup_surface_result = &fake_surface;
+    s_lookup_stage_result = &fake_stage;
 
     keyboard_handle_release(s_fake_keysyms, &event, NULL, NULL);
 
     TAP_EQ_INT(s_call_cycle_confirm, 1,
-            "releasing the cycle modifier with a resolvable surface" \
+            "releasing the cycle modifier with a resolvable stage" \
             " auto-confirms the cycle menu exactly once");
 }
 
@@ -529,7 +529,7 @@ int main(void)
     s_test_release_cycle_closed_is_noop();
     s_test_release_cycle_modifier_zero_is_noop();
     s_test_release_wrong_key_is_noop();
-    s_test_release_no_surface_is_noop();
+    s_test_release_no_stage_is_noop();
     s_test_release_confirms_on_modifier_release();
 
     s_test_press_null_args_are_noop();

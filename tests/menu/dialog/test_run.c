@@ -35,7 +35,7 @@
 #include <harness/tap.h>
 #include <menu/dialog/message.h>
 #include <menu/dialog/run.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /* Controllable stand-in state */
@@ -73,7 +73,7 @@ static int s_launch_calls = 0;
 static char s_launch_last_command[WM_RUN_COMMAND_MAX_LENGTH];
 static int s_launch_result = 0;
 
-/** Desktop 'surface_desktop_get' answers with, or NULL if none was
+/** Desktop 'stage_desktop_get' answers with, or NULL if none was
  *  registered */
 static desktop_td *s_desktop_stub = NULL;
 
@@ -82,7 +82,7 @@ static int s_text_use_font_calls = 0;
 static int s_text_set_color_calls = 0;
 
 static xcb_screen_t s_screen_stub;
-static surface_td s_surface;
+static stage_td s_stage;
 static config_td s_config;
 
 
@@ -286,12 +286,12 @@ uint32_t client_last_user_time(void)
 /* 'menu/dialog/info.h' stand-in; info.c is separately tested
  * (tests/menu/dialog/test_info.c), only its forwarding matters here */
 
-void dialog_info_show(xcb_connection_t *connection, surface_td *surface,
+void dialog_info_show(xcb_connection_t *connection, stage_td *stage,
         const config_td *config, const char *message,
         menu_msg_level_e level)
 {
     (void) connection;
-    (void) surface;
+    (void) stage;
     (void) config;
 
     s_dialog_info_show_calls++;
@@ -303,9 +303,9 @@ void dialog_info_show(xcb_connection_t *connection, surface_td *surface,
 
 /* 'desktop.h' stand-ins */
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *stage_desktop_get(stage_td *stage, uint32_t desktop_id)
 {
-    (void) surface;
+    (void) stage;
     (void) desktop_id;
     return s_desktop_stub;
 }
@@ -373,7 +373,7 @@ uint16_t text_string_measure(const char *text)
 
 
 /**
- * @brief Reset every captured/recorded value and the config/surface
+ * @brief Reset every captured/recorded value and the config/stage
  *        fixtures to a clean, known-default state ahead of one scenario
  *
  * @note Complexity: @e O(1)
@@ -387,7 +387,7 @@ static void s_reset(void)
      * window this run of the box creates rather than an implicit
      * re-open. */
     if (run_is_open()) {
-        run_handle_keypress(s_connection_stub, &s_surface, 0xff1bu, 0u,
+        run_handle_keypress(s_connection_stub, &s_stage, 0xff1bu, 0u,
                 &s_config);
     }
 
@@ -418,11 +418,11 @@ static void s_reset(void)
     memset(&s_screen_stub, 0, sizeof(s_screen_stub));
     s_screen_stub.root = (xcb_window_t) 1u;
 
-    memset(&s_surface, 0, sizeof(s_surface));
-    s_surface.screen = &s_screen_stub;
-    s_surface.properties.dim.w = 1920u;
-    s_surface.properties.dim.h = 1080u;
-    s_surface.desktop_cur = 0u;
+    memset(&s_stage, 0, sizeof(s_stage));
+    s_stage.screen = &s_screen_stub;
+    s_stage.properties.dim.w = 1920u;
+    s_stage.properties.dim.h = 1080u;
+    s_stage.desktop_cur = 0u;
 
     memset(&s_config, 0, sizeof(s_config));
     (void) strncpy(s_config.theme.prompt.label.font, "sans-10",
@@ -441,29 +441,29 @@ static void s_reset(void)
 
 
 /**
- * @brief NULL connection, surface or config all leave the box unopened
+ * @brief NULL connection, stage or config all leave the box unopened
  *
  * @note Complexity: @e O(1)
  */
 static void s_test_init_null_guards(void)
 {
     s_reset();
-    run_init(NULL, &s_surface, &s_config);
+    run_init(NULL, &s_stage, &s_config);
     TAP_OK(!run_is_open(), "run_init: NULL connection is a no-op");
 
     s_reset();
     run_init(s_connection_stub, NULL, &s_config);
-    TAP_OK(!run_is_open(), "run_init: NULL surface is a no-op");
+    TAP_OK(!run_is_open(), "run_init: NULL stage is a no-op");
 
     s_reset();
-    run_init(s_connection_stub, &s_surface, NULL);
+    run_init(s_connection_stub, &s_stage, NULL);
     TAP_OK(!run_is_open(), "run_init: NULL config is a no-op");
 }
 
 
 /**
  * @brief A valid call creates exactly one window as a child of the
- *        surface's own screen root, maps it, grabs the keyboard on the
+ *        stage's own screen root, maps it, grabs the keyboard on the
  *        screen root, focuses the box, and paints immediately
  *
  * @note Complexity: @e O(1)
@@ -471,13 +471,13 @@ static void s_test_init_null_guards(void)
 static void s_test_init_opens_and_draws(void)
 {
     s_reset();
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
 
     TAP_OK(run_is_open(), "run_init: the box is open afterward");
     TAP_EQ_INT(s_create_window_calls, 1,
             "run_init: creates exactly one window");
     TAP_EQ_INT((int) s_created_parent, (int) s_screen_stub.root,
-            "run_init: the window is a child of the surface's screen"
+            "run_init: the window is a child of the stage's screen"
             " root");
     TAP_EQ_INT(s_map_window_calls, 1, "run_init: maps the window once");
     TAP_EQ_INT(s_grab_keyboard_calls, 1,
@@ -511,10 +511,10 @@ static void s_test_init_reopen_destroys_previous(void)
     xcb_window_t first_window;
 
     s_reset();
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     first_window = s_created_window;
 
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     TAP_EQ_INT(s_window_destroy_calls, 1,
             "run_init: re-opening destroys the previously open window");
     TAP_EQ_INT((int) s_window_destroyed, (int) first_window,
@@ -536,10 +536,10 @@ static void s_test_escape_restores_focus(void)
 {
     s_reset();
     s_focus_reply_focus = (xcb_window_t) 777u;
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     s_set_input_focus_calls = 0;
 
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff1bu, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff1bu, 0u,
             &s_config);
     TAP_OK(!run_is_open(), "run_handle_keypress: Escape closes the box");
     TAP_EQ_INT(s_ungrab_keyboard_calls, 1,
@@ -553,9 +553,9 @@ static void s_test_escape_restores_focus(void)
 
     s_reset();
     s_focus_reply_is_null = true;
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     s_set_input_focus_calls = 0;
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff1bu, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff1bu, 0u,
             &s_config);
     TAP_EQ_INT(s_set_input_focus_calls, 0,
             "run_handle_keypress: with no previous focus recorded,"
@@ -572,7 +572,7 @@ static void s_test_escape_restores_focus(void)
 static void s_test_keypress_noop_when_closed(void)
 {
     s_reset();
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_INT(s_launch_calls, 0,
             "run_handle_keypress: Return is a no-op while the box is"
@@ -594,12 +594,12 @@ static void s_test_return_launches_and_closes(void)
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
     s_launch_result = 0;
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     for (i = 0u; cmd[i] != '\0'; i++) {
-        run_handle_keypress(s_connection_stub, &s_surface,
+        run_handle_keypress(s_connection_stub, &s_stage,
                 (xcb_keysym_t) (unsigned char) cmd[i], 0u, &s_config);
     }
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
 
     TAP_EQ_INT(s_launch_calls, 1,
@@ -627,10 +627,10 @@ static void s_test_kp_enter_launches(void)
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
     s_launch_result = 0;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff8du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff8du, 0u,
             &s_config);
     TAP_EQ_INT(s_launch_calls, 1,
             "run_handle_keypress: KP_Enter launches the typed command"
@@ -647,8 +647,8 @@ static void s_test_kp_enter_launches(void)
 static void s_test_return_empty_command(void)
 {
     s_reset();
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_INT(s_launch_calls, 0,
             "run_handle_keypress: Return with an empty command attempts"
@@ -671,10 +671,10 @@ static void s_test_return_launch_failure_shows_info(void)
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
     s_launch_result = -1;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'z', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
 
     TAP_EQ_INT(s_dialog_info_show_calls, 1,
@@ -691,7 +691,7 @@ static void s_test_return_launch_failure_shows_info(void)
 
 
 /**
- * @brief With no desktop resolvable for the surface, Return attempts
+ * @brief With no desktop resolvable for the stage, Return attempts
  *        no launch at all and closes the box quietly
  *
  * @note Complexity: @e O(1)
@@ -700,10 +700,10 @@ static void s_test_return_no_desktop(void)
 {
     s_reset();
     s_desktop_stub = NULL;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_INT(s_launch_calls, 0,
             "run_handle_keypress: with no resolvable desktop, no launch"
@@ -726,17 +726,17 @@ static void s_test_backspace_and_delete(void)
 {
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'c', 0u, &s_config);
     /* Cursor after the 'c', command is "abc" */
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff08u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff08u, 0u,
             &s_config);      /* Backspace removes 'c' */
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);      /* Return launches whatever remains */
     TAP_EQ_STR(s_launch_last_command, "ab",
             "run_handle_keypress: Backspace removes the character"
@@ -744,12 +744,12 @@ static void s_test_backspace_and_delete(void)
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff08u, 0u,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff08u, 0u,
             &s_config);      /* Backspace on an empty box: a no-op */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'x', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "x",
             "run_handle_keypress: Backspace at the left edge is a"
@@ -757,16 +757,16 @@ static void s_test_backspace_and_delete(void)
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff50u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff50u, 0u,
             &s_config);      /* Home: cursor back to 0 */
-    run_handle_keypress(s_connection_stub, &s_surface, 0xffffu, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xffffu, 0u,
             &s_config);      /* Delete removes 'a', cursor still 0 */
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "b",
             "run_handle_keypress: Delete removes the character under"
@@ -774,12 +774,12 @@ static void s_test_backspace_and_delete(void)
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xffffu, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xffffu, 0u,
             &s_config);      /* Delete at the right edge: a no-op */
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "a",
             "run_handle_keypress: Delete at the right edge is a"
@@ -798,16 +798,16 @@ static void s_test_left_right_and_mid_insert(void)
 {
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'c', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff51u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff51u, 0u,
             &s_config);      /* Left: cursor between 'a' and 'c' */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "abc",
             "run_handle_keypress: Left moves the cursor so a following"
@@ -815,26 +815,26 @@ static void s_test_left_right_and_mid_insert(void)
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff51u, 0u,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff51u, 0u,
             &s_config);      /* Left at the left edge: a no-op */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'z', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "z",
             "run_handle_keypress: Left at the left edge is a no-op");
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff53u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff53u, 0u,
             &s_config);      /* Right at the right edge: a no-op */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "ab",
             "run_handle_keypress: Right at the right edge is a no-op,"
@@ -852,33 +852,33 @@ static void s_test_home_end_and_ctrl_variants(void)
 {
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'c', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff50u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff50u, 0u,
             &s_config);      /* Home */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "abc",
             "run_handle_keypress: Home moves the cursor to the start");
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'c', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 0x61u, XCB_MOD_MASK_CONTROL,
             &s_config);      /* Ctrl+A: same as Home */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "abc",
             "run_handle_keypress: Ctrl+A moves the cursor to the start,"
@@ -886,18 +886,18 @@ static void s_test_home_end_and_ctrl_variants(void)
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff50u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff50u, 0u,
             &s_config);      /* Home */
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff57u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff57u, 0u,
             &s_config);      /* End */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'c', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "abc",
             "run_handle_keypress: End moves the cursor back to the end"
@@ -905,19 +905,19 @@ static void s_test_home_end_and_ctrl_variants(void)
 
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'b', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff50u, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff50u, 0u,
             &s_config);      /* Home */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 0x65u, XCB_MOD_MASK_CONTROL,
             &s_config);      /* Ctrl+E: same as End */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'c', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "abc",
             "run_handle_keypress: Ctrl+E moves the cursor to the end,"
@@ -935,15 +935,15 @@ static void s_test_unhandled_keys_ignored(void)
 {
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
-    run_init(s_connection_stub, &s_surface, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_init(s_connection_stub, &s_stage, &s_config);
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'a', 0u, &s_config);
-    run_handle_keypress(s_connection_stub, &s_surface, 0xffbeu, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xffbeu, 0u,
             &s_config);      /* F1: outside the printable ASCII range */
-    run_handle_keypress(s_connection_stub, &s_surface,
+    run_handle_keypress(s_connection_stub, &s_stage,
             (xcb_keysym_t) 'z', XCB_MOD_MASK_CONTROL,
             &s_config);      /* Ctrl+z: not one of the two Ctrl cases */
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_STR(s_launch_last_command, "a",
             "run_handle_keypress: a non-printable keysym and an"
@@ -964,12 +964,12 @@ static void s_test_buffer_full_guard(void)
     s_reset();
     s_desktop_stub = (desktop_td *) 0x1234;
     s_launch_result = 0;
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     for (i = 0u; i < (unsigned int) (WM_RUN_COMMAND_MAX_LENGTH + 8); i++) {
-        run_handle_keypress(s_connection_stub, &s_surface,
+        run_handle_keypress(s_connection_stub, &s_stage,
                 (xcb_keysym_t) 'x', 0u, &s_config);
     }
-    run_handle_keypress(s_connection_stub, &s_surface, 0xff0du, 0u,
+    run_handle_keypress(s_connection_stub, &s_stage, 0xff0du, 0u,
             &s_config);
     TAP_EQ_INT((int) strlen(s_launch_last_command),
             WM_RUN_COMMAND_MAX_LENGTH - 1,
@@ -997,7 +997,7 @@ static void s_test_draw_paints_and_guards(void)
             "run_draw: a no-op while the box is not open");
 
     s_reset();
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     run_draw(s_connection_stub, NULL);
     calls_before = s_menu_draw_label_calls;
     TAP_OK(calls_before > 0,
@@ -1008,10 +1008,10 @@ static void s_test_draw_paints_and_guards(void)
             "run_draw: a NULL config paints nothing further");
 
     s_reset();
-    run_init(s_connection_stub, &s_surface, &s_config);
+    run_init(s_connection_stub, &s_stage, &s_config);
     calls_before = s_menu_draw_label_calls;
     for (i = 0u; i < 60u; i++) {
-        run_handle_keypress(s_connection_stub, &s_surface,
+        run_handle_keypress(s_connection_stub, &s_stage,
                 (xcb_keysym_t) 'x', 0u, &s_config);
     }
     TAP_OK(s_menu_draw_label_calls > calls_before,

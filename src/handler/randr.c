@@ -31,12 +31,12 @@
 /* Project includes */
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
-#include <surface/action.h>
-#include <surface/client.h>
-#include <surface/desktop.h>
-#include <surface/monitor.h>
-#include <surface/workarea.h>
+#include <stage.h>
+#include <stage/action.h>
+#include <stage/client.h>
+#include <stage/desktop.h>
+#include <stage/monitor.h>
+#include <stage/workarea.h>
 #include <systray.h>
 #include <systray/handle.h>
 #include <wm.h>
@@ -47,34 +47,34 @@
 
 
 /**
- * @brief Record what a CRTC change says about its surface
+ * @brief Record what a CRTC change says about its stage
  *
- * @param surfaces Every managed surface
- * @param change   What the server reported
+ * @param stages Every managed stage
+ * @param change What the server reported
  *
  * @note A change reporting no mode is ignored
  * @note An output going dark says nothing about the geometry to
  *       remember for it
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
-static void s_randr_crtc_change_note(list_td *surfaces,
+static void s_randr_crtc_change_note(list_td *stages,
         const xcb_randr_crtc_change_t *change)
 {
-    surface_td *surface;
+    stage_td *stage;
 
     if (change->mode == XCB_NONE) {
         return;
     }
 
-    surface = lookup_surface_for_root(surfaces, change->window);
-    if (surface == NULL) {
+    stage = lookup_stage_for_root(stages, change->window);
+    if (stage == NULL) {
         return;
     }
 
-    surface->randr.is_known = true;
-    surface->randr.crtc_id = (uint32_t) change->crtc;
-    surface->randr.mode_id = (uint32_t) change->mode;
-    surface->randr.rotation = change->rotation;
+    stage->randr.is_known = true;
+    stage->randr.crtc_id = (uint32_t) change->crtc;
+    stage->randr.mode_id = (uint32_t) change->mode;
+    stage->randr.rotation = change->rotation;
 }
 
 
@@ -94,48 +94,48 @@ static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
 }
 
 
-/* Mark every desktop in a surface as outdated and refresh workareas */
-static void s_handler_randr_refresh_surface(surface_td *surface)
+/* Mark every desktop in a stage as outdated and refresh workareas */
+static void s_handler_randr_refresh_stage(stage_td *stage)
 {
 
-    if (surface == NULL) {
+    if (stage == NULL) {
         return;
     }
 
-    surface_monitor_refresh_all(surface);
-    surface_workarea_refresh_all(surface);
-    surface_client_reflow_all(surface);
-    wm_outdate_surface(surface);
-    surface_desktop_walk_all(surface, s_desktop_outdate_visit, NULL);
+    stage_monitor_refresh_all(stage);
+    stage_workarea_refresh_all(stage);
+    stage_client_reflow_all(stage);
+    wm_outdate_stage(stage);
+    stage_desktop_walk_all(stage, s_desktop_outdate_visit, NULL);
 }
 
 
 /**
  * @brief React to an XRandR notification about the display layout
  *
- * @param surfaces Every managed surface
- * @param keysyms  Key symbol table to reload bindings against
- * @param config   Configuration in force
- * @param event    Notification to act on
+ * @param stages  Every managed stage
+ * @param keysyms Key symbol table to reload bindings against
+ * @param config  Configuration in force
+ * @param event   Notification to act on
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
-static void s_randr_notify_apply(list_td *surfaces,
+static void s_randr_notify_apply(list_td *stages,
         xcb_key_symbols_t *keysyms, const config_td *config,
         const xcb_randr_notify_event_t *event)
 {
     /* Output/CRTC changes can alter effective workareas and monitor
-     * mappings; refresh all known surfaces conservatively. */
+     * mappings; refresh all known stages conservatively. */
     if (event->subCode == XCB_RANDR_NOTIFY_CRTC_CHANGE ||
             event->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE ||
             event->subCode ==
                 XCB_RANDR_NOTIFY_OUTPUT_PROPERTY) {
 
-        /* For 'CRTC_CHANGE' events, update the surface'->randr'
-         * fields for the matching surface so 'set_resolution'
+        /* For 'CRTC_CHANGE' events, update the stage'->randr'
+         * fields for the matching stage so 'set_resolution'
          * or 'set_orientation' always have new CRTC metadata */
         if (event->subCode == XCB_RANDR_NOTIFY_CRTC_CHANGE) {
-            s_randr_crtc_change_note(surfaces,
+            s_randr_crtc_change_note(stages,
                     &event->u.cc);
         }
 
@@ -148,19 +148,19 @@ static void s_randr_notify_apply(list_td *surfaces,
          * not yet connected at startup still get applied
          * once it is (e.g., a docked laptop's external monitor). */
         if (event->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE) {
-            for (list_item_td *node = list_head(surfaces);
+            for (list_item_td *node = list_head(stages);
                     node != NULL; node = list_next(node)) {
-                (void) surface_action_randr_apply_profiles(
-                        (surface_td *) list_data(node), false);
+                (void) stage_action_randr_apply_profiles(
+                        (stage_td *) list_data(node), false);
             }
         }
 
-        for (list_item_td *node = list_head(surfaces);
+        for (list_item_td *node = list_head(stages);
                 node != NULL; node = list_next(node)) {
-            s_handler_randr_refresh_surface(
-                    (surface_td *) list_data(node));
+            s_handler_randr_refresh_stage(
+                    (stage_td *) list_data(node));
         }
-        keyboard_load(surfaces, keysyms, config);
+        keyboard_load(stages, keysyms, config);
 
         LOGGER_DEBUG("Processed XRandR notify subcode=%u",
                 (unsigned int) event->subCode);
@@ -174,11 +174,11 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
     uint8_t event_type;
     uint8_t screen_change_type;
     uint8_t notify_type;
-    list_td *surfaces = wm_surfaces(wm);
+    list_td *stages = wm_stages(wm);
     xcb_key_symbols_t *keysyms = wm_keysyms(wm);
     const config_td *config = wm_config(wm);
 
-    if (wm == NULL || event == NULL || surfaces == NULL ||
+    if (wm == NULL || event == NULL || stages == NULL ||
             !wm_randr_available(wm)) {
         return;
     }
@@ -191,26 +191,26 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
     if (event_type == screen_change_type) {
         xcb_randr_screen_change_notify_event_t *randr_event =
             (xcb_randr_screen_change_notify_event_t *) event;
-        surface_td *const surface = lookup_surface_for_root(surfaces,
+        stage_td *const stage = lookup_stage_for_root(stages,
                 randr_event->root);
 
-        if (surface != NULL) {
-            surface_resize(surface, randr_event->width,
+        if (stage != NULL) {
+            stage_resize(stage, randr_event->width,
                     randr_event->height);
-            surface->properties.dim_mm.w = randr_event->mwidth;
-            surface->properties.dim_mm.h = randr_event->mheight;
-            surface->randr.rotation = randr_event->rotation;
+            stage->properties.dim_mm.w = randr_event->mwidth;
+            stage->properties.dim_mm.h = randr_event->mheight;
+            stage->randr.rotation = randr_event->rotation;
 
             /* Mark CRTC/output identity as known from the event */
-            surface->randr.is_known = true;
-            surface->randr.crtc_id =
+            stage->randr.is_known = true;
+            stage->randr.crtc_id =
                 (uint32_t) randr_event->config_timestamp;
-            s_handler_randr_refresh_surface(surface);
-            systray_handle_surface_resize(wm);
-            keyboard_load(surfaces, keysyms, config);
+            s_handler_randr_refresh_stage(stage);
+            systray_handle_stage_resize(wm);
+            keyboard_load(stages, keysyms, config);
 
-            LOGGER_INFO("XRandR screen change on surface %u: %ux%u",
-                    surface->id,
+            LOGGER_INFO("XRandR screen change on stage %u: %ux%u",
+                    stage->id,
                     (unsigned int) randr_event->width,
                     (unsigned int) randr_event->height);
         }
@@ -219,7 +219,7 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
     }
 
     if (event_type == notify_type) {
-        s_randr_notify_apply(surfaces, keysyms, config,
+        s_randr_notify_apply(stages, keysyms, config,
                 (const xcb_randr_notify_event_t *) event);
     }
 }

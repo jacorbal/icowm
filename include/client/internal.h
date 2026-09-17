@@ -5,7 +5,7 @@
  *
  * Declares functions that were previously static inside the monolithic
  * @c client.c but are needed by more than one of its split translation
- * units (@c client_props.c, @c client_geom.c, @c client.c).
+ * units.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

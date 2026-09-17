@@ -50,7 +50,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->screen_count = 1;
 
     /* Desktop-navigation and reserved-space behavior ('config.json''s
-     * top-level 'desktop', a sibling of 'topology'; see
+     * top-level 'desktops', a sibling of 'topology'; see
      * config_desktop_s's comment in 'config.h').  Meaningless with only
      * one desktop for 'warp_on_edge_drag'/'wrap_at_bounds', but set
      * regardless of how many desktops end up configured, the same as
@@ -173,7 +173,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->viewport.pan_on_edge_drag = true;
     config_base->viewport.pan_on_edge_hover = true;
     /* Enabled by default: the mesh only ever appears where it has
-     * something to report, on a surface whose viewport can actually
+     * something to report, on a stage whose viewport can actually
      * pan and whose root window the manager still owns, so leaving
      * it on costs a plain single-screen desktop nothing */
     config_base->viewport.mesh.is_enabled = true;
@@ -225,7 +225,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->systray.margins.bottom = 0u;
     config_base->systray.margins.left = 0u;
     config_base->systray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
-    config_base->systray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_SURFACE;
+    config_base->systray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_STAGE;
     config_base->systray.monitor.index = 0u;
     config_base->systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config_base->systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;

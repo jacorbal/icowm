@@ -60,7 +60,7 @@
 #define IPC_EVENT_WINDOW_CLOSED ((uint32_t) 1u << 1)
 
 /**
- * @brief A surface's current desktop changed, its desktop list grew
+ * @brief A stage's current desktop changed, its desktop list grew
  *        or shrank, or its strutless-maximization mode was toggled
  *
  * The three share one bit because no free bit remained for a separate
@@ -260,7 +260,7 @@ void ipc_handle_readable(wm_td *wm, int fd);
  *
  * @param client_idx Index into this file's connected-client table,
  *                    naming the connection to subscribe
- * @param args        The request object; must have a non-empty
+ * @param args The request object; must have a non-empty
  *                    array @p events of recognized event names,
  *                    rejected as a whole if any single one is not
  *
@@ -279,7 +279,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args);
  *
  * @param client_idx Index into this file's connected-client table,
  *                   naming the connection to unsubscribe
- * @param args       The request object; an @p events array unsubscribes
+ * @param args The request object; an @p events array unsubscribes
  *                   from only those (an unrecognized or
  *                   never-subscribed name among them is not an error,
  *                   since there is nothing to undo either way), while
@@ -304,7 +304,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args);
  * unconditionally, without needing to first check whether anyone is
  * listening.
  *
- * @param type   Which event this is; only clients subscribed to
+ * @param type Which event this is; only clients subscribed to
  *               this exact bit are sent anything at all
  * @param fields The event's fields beyond its shared @p event name
  *               field, or @c NULL for one with none.  However this call

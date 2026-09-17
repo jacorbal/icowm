@@ -19,7 +19,7 @@
  * or cross-module dependency, so it is linked for real too, the same
  * way 'input/mouse/bind.c' does for its own binding table.  'list.c'
  * is linked for real as well, since 'keyboard_load' walks a genuine
- * 'list_td' of surfaces built by each scenario below.
+ * 'list_td' of stages built by each scenario below.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -46,7 +46,7 @@
 /* Project includes */
 #include <config.h>
 #include <logger.h>
-#include <surface.h>
+#include <stage.h>
 #include <utils/safe/safestr.h>
 #include <utils/xcb/connection.h>
 
@@ -267,12 +267,12 @@ static void s_test_find_null_outputs(void)
 }
 
 
-/* keyboard_load with empty surfaces still parses and registers
+/* keyboard_load with empty stages still parses and registers
  * bindings in the table, just never grabs anything */
-static void s_test_load_empty_surfaces_registers_binding(void)
+static void s_test_load_empty_stages_registers_binding(void)
 {
     config_td config;
-    list_td *surfaces;
+    list_td *stages;
     xcb_keysym_t keysym = XCB_NO_SYMBOL;
     uint16_t modmask = 0;
     bool found;
@@ -283,19 +283,19 @@ static void s_test_load_empty_surfaces_registers_binding(void)
     safe_strncpy(config.bindings.keyboard.wm.quit, "mod1+q",
             sizeof(config.bindings.keyboard.wm.quit));
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
 
     TAP_EQ_INT(s_call_grab_key_checked, 0,
-            "no surfaces means xcb_grab_key_checked is never reached");
+            "no stages means xcb_grab_key_checked is never reached");
     found = keyboard_find(KEYBIND_WM_QUIT, &keysym, &modmask);
     TAP_OK(found,
-            "the QUIT binding is still registered with no surfaces");
+            "the QUIT binding is still registered with no stages");
     TAP_OK(modmask != 0, "the QUIT binding's modifier mask is non-zero");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -306,7 +306,7 @@ static void s_test_load_empty_surfaces_registers_binding(void)
 static void s_test_load_unparseable_binding_registers_nothing(void)
 {
     config_td config;
-    list_td *surfaces;
+    list_td *stages;
     int count_after;
 
     s_config_reset(&config);
@@ -314,30 +314,30 @@ static void s_test_load_unparseable_binding_registers_nothing(void)
      * (s_parse_binding rejects a NULL/empty binding outright), and
      * every gated binding (emergency exit, fortune, per-monitor and
      * per-desktop bindings) stays disabled since 'has_multi_monitor'
-     * and 'has_multi_desktop' are both false with no surfaces at
+     * and 'has_multi_desktop' are both false with no stages at
      * all, and every '*_enabled'/'*_shortcut' flag is false too */
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
     count_after = keyboard_binding_count();
 
     TAP_EQ_INT(count_after, 1,
             "every field left empty parses only the hardcoded" \
             " window-menu binding into the table");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
 /* keyboard_load grabs each registered binding's keycode, with every
- * lock-modifier variant (4), on every surface with a real screen */
-static void s_test_load_grabs_on_surfaces(void)
+ * lock-modifier variant (4), on every stage with a real screen */
+static void s_test_load_grabs_on_stages(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_screen_t screen;
 
     s_config_reset(&config);
@@ -346,18 +346,18 @@ static void s_test_load_grabs_on_surfaces(void)
     safe_strncpy(config.bindings.keyboard.wm.quit, "mod1+q",
             sizeof(config.bindings.keyboard.wm.quit));
 
-    memset(&surface, 0, sizeof(surface));
+    memset(&stage, 0, sizeof(stage));
     memset(&screen, 0, sizeof(screen));
-    surface.screen = &screen;
+    stage.screen = &screen;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
 
     TAP_EQ_INT(s_call_ungrab_key, 1,
-            "the surface's root is ungrabbed once before re-grabbing");
+            "the stage's root is ungrabbed once before re-grabbing");
     /* 4 lock-modifier variants (none, Lock, Mod2, Lock|Mod2) for each
      * of the two bindings that end up registered here (the QUIT
      * binding configured above, plus the hardcoded, always-on
@@ -370,17 +370,17 @@ static void s_test_load_grabs_on_surfaces(void)
     TAP_EQ_INT(s_call_request_check, s_call_grab_key_checked,
             "every grab attempt is followed by its own request check");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* A surface with a NULL screen is skipped by both the ungrab pass and
+/* A stage with a NULL screen is skipped by both the ungrab pass and
  * the grab pass, without crashing */
-static void s_test_load_skips_null_screen_surface(void)
+static void s_test_load_skips_null_screen_stage(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
 
     s_config_reset(&config);
     safe_strncpy(config.bindings.mod1, "mod1",
@@ -388,21 +388,21 @@ static void s_test_load_skips_null_screen_surface(void)
     safe_strncpy(config.bindings.keyboard.wm.quit, "mod1+q",
             sizeof(config.bindings.keyboard.wm.quit));
 
-    memset(&surface, 0, sizeof(surface));
-    surface.screen = NULL;
+    memset(&stage, 0, sizeof(stage));
+    stage.screen = NULL;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
 
     TAP_EQ_INT(s_call_ungrab_key, 0,
-            "a NULL-screen surface is skipped by the ungrab pass");
+            "a NULL-screen stage is skipped by the ungrab pass");
     TAP_EQ_INT(s_call_grab_key_checked, 0,
-            "a NULL-screen surface is skipped by the grab pass too");
+            "a NULL-screen stage is skipped by the grab pass too");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -412,7 +412,7 @@ static void s_test_load_skips_null_screen_surface(void)
 static void s_test_load_emergency_exit_disabled_by_default(void)
 {
     config_td config;
-    list_td *surfaces;
+    list_td *stages;
     xcb_keysym_t keysym = XCB_NO_SYMBOL;
     uint16_t modmask = 0;
     bool found;
@@ -420,16 +420,16 @@ static void s_test_load_emergency_exit_disabled_by_default(void)
     s_config_reset(&config);
     config.base.shutdown.enable_emergency_shortcut = false;
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
 
     found = keyboard_find(KEYBIND_WM_EMERGENCY_EXIT, &keysym, &modmask);
     TAP_OK(!found,
             "the emergency exit binding is absent when its flag is off");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -439,7 +439,7 @@ static void s_test_load_emergency_exit_disabled_by_default(void)
 static void s_test_load_emergency_exit_enabled_wins_collision(void)
 {
     config_td config;
-    list_td *surfaces;
+    list_td *stages;
     xcb_keysym_t emergency_keysym = XCB_NO_SYMBOL;
     uint16_t emergency_modmask = 0;
     xcb_keysym_t quit_keysym = XCB_NO_SYMBOL;
@@ -456,10 +456,10 @@ static void s_test_load_emergency_exit_enabled_wins_collision(void)
     safe_strncpy(config.bindings.keyboard.wm.quit, "ctrl+mod1+backspace",
             sizeof(config.bindings.keyboard.wm.quit));
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
 
     emergency_found = keyboard_find(KEYBIND_WM_EMERGENCY_EXIT,
             &emergency_keysym, &emergency_modmask);
@@ -473,7 +473,7 @@ static void s_test_load_emergency_exit_enabled_wins_collision(void)
             "a QUIT binding colliding with the emergency exit" \
             " combination is dropped in its favor");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -482,7 +482,7 @@ static void s_test_load_emergency_exit_enabled_wins_collision(void)
 static void s_test_load_fortune_disabled_by_default(void)
 {
     config_td config;
-    list_td *surfaces;
+    list_td *stages;
     xcb_keysym_t keysym = XCB_NO_SYMBOL;
     uint16_t modmask = 0;
     bool found;
@@ -492,26 +492,26 @@ static void s_test_load_fortune_disabled_by_default(void)
     safe_strncpy(config.bindings.keyboard.wm.fortune, "mod4+ctrl+backspace",
             sizeof(config.bindings.keyboard.wm.fortune));
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
 
     found = keyboard_find(KEYBIND_WM_FORTUNE, &keysym, &modmask);
     TAP_OK(!found,
             "the fortune binding is absent when its flag is off");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
 /* A "move to monitor" direction binding is skipped unless at least
- * one surface reports more than one monitor */
+ * one stage reports more than one monitor */
 static void s_test_load_monitor_bindings_need_multi_monitor(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_keysym_t keysym = XCB_NO_SYMBOL;
     uint16_t modmask = 0;
     bool found_single;
@@ -522,40 +522,40 @@ static void s_test_load_monitor_bindings_need_multi_monitor(void)
             "ctrl+up",
             sizeof(config.bindings.keyboard.window.send_to.monitor.north));
 
-    memset(&surface, 0, sizeof(surface));
-    surface.monitor_count = 1u;
+    memset(&stage, 0, sizeof(stage));
+    stage.monitor_count = 1u;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
     found_single = keyboard_find(KEYBIND_CLIENT_MOVE_MONITOR_NORTH,
             &keysym, &modmask);
     TAP_OK(!found_single,
             "a move-to-monitor binding is absent with only one" \
             " monitor");
 
-    surface.monitor_count = 2u;
+    stage.monitor_count = 2u;
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
     found_multi = keyboard_find(KEYBIND_CLIENT_MOVE_MONITOR_NORTH,
             &keysym, &modmask);
     TAP_OK(found_multi,
-            "the same binding is present once a surface has more" \
+            "the same binding is present once a stage has more" \
             " than one monitor");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* A desktop-cycling binding is skipped unless at least one surface
+/* A desktop-cycling binding is skipped unless at least one stage
  * reports more than one desktop */
 static void s_test_load_desktop_bindings_need_multi_desktop(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_keysym_t keysym = XCB_NO_SYMBOL;
     uint16_t modmask = 0;
     bool found_single;
@@ -565,38 +565,38 @@ static void s_test_load_desktop_bindings_need_multi_desktop(void)
     safe_strncpy(config.bindings.keyboard.cycle.desktop.north, "ctrl+right",
             sizeof(config.bindings.keyboard.cycle.desktop.north));
 
-    memset(&surface, 0, sizeof(surface));
-    surface.desktop_count = 1u;
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_count = 1u;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
     found_single = keyboard_find(KEYBIND_DESKTOP_NORTH, &keysym, &modmask);
     TAP_OK(!found_single,
             "a desktop-cycling binding is absent with only one" \
             " desktop");
 
-    surface.desktop_count = 2u;
+    stage.desktop_count = 2u;
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
     found_multi = keyboard_find(KEYBIND_DESKTOP_NORTH, &keysym, &modmask);
     TAP_OK(found_multi,
-            "the same binding is present once a surface has more" \
+            "the same binding is present once a stage has more" \
             " than one desktop");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
-/* A viewport-pan binding is skipped unless at least one surface's
+/* A viewport-pan binding is skipped unless at least one stage's
  * configured viewport is wider or taller than a single screen */
 static void s_test_load_viewport_bindings_need_viewport(void)
 {
     config_td config;
-    list_td *surfaces;
-    surface_td surface;
+    list_td *stages;
+    stage_td stage;
     xcb_keysym_t keysym = XCB_NO_SYMBOL;
     uint16_t modmask = 0;
     bool found_1x1;
@@ -611,17 +611,17 @@ static void s_test_load_viewport_bindings_need_viewport(void)
             "modc+mod4+1",
             sizeof(config.bindings.keyboard.viewport.go_to.page[0]));
 
-    memset(&surface, 0, sizeof(surface));
-    surface.config = &config;
-    surface.id = 0u;
+    memset(&stage, 0, sizeof(stage));
+    stage.config = &config;
+    stage.id = 0u;
     config.base.screens[0].viewport.columns = 1u;
     config.base.screens[0].viewport.rows = 1u;
 
-    surfaces = list_init(NULL);
-    list_ins_next(surfaces, NULL, &surface);
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
     found_1x1 = keyboard_find(KEYBIND_VIEWPORT_PAN_EAST, &keysym, &modmask);
     TAP_OK(!found_1x1,
             "a viewport-pan binding is absent with a 1x1 viewport");
@@ -633,18 +633,18 @@ static void s_test_load_viewport_bindings_need_viewport(void)
 
     config.base.screens[0].viewport.columns = 2u;
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config);
+    keyboard_load(stages, s_fake_keysyms, &config);
     found_wide = keyboard_find(KEYBIND_VIEWPORT_PAN_EAST, &keysym, &modmask);
     TAP_OK(found_wide,
-            "the same binding is present once a surface's viewport" \
+            "the same binding is present once a stage's viewport" \
             " has more than one column");
     found_goto_wide = keyboard_find(KEYBIND_VIEWPORT_GOTO_0, &keysym,
             &modmask);
     TAP_OK(found_goto_wide,
             "the viewport-go-to-page binding is present as well once" \
-            " a surface's viewport has more than one column");
+            " a stage's viewport has more than one column");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -654,7 +654,7 @@ static void s_test_load_reload_replaces_table(void)
 {
     config_td config_many;
     config_td config_one;
-    list_td *surfaces;
+    list_td *stages;
     int count_many;
     int count_one;
 
@@ -670,13 +670,13 @@ static void s_test_load_reload_replaces_table(void)
     safe_strncpy(config_one.bindings.keyboard.wm.quit, "q",
             sizeof(config_one.bindings.keyboard.wm.quit));
 
-    surfaces = list_init(NULL);
+    stages = list_init(NULL);
 
     s_reset();
-    keyboard_load(surfaces, s_fake_keysyms, &config_many);
+    keyboard_load(stages, s_fake_keysyms, &config_many);
     count_many = keyboard_binding_count();
 
-    keyboard_load(surfaces, s_fake_keysyms, &config_one);
+    keyboard_load(stages, s_fake_keysyms, &config_one);
     count_one = keyboard_binding_count();
 
     /* Both counts include the hardcoded, always-on 'Mod1+space'
@@ -690,7 +690,7 @@ static void s_test_load_reload_replaces_table(void)
             " to exactly two entries (it plus the always-on" \
             " window-menu binding)");
 
-    list_destroy(surfaces);
+    list_destroy(stages);
 }
 
 
@@ -731,10 +731,10 @@ int main(void)
 
     s_test_initial_state_empty();
     s_test_find_null_outputs();
-    s_test_load_empty_surfaces_registers_binding();
+    s_test_load_empty_stages_registers_binding();
     s_test_load_unparseable_binding_registers_nothing();
-    s_test_load_grabs_on_surfaces();
-    s_test_load_skips_null_screen_surface();
+    s_test_load_grabs_on_stages();
+    s_test_load_skips_null_screen_stage();
     s_test_load_emergency_exit_disabled_by_default();
     s_test_load_emergency_exit_enabled_wins_collision();
     s_test_load_fortune_disabled_by_default();

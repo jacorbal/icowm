@@ -39,7 +39,7 @@
 
 /* Render includes */
 #include <render/outdate.h>
-#include <render/surface.h>
+#include <render/stage.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -77,7 +77,7 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 #include <wm.h>
 
 /* Local includes */
@@ -135,14 +135,14 @@ static bool s_mouse_near_edge(const client_td *client,
  * restores the client and focuses it.
  *
  * @param connection Active XCB connection
- * @param surfaces   Surface list (for focus)
+ * @param stages     Stage list (for focus)
  * @param event      Incoming button-press event
  * @param client     The client whose icon was clicked
  * @param desktop    The desktop that owns @p client
  * @param config     Active configuration
  */
 static void s_mouse_handle_icon(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop,
         const config_td *config)
 {
@@ -153,7 +153,7 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         struct position_s icon_pos;
         struct position_s root_pos;
         struct dimensions_s screen_dim;
-        const surface_td *surface;
+        const stage_td *stage;
 
         gc = xcb_get_geometry(connection, client->icon_window);
         gr = xcb_get_geometry_reply(connection, gc, &err);
@@ -170,33 +170,33 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
             free(gr);
         }
 
-        surface = wm_get_surface_by_id(client->screen_id);
+        stage = wm_get_stage_by_id(client->screen_id);
         root_pos.x = event->root_x;
         root_pos.y = event->root_y;
-        screen_dim.w = (surface != NULL) ? surface->properties.dim.w : 0u;
-        screen_dim.h = (surface != NULL) ? surface->properties.dim.h : 0u;
+        screen_dim.w = (stage != NULL) ? stage->properties.dim.w : 0u;
+        screen_dim.h = (stage != NULL) ? stage->properties.dim.h : 0u;
         drag_icon_start(connection, event->root, client, desktop,
                 icon_pos, event->time, root_pos, screen_dim);
     } else if ((xcb_button_index_t) event->detail ==
             XCB_BUTTON_INDEX_3) {
         /* Right-click: open the icon context menu */
-        surface_td *surface;
+        stage_td *stage;
         struct position_s pos;
 
-        surface = lookup_surface_for_root(surfaces, event->root);
+        stage = lookup_stage_for_root(stages, event->root);
         pos.x = event->root_x;
         pos.y = event->root_y;
-        iconmenu_show(connection, surface, desktop, client, pos,
+        iconmenu_show(connection, stage, desktop, client, pos,
                 config);
     } else {
         /* Any other button (e.g., the middle one): restore and focus */
-        surface_td *surface;
+        stage_td *stage;
 
         enact_client_restore(client);
-        surface = lookup_surface_for_root(surfaces, event->root);
-        if (surface != NULL && desktop != NULL) {
-            focus_apply(surfaces, surface, desktop, client, true, config);
-            im_sync_pinned_active(surface, desktop, client);
+        stage = lookup_stage_for_root(stages, event->root);
+        if (stage != NULL && desktop != NULL) {
+            focus_apply(stages, stage, desktop, client, true, config);
+            im_sync_pinned_active(stage, desktop, client);
         }
     }
 
@@ -264,23 +264,23 @@ static bool s_mouse_can_resize_client(const client_td *client,
  * confirmation is reached.
  *
  * @param connection XCB connection
- * @param surface    Surface the client is on, or @c NULL to skip
+ * @param stage      Stage the client is on, or @c NULL to skip
  *                   showing the menu (the click is still acknowledged
  *                   either way)
- * @param desktop    Desktop the client is on, or @c NULL to skip
+ * @param desktop Desktop the client is on, or @c NULL to skip
  *                   showing the menu
- * @param client     Client the menu belongs to
- * @param event      The right-click event that triggered this
- * @param config     Active configuration
+ * @param client Client the menu belongs to
+ * @param event  The right-click event that triggered this
+ * @param config Active configuration
  *
  * @note Complexity: @e O(1)
  */
 static void s_mouse_show_wincmenu_at_click(xcb_connection_t *connection,
-        surface_td *surface, desktop_td *desktop, client_td *client,
+        stage_td *stage, desktop_td *desktop, client_td *client,
         const xcb_button_press_event_t *event, const config_td *config)
 {
-    if (surface != NULL && desktop != NULL) {
-        wincmenu_show(connection, surface, desktop, client,
+    if (stage != NULL && desktop != NULL) {
+        wincmenu_show(connection, stage, desktop, client,
                 (struct position_s) { event->root_x, event->root_y },
                 config);
     }
@@ -300,16 +300,16 @@ static void s_mouse_show_wincmenu_at_click(xcb_connection_t *connection,
  * fullscreen client never reaches this function at all).
  *
  * @param connection Active XCB connection
- * @param surfaces   Surface list (to resolve screen size)
+ * @param stages     Stage list (to resolve screen size)
  * @param event      Incoming button-press event
  * @param client     Client to resize
  * @param desktop    Desktop owning @p client
  */
 static void s_mouse_start_border_resize(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop)
 {
-    surface_td *surface;
+    stage_td *stage;
     struct position_s root_pos;
     struct dimensions_s screen_dim;
 
@@ -317,9 +317,9 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
         ccmd_client_unshade(client);
     }
 
-    surface = lookup_surface_for_root(surfaces, event->root);
-    screen_dim.w = (surface != NULL) ? surface->properties.dim.w : 0u;
-    screen_dim.h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    stage = lookup_stage_for_root(stages, event->root);
+    screen_dim.w = (stage != NULL) ? stage->properties.dim.w : 0u;
+    screen_dim.h = (stage != NULL) ? stage->properties.dim.h : 0u;
     root_pos.x = event->root_x;
     root_pos.y = event->root_y;
 
@@ -347,24 +347,24 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
  *
  * @param wm         Window manager instance, for the root menu
  * @param connection Active XCB connection
- * @param surfaces   Surface list
+ * @param stages     Stage list
  * @param event      Incoming button-press event
  * @param config     Active configuration
  */
 static void s_mouse_handle_root_press(wm_td *wm,
         xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config)
 {
-    surface_td *const surface = lookup_surface_for_root(surfaces,
+    stage_td *const stage = lookup_stage_for_root(stages,
             event->root);
 
-    if (surface == NULL) {
+    if (stage == NULL) {
         return;
     }
 
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3) {
-        rootmenu_show(wm, connection, surface,
+        rootmenu_show(wm, connection, stage,
                 (struct position_s) { event->root_x, event->root_y },
                 config);
         im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
@@ -378,7 +378,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
          * 'mouse_handle_release') still unfocuses the active client,
          * exactly like this always did, whenever the drag turns out
          * to never have really moved. */
-        drag_background_start(connection, surface, event->root,
+        drag_background_start(connection, stage, event->root,
                 event->time,
                 (struct position_s) { event->root_x, event->root_y });
         im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
@@ -387,7 +387,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
     }
 
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_2) {
-        winlist_show(connection, surface,
+        winlist_show(connection, stage,
                 (struct position_s) { event->root_x, event->root_y },
                 config);
         im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
@@ -408,9 +408,9 @@ static void s_mouse_handle_root_press(wm_td *wm,
  * cases (an icon window, which has no frame of its own) where the
  * frame's window ID alone would not have matched anything.
  *
- * @param connection  Unused; kept only so this matches the signature
+ * @param connection Unused; kept only so this matches the signature
  *                    shape of the other handlers around it
- * @param surfaces    Singly-linked list of @c surface_td pointers
+ * @param stages      Singly-linked list of @c stage_td pointers
  * @param event_win   The @p event field from the triggering XCB event
  * @param child_win   The @p child field from the triggering XCB event
  * @param out_desktop If non-null, receives the owning desktop
@@ -423,7 +423,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
  * @see @a lookup_find_client
  */
 static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t event_win,
+        list_td *stages, xcb_window_t event_win,
         xcb_window_t child_win, desktop_td **out_desktop)
 {
     client_td *client = NULL;
@@ -431,11 +431,11 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
     (void) connection;
 
     if (child_win != XCB_NONE) {
-        client = lookup_find_client(surfaces, child_win, NULL,
+        client = lookup_find_client(stages, child_win, NULL,
                 out_desktop);
     }
     if (client == NULL) {
-        client = lookup_find_client(surfaces, event_win, NULL,
+        client = lookup_find_client(stages, event_win, NULL,
                 out_desktop);
     }
 
@@ -444,19 +444,19 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
 
 
 /* Keep a pinned client's active-window state consistent across every
- * desktop on its surface */
-void im_sync_pinned_active(surface_td *surface,
+ * desktop on its stage */
+void im_sync_pinned_active(stage_td *stage,
         const desktop_td *desktop, const client_td *client)
 {
     cdlist_item_td *dnode;
     const cdlist_item_td *dinitial;
 
-    if (surface == NULL || surface->desktops == NULL ||
+    if (stage == NULL || stage->desktops == NULL ||
             client == NULL || !client_is_pinned(client)) {
         return;
     }
 
-    dnode = cdlist_head(surface->desktops);
+    dnode = cdlist_head(stage->desktops);
     if (dnode == NULL) {
         return;
     }
@@ -486,13 +486,13 @@ void im_allow_and_flush(xcb_connection_t *connection,
 
 /* Dispatch a button-press event */
 void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config)
 {
     xcb_window_t window;
     client_td *client;
     desktop_td *desktop = NULL;
-    surface_td *surface = NULL;
+    stage_td *stage = NULL;
     enum wm_mousebind_type_e type = MOUSEBIND_NONE;
     struct dimensions_s screen_dim;
     struct position_s root_pos;
@@ -513,19 +513,19 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
 
     /* Step 1: dismiss any open overlay; return if the event was
      * consumed */
-    if (im_press_close_overlays(connection, surfaces,
+    if (im_press_close_overlays(connection, stages,
                 event, config)) {
         return;
     }
 
     /* Step 2: resolve the window and client under the pointer */
     window = (event->child != XCB_NONE) ? event->child : event->event;
-    client = s_mouse_find_event_client(connection, surfaces,
+    client = s_mouse_find_event_client(connection, stages,
             event->event, event->child, &desktop);
 
     /* Step 3: icon click */
     if (client != NULL && window == client->icon_window) {
-        s_mouse_handle_icon(connection, surfaces, event, client,
+        s_mouse_handle_icon(connection, stages, event, client,
                 desktop, config);
         return;
     }
@@ -540,7 +540,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             type == MOUSEBIND_DESKTOP_SOUTH ||
             type == MOUSEBIND_DESKTOP_EAST ||
             type == MOUSEBIND_DESKTOP_WEST) {
-        im_press_scroll_binding(connection, surfaces, event,
+        im_press_scroll_binding(connection, stages, event,
                 client, desktop, type, config);
         return;
     }
@@ -549,12 +549,12 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
      * frame, the titlebar or the root window */
     if (type == MOUSEBIND_NONE) {
         if (client != NULL) {
-            surface = lookup_surface_for_root(surfaces, event->root);
+            stage = lookup_stage_for_root(stages, event->root);
 
             /* Apply click-to-focus */
-            if (surface != NULL && desktop != NULL &&
+            if (stage != NULL && desktop != NULL &&
                     client_is_focusable(client)) {
-                focus_apply(surfaces, surface, desktop, client,
+                focus_apply(stages, stage, desktop, client,
                         true, config);
             }
 
@@ -570,7 +570,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
                     client->frame != 0 &&
                     event->child != client->window &&
                     event->child != client->titlebar) {
-                s_mouse_show_wincmenu_at_click(connection, surface,
+                s_mouse_show_wincmenu_at_click(connection, stage,
                         desktop, client, event, config);
                 return;
             }
@@ -588,7 +588,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
                             event->root_x,
                             event->root_y
                         })) {
-                s_mouse_show_wincmenu_at_click(connection, surface,
+                s_mouse_show_wincmenu_at_click(connection, stage,
                         desktop, client, event, config);
                 return;
             }
@@ -605,15 +605,15 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
                  * in Step 7 already takes, instead of racing that
                  * fresh grab against a stray release of the passive
                  * one that started it. */
-                if (im_press_titlebar(connection, surfaces, event,
-                        client, desktop, surface, config)) {
+                if (im_press_titlebar(connection, stages, event,
+                        client, desktop, stage, config)) {
                     return;
                 }
             }
 
             /* Border resize (decorated or undecorated) */
             if (s_mouse_can_resize_client(client, window, event)) {
-                s_mouse_start_border_resize(connection, surfaces, event,
+                s_mouse_start_border_resize(connection, stages, event,
                         client, desktop);
                 return;
             }
@@ -634,7 +634,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             /* No managed client: check for a root-window click */
             if (event->event == event->root ||
                     event->child == XCB_NONE) {
-                s_mouse_handle_root_press(wm, connection, surfaces, event,
+                s_mouse_handle_root_press(wm, connection, stages, event,
                         config);
                 return;
             }
@@ -650,7 +650,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     }
 
     /* Step 7: configured MOVE or RESIZE binding; re-resolve client */
-    client = s_mouse_find_event_client(connection, surfaces,
+    client = s_mouse_find_event_client(connection, stages,
             event->event, event->child, &desktop);
 
     if (client == NULL) {
@@ -680,10 +680,10 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
         return;
     }
 
-    surface = lookup_surface_for_root(surfaces, event->root);
-    if (surface != NULL && desktop != NULL) {
-        focus_apply(surfaces, surface, desktop, client, true, config);
-        im_sync_pinned_active(surface, desktop, client);
+    stage = lookup_stage_for_root(stages, event->root);
+    if (stage != NULL && desktop != NULL) {
+        focus_apply(stages, stage, desktop, client, true, config);
+        im_sync_pinned_active(stage, desktop, client);
     }
 
     if (type == MOUSEBIND_MOVE &&
@@ -695,8 +695,8 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
         return;
     }
 
-    screen_dim.w = (surface != NULL) ? surface->properties.dim.w : 0u;
-    screen_dim.h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    screen_dim.w = (stage != NULL) ? stage->properties.dim.w : 0u;
+    screen_dim.h = (stage != NULL) ? stage->properties.dim.h : 0u;
     root_pos.x = event->root_x;
     root_pos.y = event->root_y;
 

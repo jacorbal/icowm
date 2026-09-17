@@ -62,9 +62,9 @@
  */
 static bool s_monitor_available;
 static monitor_td s_monitor;
-static surface_td *s_monitor_surface;
+static stage_td *s_monitor_stage;
 
-bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
+bool ccmd_client_monitor(client_td *client, stage_td **out_stage,
         monitor_td *out_monitor)
 {
     (void) client;
@@ -72,8 +72,8 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
     if (!s_monitor_available) {
         return false;
     }
-    if (out_surface != NULL) {
-        *out_surface = s_monitor_surface;
+    if (out_stage != NULL) {
+        *out_stage = s_monitor_stage;
     }
     if (out_monitor != NULL) {
         *out_monitor = s_monitor;
@@ -115,16 +115,16 @@ bool ccmd_screen_dim(const client_td *client,
 /**
  * @brief Link-only stand-in for @a systray_get_reserved_strut
  *
- * Answers @c NULL unconditionally, the same as a surface with no tray
+ * Answers @c NULL unconditionally, the same as a stage with no tray
  * reservation: none of these tests exercise the margin-shrink branch
  * that reads a real strut, only the plain monitor/screen sizing path.
  *
  * @note Complexity: @e O(1)
  */
 const struct strut_partial_s *systray_get_reserved_strut(
-        const surface_td *surface)
+        const stage_td *stage)
 {
-    (void) surface;
+    (void) stage;
     return NULL;
 }
 
@@ -132,7 +132,7 @@ const struct strut_partial_s *systray_get_reserved_strut(
 /**
  * @brief Test-controlled stand-in for @a systray_get_geometry
  *
- * Answers @c false by default, matching a surface with no tray
+ * Answers @c false by default, matching a stage with no tray
  * mapped, which keeps @a s_icon_tray_avoid a no-op; a test opts into
  * a docked tray by setting @a s_tray_present and @a s_tray_geometry.
  *
@@ -141,10 +141,10 @@ const struct strut_partial_s *systray_get_reserved_strut(
 static bool s_tray_present;
 static struct geometry_s s_tray_geometry;
 
-bool systray_get_geometry(const surface_td *surface,
+bool systray_get_geometry(const stage_td *stage,
         struct geometry_s *restrict out_tray)
 {
-    (void) surface;
+    (void) stage;
 
     if (!s_tray_present) {
         return false;
@@ -197,7 +197,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
  *
  * Never actually pushes the position (answers @c false unconditionally,
  * leaving @p io_y untouched): every test here that cares about a
- * position's final value goes through a surface with no tray mapped, so
+ * position's final value goes through a stage with no tray mapped, so
  * @c s_icon_tray_avoid never even reaches this once @c systray_get_
  * geometry above has already answered @c false first.  Kept as a
  * record-only stand-in regardless, for the one test that does map a
@@ -437,7 +437,7 @@ static void s_reset(void)
 
     s_monitor_available = false;
     memset(&s_monitor, 0, sizeof(s_monitor));
-    s_monitor_surface = NULL;
+    s_monitor_stage = NULL;
     s_screen_dim_available = true;
     s_screen_w = 1024u;
     s_screen_h = 768u;
@@ -909,7 +909,7 @@ static void s_test_ensure_icon_window_offsets_by_monitor_origin(void)
 
 int main(void)
 {
-    TAP_PLAN(41);
+    TAP_PLAN(44);
 
     s_test_relocate_null_or_unconfigured_is_a_no_op();
     s_test_relocate_no_icon_or_not_iconified_is_a_no_op();

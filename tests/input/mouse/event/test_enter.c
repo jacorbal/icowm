@@ -6,7 +6,7 @@
  *
  * mouse_handle_enter orchestrates several genuinely external
  * collaborators (resize-cursor re-evaluation, hover tracking, the
- * cycle-menu-open guard, the focus policy check, client/surface
+ * cycle-menu-open guard, the focus policy check, client/stage
  * lookup, and focus_apply itself), each of which is a full subsystem
  * covered by its own test elsewhere; only this file's own dispatch and
  * delayed-focus bookkeeping (s_enter_focus_active, s_pending_window,
@@ -59,7 +59,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -105,12 +105,12 @@ static bool s_stub_focus_sloppy;
 static client_td *s_stub_lookup_client;
 static desktop_td *s_stub_lookup_desktop;
 
-/** Stand-in return value for the next lookup_surface_for_root call */
-static surface_td *s_stub_lookup_surface;
+/** Stand-in return value for the next lookup_stage_for_root call */
+static stage_td *s_stub_lookup_stage;
 
 /** Recorded arguments from the last focus_apply call */
 static int s_focus_apply_calls;
-static surface_td *s_focus_apply_surface;
+static stage_td *s_focus_apply_stage;
 static desktop_td *s_focus_apply_desktop;
 static client_td *s_focus_apply_client;
 static bool s_focus_apply_raise;
@@ -121,11 +121,11 @@ static bool s_focus_apply_raise;
  * @note Complexity: @e O(1)
  */
 client_td *mouse_resize_cursor_update(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window,
+        list_td *stages, xcb_window_t window,
         struct position_s root_pos)
 {
     (void) connection;
-    (void) surfaces;
+    (void) stages;
     (void) window;
     (void) root_pos;
 
@@ -170,14 +170,14 @@ bool focus_is_sloppy(const config_td *cfg)
  * @brief Stand-in for @a lookup_find_client
  * @note Complexity: @e O(1)
  */
-client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
-        surface_td **out_surface, desktop_td **out_desktop)
+client_td *lookup_find_client(list_td *stages, xcb_window_t window,
+        stage_td **out_stage, desktop_td **out_desktop)
 {
-    (void) surfaces;
+    (void) stages;
     (void) window;
 
-    if (out_surface != NULL) {
-        *out_surface = NULL;
+    if (out_stage != NULL) {
+        *out_stage = NULL;
     }
     if (out_desktop != NULL) {
         *out_desktop = s_stub_lookup_desktop;
@@ -188,15 +188,15 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 
 
 /**
- * @brief Stand-in for @a lookup_surface_for_root
+ * @brief Stand-in for @a lookup_stage_for_root
  * @note Complexity: @e O(1)
  */
-surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
+stage_td *lookup_stage_for_root(list_td *stages, xcb_window_t root)
 {
-    (void) surfaces;
+    (void) stages;
     (void) root;
 
-    return s_stub_lookup_surface;
+    return s_stub_lookup_stage;
 }
 
 
@@ -204,15 +204,15 @@ surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
  * @brief Recording stand-in for @a focus_apply
  * @note Complexity: @e O(1)
  */
-void focus_apply(list_td *surfaces, surface_td *surface,
+void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client, bool raise,
         const config_td *cfg)
 {
-    (void) surfaces;
+    (void) stages;
     (void) cfg;
 
     s_focus_apply_calls++;
-    s_focus_apply_surface = surface;
+    s_focus_apply_stage = stage;
     s_focus_apply_desktop = desktop;
     s_focus_apply_client = client;
     s_focus_apply_raise = raise;
@@ -228,9 +228,9 @@ static void s_reset(void)
     s_stub_focus_sloppy = false;
     s_stub_lookup_client = NULL;
     s_stub_lookup_desktop = NULL;
-    s_stub_lookup_surface = NULL;
+    s_stub_lookup_stage = NULL;
     s_focus_apply_calls = 0;
-    s_focus_apply_surface = NULL;
+    s_focus_apply_stage = NULL;
     s_focus_apply_desktop = NULL;
     s_focus_apply_client = NULL;
     s_focus_apply_raise = false;
@@ -469,7 +469,7 @@ static void s_test_sloppy_focus_no_client_does_nothing(void)
 static void s_test_zero_delay_applies_focus_immediately(void)
 {
     client_td dummy_client;
-    surface_td dummy_surface;
+    stage_td dummy_stage;
     desktop_td dummy_desktop;
     xcb_enter_notify_event_t event = s_make_event(1, 0, 1,
             XCB_NOTIFY_MODE_NORMAL, XCB_NOTIFY_DETAIL_NONLINEAR, 0, 0);
@@ -477,14 +477,14 @@ static void s_test_zero_delay_applies_focus_immediately(void)
 
     s_reset();
     memset(&dummy_client, 0, sizeof(dummy_client));
-    memset(&dummy_surface, 0, sizeof(dummy_surface));
+    memset(&dummy_stage, 0, sizeof(dummy_stage));
     memset(&dummy_desktop, 0, sizeof(dummy_desktop));
     memset(&config, 0, sizeof(config));
     config.base.windows.focus.delay_ms = 0u;
     s_stub_focus_sloppy = true;
     s_stub_lookup_client = &dummy_client;
     s_stub_lookup_desktop = &dummy_desktop;
-    s_stub_lookup_surface = &dummy_surface;
+    s_stub_lookup_stage = &dummy_stage;
 
     mouse_handle_enter((xcb_connection_t *) 1, NULL, &event, &config);
 
@@ -506,7 +506,7 @@ static void s_test_zero_delay_applies_focus_immediately(void)
 static void s_test_positive_delay_arms_pending_focus(void)
 {
     client_td dummy_client;
-    surface_td dummy_surface;
+    stage_td dummy_stage;
     desktop_td dummy_desktop;
     xcb_enter_notify_event_t event = s_make_event(11, 0, 1,
             XCB_NOTIFY_MODE_NORMAL, XCB_NOTIFY_DETAIL_NONLINEAR, 0, 0);
@@ -514,14 +514,14 @@ static void s_test_positive_delay_arms_pending_focus(void)
 
     s_reset();
     memset(&dummy_client, 0, sizeof(dummy_client));
-    memset(&dummy_surface, 0, sizeof(dummy_surface));
+    memset(&dummy_stage, 0, sizeof(dummy_stage));
     memset(&dummy_desktop, 0, sizeof(dummy_desktop));
     memset(&config, 0, sizeof(config));
     config.base.windows.focus.delay_ms = 250u;
     s_stub_focus_sloppy = true;
     s_stub_lookup_client = &dummy_client;
     s_stub_lookup_desktop = &dummy_desktop;
-    s_stub_lookup_surface = &dummy_surface;
+    s_stub_lookup_stage = &dummy_stage;
 
     mouse_handle_enter((xcb_connection_t *) 1, NULL, &event, &config);
 
@@ -552,7 +552,7 @@ static void s_test_positive_delay_arms_pending_focus(void)
 static void s_test_cancel_ignores_non_matching_window(void)
 {
     client_td dummy_client;
-    surface_td dummy_surface;
+    stage_td dummy_stage;
     desktop_td dummy_desktop;
     xcb_enter_notify_event_t event = s_make_event(21, 0, 1,
             XCB_NOTIFY_MODE_NORMAL, XCB_NOTIFY_DETAIL_NONLINEAR, 0, 0);
@@ -560,14 +560,14 @@ static void s_test_cancel_ignores_non_matching_window(void)
 
     s_reset();
     memset(&dummy_client, 0, sizeof(dummy_client));
-    memset(&dummy_surface, 0, sizeof(dummy_surface));
+    memset(&dummy_stage, 0, sizeof(dummy_stage));
     memset(&dummy_desktop, 0, sizeof(dummy_desktop));
     memset(&config, 0, sizeof(config));
     config.base.windows.focus.delay_ms = 250u;
     s_stub_focus_sloppy = true;
     s_stub_lookup_client = &dummy_client;
     s_stub_lookup_desktop = &dummy_desktop;
-    s_stub_lookup_surface = &dummy_surface;
+    s_stub_lookup_stage = &dummy_stage;
 
     mouse_handle_enter((xcb_connection_t *) 1, NULL, &event, &config);
     mouse_enter_focus_cancel(999u);

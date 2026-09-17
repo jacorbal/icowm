@@ -3,7 +3,7 @@
  *
  * @brief Free-rectangle arithmetic the placement search walks with
  *
- * Pure geometry, with no notion of a client or a surface beyond
+ * Pure geometry, with no notion of a client or a stage beyond
  * asking what is already on a desktop.  A rectangle is grown to the
  * largest it can be without touching what is there, and a position is
  * scored by how little it overlaps.  Kept apart from the rest of
@@ -38,16 +38,16 @@
 /**
  * @brief Grow a rectangle from a corner until it meets something
  *
- * @param desktop      Desktop whose clients are obstacles
- * @param skip_client  Client to ignore, normally the one being placed
- * @param x0           Left edge to grow from
- * @param y0           Top edge to grow from
- * @param bound_x      Right edge the growth may not pass
- * @param bound_y      Bottom edge the same
- * @param tray_rect    Tray rectangle to treat as an obstacle, or
+ * @param desktop     Desktop whose clients are obstacles
+ * @param skip_client Client to ignore, normally the one being placed
+ * @param x0          Left edge to grow from
+ * @param y0          Top edge to grow from
+ * @param bound_x     Right edge the growth may not pass
+ * @param bound_y     Bottom edge the same
+ * @param tray_rect   Tray rectangle to treat as an obstacle, or
  *                     @c NULL when the tray does not reserve space
- * @param out_w        Receives the width reached
- * @param out_h        Receives the height reached
+ * @param out_w Receives the width reached
+ * @param out_h Receives the height reached
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop

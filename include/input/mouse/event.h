@@ -43,17 +43,17 @@
  * press is that question's answer and never a click on anything the
  * rest would go on to resolve.
  *
- * @param wm         Window manager instance, needed only for the
+ * @param wm Window manager instance, needed only for the
  *                   root-window right-click's root menu
  * @param connection XCB connection
- * @param surfaces   All managed surfaces (for lookup and focus)
+ * @param stages     All managed stages (for lookup and focus)
  * @param event      Button-press event
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n) for binding lookup; @e O(1) otherwise
  */
 void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
+        list_td *stages, xcb_button_press_event_t *event,
         const config_td *config);
 
 /**
@@ -63,15 +63,15 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
  * a click or a real drag, ungrab the pointer, and resets drag state.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces (for lookup and focus on
+ * @param stages     All managed stages (for lookup and focus on
  *                   icon-click restore)
- * @param event      Button-release event
- * @param config     Active configuration
+ * @param event  Button-release event
+ * @param config Active configuration
  *
  * @note Complexity: @e O(1)
  */
 void mouse_handle_release(xcb_connection_t *connection,
-        list_td *surfaces, const xcb_button_release_event_t *event,
+        list_td *stages, const xcb_button_release_event_t *event,
         const config_td *config);
 
 /**
@@ -105,14 +105,14 @@ void mouse_handle_release(xcb_connection_t *connection,
  * outright by @a mouse_enter_focus_cancel if the pointer leaves first.
  *
  * @param connection XCB connection
- * @param surfaces   All managed surfaces (for lookup and focus)
+ * @param stages     All managed stages (for lookup and focus)
  * @param event      Enter-notify event
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n)
  */
 void mouse_handle_enter(xcb_connection_t *connection,
-        list_td *surfaces, xcb_enter_notify_event_t *event,
+        list_td *stages, xcb_enter_notify_event_t *event,
         const config_td *config);
 
 /**
@@ -175,12 +175,12 @@ int mouse_enter_focus_ms_remaining(void);
  * if the focus policy is no longer @c sloppy by the time it comes due
  * (a config reload could have switched it to @c click in the meantime).
  *
- * @param surfaces All managed surfaces (for lookup and focus)
- * @param config   Active configuration
+ * @param stages All managed stages (for lookup and focus)
+ * @param config Active configuration
  *
  * @note Complexity: @e O(n)
  */
-void mouse_enter_focus_tick(list_td *surfaces, const config_td *config);
+void mouse_enter_focus_tick(list_td *stages, const config_td *config);
 
 
 #endif  /* ! INPUT_MOUSE_EVENT_H */

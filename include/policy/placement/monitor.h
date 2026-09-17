@@ -31,7 +31,7 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Local includes */
 #include <defs/placement.h>
@@ -40,16 +40,16 @@
 /**
  * @brief Narrow a workarea and screen size to one monitor
  *
- * @param surface    Surface the monitor belongs to
- * @param wa         Workarea of the whole surface
- * @param screen     Dimensions of the whole surface
+ * @param stage      Stage the monitor belongs to
+ * @param wa         Workarea of the whole stage
+ * @param screen     Dimensions of the whole stage
  * @param monitor    Monitor to narrow to
  * @param out_wa     Receives the monitor's workarea
  * @param out_screen Receives the monitor's dimensions
  *
  * @note Complexity: @e O(1)
  */
-void placement_clip_to_monitor(const surface_td *surface,
+void placement_clip_to_monitor(const stage_td *stage,
         const struct geometry_s *wa, const struct dimensions_s *screen,
         monitor_td monitor,
         struct geometry_s *out_wa, struct dimensions_s *out_screen);
@@ -58,7 +58,7 @@ void placement_clip_to_monitor(const surface_td *surface,
 /**
  * @brief Resolve which monitor a client should be placed on
  *
- * @param surface        Surface to resolve within
+ * @param stage          Stage to resolve within
  * @param wm             Window manager state
  * @param client         Client being placed
  * @param monitor_policy What the configuration asks for
@@ -71,7 +71,7 @@ void placement_clip_to_monitor(const surface_td *surface,
  * @note Complexity: @e O(n), where @e n is the number of monitors
  */
 monitor_td placement_reference_monitor(const wm_td *wm,
-        surface_td *surface, const client_td *client,
+        stage_td *stage, const client_td *client,
         enum config_placement_monitor_e monitor_policy,
         uint32_t monitor_index);
 
@@ -79,16 +79,16 @@ monitor_td placement_reference_monitor(const wm_td *wm,
 /**
  * @brief Resolve the workarea a client is to be placed within
  *
- * @param wm          Window manager state
- * @param surface     Surface the client belongs to
- * @param client      Client being placed
- * @param out_wa      Receives the workarea to place within
- * @param out_mon_wa  Receives the chosen monitor's workarea
- * @param out_mon_sz  Receives the chosen monitor's dimensions
+ * @param wm         Window manager state
+ * @param stage      Stage the client belongs to
+ * @param client     Client being placed
+ * @param out_wa     Receives the workarea to place within
+ * @param out_mon_wa Receives the chosen monitor's workarea
+ * @param out_mon_sz Receives the chosen monitor's dimensions
  *
  * @note Complexity: @e O(n), where @e n is the number of monitors
  */
-void placement_workarea(const wm_td *wm, surface_td *surface,
+void placement_workarea(const wm_td *wm, stage_td *stage,
         const client_td *client,
         struct geometry_s *out_wa, struct geometry_s *out_mon_wa,
         struct dimensions_s *out_mon_sz);

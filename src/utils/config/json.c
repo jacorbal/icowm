@@ -160,13 +160,19 @@ int json_load_string(cJSON *json, const char *restrict field,
 
 
 /* Load an unsigned integer value from a JSON object */
-int json_load_uint(cJSON *json, const char *field, unsigned int *dest)
+int json_load_uint(cJSON *json, const char *field, uint32_t *dest)
 {
     cJSON *item;
 
     item = json_get_item(json, field);
     if (item && cJSON_IsNumber(item)) {
-        *dest = (unsigned int) item->valueint;
+        if (item->valueint < 0) {
+            LOGGER_WARNING("JSON unsigned integer for key '%s' is" \
+                    " negative (%d); using default value", field,
+                    item->valueint);
+            return 1;
+        }
+        *dest = (uint32_t) item->valueint;
         return 0;
     }
 

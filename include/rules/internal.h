@@ -105,7 +105,7 @@ struct rules_match_s {
  */
 struct rules_apply_s {
     /**
-     * @brief Index into the client's surface's monitor list
+     * @brief Index into the client's stage's monitor list
      *
      * Named @p monitor, not @p screen': this project's @p screen_id /
      * @p (screens[]) terminology refers to a whole X screen, and this
@@ -113,7 +113,7 @@ struct rules_apply_s {
      * all, desktop reassignment above included, so a rule field with
      * that name would misleadingly suggest a capability that does not
      * exist.  Scoped to one physical monitor within the client's
-     * current surface only.
+     * current stage only.
      */
     uint32_t monitor;
     uint32_t desktop;
@@ -139,7 +139,7 @@ struct rules_apply_s {
 
     bool has_desktop;
     bool has_monitor;           /**< Target monitor within the client's
-                                     own surface; see 'monitor' below */
+                                     own stage; see 'monitor' below */
     bool has_layer;
     bool has_focus;
     bool has_position;          /**< @c x and @c y, or
@@ -212,6 +212,7 @@ struct rules_s {
 };
 
 
+/* Match engine (implemented in 'rules/match.c') */
 /**
  * @brief Test whether a rule's timing constraint is satisfied
  *

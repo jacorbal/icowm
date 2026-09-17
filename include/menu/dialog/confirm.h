@@ -52,16 +52,16 @@
  * previously open confirm dialog is ignored (only one instance is
  * allowed at a time).
  *
- * @param connection      XCB connection
- * @param surface         Surface on which to center the dialog
- * @param config          Active configuration (theme colors and font)
- * @param prompt          Null-terminated prompt text
- * @param cancel_label    Null-terminated cancel button label
- * @param confirm_label   Null-terminated confirm button label
- * @param on_confirm      Optional callback invoked when the confirm
+ * @param connection    XCB connection
+ * @param stage         Stage on which to center the dialog
+ * @param config        Active configuration (theme colors and font)
+ * @param prompt        Null-terminated prompt text
+ * @param cancel_label  Null-terminated cancel button label
+ * @param confirm_label Null-terminated confirm button label
+ * @param on_confirm    Optional callback invoked when the confirm
  *                        button is activated; receives the XCB
  *                        connection (may be null)
- * @param on_cancel       Optional callback invoked when the cancel
+ * @param on_cancel Optional callback invoked when the cancel
  *                        button is activated, either by a user
  *                        clicking it, selecting it and pressing
  *                        @c Enter / @c Space, pressing @c Escape (which
@@ -80,7 +80,7 @@
  * @note Complexity: @e O(n), where @e n is the total text length
  */
 void menu_confirm_dialog_show(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
+        stage_td *stage, const config_td *config,
         const char *prompt,
         const char *cancel_label, const char *confirm_label,
         void (*on_confirm)(xcb_connection_t *),
@@ -117,8 +117,8 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
  * @param config     Active configuration, for the repaint of the
  *                   newly selected button; the click is still
  *                   handled if null, just without that repaint
- * @param x          Pointer X coordinate relative to the dialog
- * @param y          Pointer Y coordinate relative to the dialog
+ * @param x Pointer X coordinate relative to the dialog
+ * @param y Pointer Y coordinate relative to the dialog
  *
  * @return @c true if a button was activated
  *

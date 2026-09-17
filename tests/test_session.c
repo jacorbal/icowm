@@ -181,6 +181,25 @@ static void s_write_session_json(const char *dir, const char *contents)
 }
 
 
+/**
+ * @brief Remove the session file a directory returned by
+ *        @a s_make_temp_dir may hold, and the directory itself
+ *
+ * Unlinking a name @a s_write_session_json was never called for is a
+ * harmless no-op, so this covers every test here regardless of
+ * whether it actually wrote one.
+ */
+static void s_remove_temp_dir(const char *dir)
+{
+    char path[CONFIG_MAX_LENGTH_PATH_CONFIG];
+
+    (void) snprintf(path, sizeof(path), "%s/%s", dir,
+            CONFIG_FILENAME_SESSION);
+    (void) unlink(path);
+    (void) rmdir(dir);
+}
+
+
 /* session_init returns a non-NULL table with every hook list empty */
 static void s_test_init_returns_empty_table(void)
 {
@@ -237,6 +256,7 @@ static void s_test_load_missing_file_is_ok(void)
             "an empty on-start hook list spawns nothing");
 
     session_destroy(session);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -287,6 +307,7 @@ static void s_test_load_populates_all_hooks(void)
             "the on-exit command matches the session file");
 
     session_destroy(session);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -318,6 +339,7 @@ static void s_test_load_skips_invalid_entries(void)
             "the surviving entry is the real command, not a blank one");
 
     session_destroy(session);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -345,6 +367,7 @@ static void s_test_load_reload_clears_previous(void)
             "only the second load's command remains after a reload");
 
     session_destroy(session);
+    s_remove_temp_dir(dir);
 }
 
 
@@ -382,6 +405,7 @@ static void s_test_run_hook_continues_after_spawn_failure(void)
             " the hook list");
 
     session_destroy(session);
+    s_remove_temp_dir(dir);
 }
 
 

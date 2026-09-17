@@ -29,7 +29,7 @@
 /* Project includes */
 #include <config.h>
 #include <client.h>
-#include <surface.h>
+#include <stage.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu/layout.h>
@@ -172,7 +172,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
         int16_t icon_y = (int16_t)
             (top_y + (row_h - (int) icon_size) / 2);
 
-        if (icon_size > 0u && state->surface != NULL) {
+        if (icon_size > 0u && state->stage != NULL) {
             struct position_s icon_pos;
 
             icon_pos.x = text_x;

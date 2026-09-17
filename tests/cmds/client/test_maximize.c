@@ -49,7 +49,7 @@
 #include <cmds/client/maximize.h>
 #include <desktop.h>
 #include <harness/tap.h>
-#include <surface.h>
+#include <stage.h>
 
 
 /** Fixed rectangle @a ccmd_client_resolve_workarea answers with,

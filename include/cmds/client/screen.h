@@ -4,7 +4,7 @@
  * @brief Functions resolving a client's decoration target window and
  *        its current monitor
  *
- * @defgroup cmds Client, desktop, and surface commands
+ * @defgroup cmds Client, desktop, and stage commands
  * @ingroup enact
  */
 /*
@@ -48,23 +48,23 @@ xcb_window_t ccmd_target_win(client_td *client);
 /**
  * @brief Find which monitor a client is currently on
  *
- * Resolves @p client's surface from the global @c wm singleton, then
- * finds whichever of that surface's monitors @p client's center point
+ * Resolves @p client's stage from the global @c wm singleton, then
+ * finds whichever of that stage's monitors @p client's center point
  * currently falls on.
  *
  * @param client      Client to resolve a monitor for
- * @param out_surface Receives the resolved surface (may be null)
+ * @param out_stage   Receives the resolved stage (may be null)
  * @param out_monitor Receives the resolved monitor's raw geometry
  *                    (screen edges, not adjusted for panel/dock struts)
  *
  * @retval  true on success
- * @retval false if the client's surface could not be found; callers
+ * @retval false if the client's stage could not be found; callers
  *               fall back to @c ccmd_screen_dim's raw screen size in
  *               that case
  *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
+ * @note Complexity: @e O(n), where @e n is the number of stages
  */
-bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
+bool ccmd_client_monitor(client_td *client, stage_td **out_stage,
         monitor_td *out_monitor);
 
 /**
