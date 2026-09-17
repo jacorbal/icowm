@@ -1306,9 +1306,9 @@ static void s_test_client_focus_fallback_null_desktop_is_a_no_op(void)
 }
 
 
-/* client_focus_fallback: a winning candidate is focused and raised in
- * the focus order (never the stacking order), and recorded as the
- * desktop's new active client */
+/* client_focus_fallback: a winning candidate is delegated to
+ * focus_apply, always raised, exactly the way ccmd_client_make_active
+ * already delegates a client being made active */
 static void s_test_client_focus_fallback_winner_is_focused(void)
 {
     desktop_td desktop;
@@ -1326,20 +1326,19 @@ static void s_test_client_focus_fallback_winner_is_focused(void)
 
     client_focus_fallback(&desktop, &surface, exclude);
 
-    TAP_EQ_INT((long) desktop.client_active_id, (long) winner->id,
-            "the winning candidate becomes the desktop's new active"
-            " client");
-    TAP_OK(desktop.is_focus_dirty,
-            "the desktop's focus is marked dirty");
-    TAP_EQ_INT(s_focus_order_to_top_calls, 1,
-            "the winner is moved to the top of the focus order exactly"
+    TAP_EQ_INT(s_focus_apply_calls, 1,
+            "the winning candidate delegates to focus_apply exactly"
             " once");
-    TAP_OK(s_focus_order_to_top_last == winner,
+    TAP_OK(s_focus_apply_last_client == winner,
             "naming the winner itself");
-    TAP_EQ_INT(s_set_input_focus_calls, 1,
-            "and given real input focus through the normal focus path");
-    TAP_EQ_INT((long) s_set_input_focus_last_focus, (long) winner->window,
-            "targeting the winner's own window");
+    TAP_OK(s_focus_apply_last_surface == &surface,
+            "on the surface it was called with");
+    TAP_OK(s_focus_apply_last_desktop == &desktop,
+            "and the desktop it was called with");
+    TAP_OK(s_focus_apply_last_raise,
+            "always asking to raise, regardless of any setting");
+    TAP_EQ_INT(s_set_input_focus_calls, 0,
+            "no direct focus call is made when delegating");
 
     s_teardown();
 }

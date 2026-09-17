@@ -80,9 +80,9 @@
 /**
  * @brief What a fallback search needs beyond the candidate itself
  *
- * Handed through @a focus_order_best's opaque pointer rather than
- * kept at file scope, so that a search carries its state and two
- * of them could never read each other's.
+ * Handed through @a focus_order_best's opaque pointer rather than kept
+ * at file scope, so that a search carries its state and two of them
+ * could never read each other's.
  */
 struct s_fallback_ctx_s {
     /** Client that must never be chosen, or @c NULL for none */
@@ -356,14 +356,19 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     }
 
     if (next_focus != NULL) {
-        desktop->client_active_id = next_focus->id;
-        desktop->is_focus_dirty = true;
-        /* Recorded in the focus order, not moved in the stacking list:
-         * this client is now the most recently focused one, and saying
-         * so must not also raise it over whatever the user had
-         * deliberately placed above it */
-        focus_order_to_top(next_focus);
-        ccmd_client_focus(next_focus);
+        /* Delegates to the same central path every other real
+         * focus-granting call site already uses ('focus_apply',
+         * policy/focus.c), rather than reimplementing its raise,
+         * viewport-centering, and family-bringing steps by hand:
+         * a client taking over after the one that held focus closed,
+         * hid, or otherwise stopped qualifying is exactly the "now
+         * being made the active one" case @a ccmd_client_make_active
+         * already raises unconditionally for, and the same reasoning
+         * applies here.  Raised unconditionally for that same reason,
+         * regardless of the user's own raise-on-focus setting. */
+        focus_apply(wm_get_surfaces(), surface, desktop, next_focus,
+                true, wm_get_config());
+        return;
     } else if (exclude != NULL) {
         /* No replacement candidate qualifies, so 'exclude' itself is
          * what actually still looks focused to the outside world:
@@ -776,8 +781,8 @@ void ccmd_client_make_active(client_td *client)
         return;
     }
 
-    /* Delegates to the same central path 'focus_apply'
-     * ('policy/focus.c') already gives every other focus-granting call
+    /* Delegates to the same central path 'focus_apply' (in
+     * 'policy/focus.c') already gives every other focus-granting call
      * site, rather than reimplementing its unfocus-previous, activate,
      * and raise steps by hand here.  Raised unconditionally ('raise'
      * true regardless of the user's raise-on-focus setting), matching
