@@ -285,6 +285,25 @@ void ccmd_client_ungrab_buttons(client_td *client)
 
 
 /**
+ * @brief Link-only stand-in for @a ci_create_decorations
+ *
+ * Reached only by 's_client_enable_decoration', unreachable without a
+ * live X connection.
+ *
+ * @param client Client for which decorations are created
+ *
+ * @return Always @c 0
+ *
+ * @note Complexity: @e O(1)
+ */
+int ci_create_decorations(client_td *client)
+{
+    (void) client;
+    return 0;
+}
+
+
+/**
  * @brief Recording stand-in for @a ccmd_client_update_allowed_actions
  * @note Complexity: @e O(1)
  */

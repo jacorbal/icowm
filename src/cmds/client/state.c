@@ -47,6 +47,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <client/internal.h>
 #include <desktop.h>
 #include <logger.h>
 #include <systray.h>
@@ -71,9 +72,14 @@
  * @brief Create frame and titlebar windows for a previously undecorated
  *        client
  *
- * Reparents the client window into a newly created frame, creates the
- * titlebar child window, and updates the client layout fields so
- * rendering and geometry operations use the decorated extents.
+ * The frame itself is built by @a ci_create_decorations, the same
+ * function that decorates a client when it is first managed, so
+ * a window decorated again here ends up with exactly the frame, event
+ * masks and button grabs it would have had from the start.  What only
+ * applies to a window that is already mapped and was undecorated
+ * until now is done here around that call: dropping the button grabs
+ * the undecorated window carried, absorbing the unmaps its reparenting
+ * produces, and mapping the new windows.
  *
  * @param client  Pointer to the client
  * @param content Root position of the client's content, which the new
@@ -86,101 +92,24 @@
 static void s_client_enable_decoration(client_td *client,
         struct position_s content, int32_t bw, int32_t th)
 {
-    uint32_t mask;
-    uint32_t values[3];
-    struct geometry_s frame;
-    int32_t frame_w;
-    int32_t frame_h;
-    uint32_t border_color;
-    uint32_t bg_color;
-    static const xcb_button_t s_grab_buttons[] = {
-        XCB_BUTTON_INDEX_1,
-        XCB_BUTTON_INDEX_2,
-        XCB_BUTTON_INDEX_3,
-        6,
-        7
-    };
-    size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
-
-    if (client == NULL || client->parent_id == 0) {
+    /* The same conditions 'ci_create_decorations' requires, checked
+     * before anything below changes, so it never declines halfway
+     * through with the client already marked as decorated */
+    if (client == NULL || client->config == NULL ||
+            client->parent_id == 0) {
         return;
     }
 
-    border_color = (client->config != NULL)
-        ? client->config->theme.window.inactive.border.color
-        : 0x999999U;
-    bg_color = (client->config != NULL)
-        ? client->config->theme.window.inactive.color.background
-        : 0x000000U;
-
-    frame.pos.x = content.x - bw;
-    frame.pos.y = content.y - (bw + th);
-    frame_w = (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
-    frame_h = (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
-
-    if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-        frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
-    }
-    if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-        frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
-    }
-    frame.dim.w = (uint32_t) frame_w;
-    frame.dim.h = (uint32_t) frame_h;
-
     ccmd_client_ungrab_buttons(client);
 
-    client->frame = xcb_generate_id(xcb_connection_get());
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = border_color;
-    values[1] = border_color;
-    /* 'XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT' is required so the
-     * client's future resize/move attempts on itself are delivered to
-     * the window manager as 'ConfigureRequest's instead of being
-     * applied directly by the server with no notification at all */
-    values[2] = XCB_EVENT_MASK_EXPOSURE             |
-                XCB_EVENT_MASK_BUTTON_PRESS         |
-                XCB_EVENT_MASK_STRUCTURE_NOTIFY     |
-                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY  |
-                XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-                XCB_EVENT_MASK_POINTER_MOTION;
-    xcb_create_window(xcb_connection_get(),
-            XCB_COPY_FROM_PARENT,
-            client->frame,
-            client->parent_id,
-            (int16_t) frame.pos.x, (int16_t) frame.pos.y,
-            (uint16_t) frame.dim.w, (uint16_t) frame.dim.h,
-            0,
-            XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            XCB_COPY_FROM_PARENT,
-            mask, values);
-
-    /* A brand-new window, painted with 'border_color' above (always
-     * the inactive one, corrected to the active one if warranted by
-     * the redraw pass this function's own caller ends with); these
-     * two, though, still hold whatever this same client's previous
-     * frame (just destroyed, if it had one) last had them set to.
-     * Left alone, that stale, coincidentally-matching cache would
-     * make 'render_client_decoration_repaint_frame'
-     * (render/client/decoration.c) believe this new window already
-     * shows the right color and skip painting it for real. */
-    client->layout.has_frame_bg = false;
-    client->layout.titlebar_paint.has_titlebar_paint = false;
-
-    client->titlebar = xcb_generate_id(xcb_connection_get());
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = bg_color;
-    values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
-    xcb_create_window(xcb_connection_get(),
-            XCB_COPY_FROM_PARENT,
-            client->titlebar,
-            client->frame,
-            (int16_t) bw, (int16_t) bw,
-            (uint16_t) client->layout.geometry.cur.dim.w,
-            (uint16_t) th,
-            0,
-            XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            XCB_COPY_FROM_PARENT,
-            mask, values);
+    /* What 'ci_create_decorations' builds the frame from: the
+     * content's own geometry in 'cur', and the extents around it */
+    client->layout.geometry.cur.pos = content;
+    client->layout.frame_extents.left = bw;
+    client->layout.frame_extents.right = bw;
+    client->layout.frame_extents.top = bw + th;
+    client->layout.frame_extents.bottom = bw;
+    client_decorate(client);
 
     /* Reparenting to an unmapped frame makes the content window
      * non-viewable, which emits two synthetic 'UnmapNotify' events:
@@ -193,51 +122,11 @@ static void s_client_enable_decoration(client_td *client,
     client->ignore.unmap += 2u;
     client->ignore.focus_unmap++;
 
-    xcb_window_reparent(client->window,
-            client->frame,
-            (int16_t) bw, (int16_t) (bw + th));
-
-    /* Back under a frame of ours, so back in the save set too, or this
-     * window manager dying would take the client down along with it
-     * instead of handing it back to root (Scheifler and Gettys, 1994,
-     * "Inter-Client Communication Conventions Manual", v2.0, §4.1.2). */
-    xcb_window_save_set(client->window, true);
-
-    ccmd_client_apply_geometry(client, client->window,
-            (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            0, 0, 0u, 0u, 0u);
-
-    for (size_t bi = 0; bi < nb; ++bi) {
-        xcb_grab_button(xcb_connection_get(),
-                0,
-                client->frame,
-                XCB_EVENT_MASK_BUTTON_PRESS |
-                XCB_EVENT_MASK_BUTTON_RELEASE,
-                XCB_GRAB_MODE_SYNC,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_NONE,
-                XCB_NONE,
-                s_grab_buttons[bi],
-                XCB_MOD_MASK_ANY);
-    }
+    (void) ci_create_decorations(client);
 
     xcb_window_show(client->frame);
     xcb_window_show(client->titlebar);
     xcb_window_show(client->window);
-
-    client->layout.geometry.cur.pos.x = frame.pos.x;
-    client->layout.geometry.cur.pos.y = frame.pos.y;
-    client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
-    client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
-    client->layout.frame_extents.left = bw;
-    client->layout.frame_extents.right = bw;
-    client->layout.frame_extents.top = bw + th;
-    client->layout.frame_extents.bottom = bw;
-    client_decorate(client);
-
-    ccmd_publish_frame_extents(client,
-            (uint32_t) bw, (uint32_t) bw,
-            (uint32_t) (bw + th), (uint32_t) bw);
 }
 
 

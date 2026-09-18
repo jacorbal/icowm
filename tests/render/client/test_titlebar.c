@@ -1348,10 +1348,6 @@ static void s_test_repaint_titlebar_maximize_disabled_when_not_maximizable(
             " never skipped outright");
 }
 
-/* The frame is the content window's parent, so clearing it paints
- * over the content's own area until the client draws itself again.
- * This repaint runs for any reason at all, so it must only clear when
- * the color it just set is not the one already showing */
 int main(void)
 {
     TAP_PLAN(31);

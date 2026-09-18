@@ -61,6 +61,13 @@ void ci_set_decoration_defaults(client_td *client);
 /**
  * @brief Create frame and titlebar windows for a decorated client
  *
+ * Builds the frame around the content geometry held in
+ * @p client->layout.geometry.cur, using
+ * @p client->layout.frame_extents, and leaves @c cur holding the
+ * frame's geometry.  Used both when a client is first managed and when
+ * one is decorated again later, so it never touches the restore
+ * geometry in @c geometry.old.
+ *
  * @param client Client for which decorations are created
  *
  * @return Status of the operation

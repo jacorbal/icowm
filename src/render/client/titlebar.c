@@ -16,6 +16,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stddef.h>     /* size_t */
 #include <stdint.h>
 #include <string.h>     /* strncmp */
 
@@ -388,29 +389,30 @@ static struct s_btn_box_s s_desktop_titlebar_button_box(int16_t x,
  * @p right (after the window title), at the positions
  * @c client_titlebar_layout already computed for them.
  *
- * The position is never recomputed on by this function on its own, so
- * it can never disagree with the click hit-test, which uses the same
- * computed layout.  The fill color for most buttons is taken from
- * @p theme: @c window.active.color.foreground when @p is_focused is
- * @c true, @c window.inactive.color.foreground otherwise; the pin and
- * layer buttons instead reflect their state (pinned/non-normal layer)
- * regardless of focus; maximize and fullscreen fall back to the
- * background color when @p can_maximize is @c false.
+ * This function never recomputes those positions on its own, so it can
+ * never disagree with the click hit-test, which uses the same computed
+ * layout.  The fill color for most buttons is taken from @p theme:
+ * @c window.titlebar.buttons.color.on when @p is_focused is @c true,
+ * @c window.titlebar.buttons.color.off otherwise; the pin, sticky and
+ * layer buttons instead reflect their state (pinned, sticky,
+ * non-normal layer) regardless of focus; maximize and fullscreen fall
+ * back to the background color when @p can_maximize is @c false.
  *
- * @param connection Active XCB connection
- * @param target     Drawable the buttons land on: the titlebar
- *                     window itself, or an off-screen buffer
- *                     @c render_client_titlebar_repaint_content copies onto
- *                     it in one piece once every button is drawn
- * @param btn_y Y position every button shares, from
- *                     @c client_titlebar_layout
- * @param title_h Titlebar height, which the button side is
- *                     derived from
- * @param left Left-side button layout from
- *                     @c client_titlebar_layout
- * @param left_n Number of entries in @p left
- * @param right  Right-side button layout from
- *                     @c client_titlebar_layout
+ * @param connection   Active XCB connection
+ * @param target       Drawable the buttons land on: the titlebar window
+ *                     itself, or an off-screen buffer
+ *                     @a render_client_titlebar_repaint_content installs
+ *                     as the titlebar's background once every button
+ *                     is drawn
+ * @param btn_y        Y position every button shares, from
+ *                     @a client_titlebar_layout
+ * @param title_h      Titlebar height, which the button side is derived
+ *                     from
+ * @param left         Left-side button layout from
+ *                     @a client_titlebar_layout
+ * @param left_n       Number of entries in @p left
+ * @param right        Right-side button layout from
+ *                     @a client_titlebar_layout
  * @param right_n      Number of entries in @p right
  * @param is_focused   Whether the owning client is currently focused
  * @param is_pinned    Whether the owning client has the pin flag set
@@ -434,6 +436,8 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
     uint16_t btn_size;
     bool use_symbols;
     struct s_btn_box_s box;
+    const struct titlebar_button_layout_s *rows[2] = { left, right };
+    const uint8_t rows_n[2] = { left_n, right_n };
 
     /* Button colors have their dedicated theme entry, independent of
      * the titlebar text foreground, so a theme can style one without
@@ -473,26 +477,19 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
             XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH |
             XCB_GC_CAP_STYLE | XCB_GC_JOIN_STYLE, gc_values);
 
-    for (uint8_t i = 0u; i < left_n; ++i) {
-        color = s_titlebar_button_color(left[i].button, is_focused,
-                is_pinned, is_sticky, is_layered, can_maximize,
-                color_active, color_inactive, bg_fill);
-        xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &color);
-        box = s_desktop_titlebar_button_box(left[i].x, btn_y,
-                btn_size);
-        s_desktop_titlebar_button_shape(connection, target, gc,
-                left[i].button, &box, use_symbols);
-    }
-
-    for (uint8_t i = 0u; i < right_n; ++i) {
-        color = s_titlebar_button_color(right[i].button, is_focused,
-                is_pinned, is_sticky, is_layered, can_maximize,
-                color_active, color_inactive, bg_fill);
-        xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &color);
-        box = s_desktop_titlebar_button_box(right[i].x, btn_y,
-                btn_size);
-        s_desktop_titlebar_button_shape(connection, target, gc,
-                right[i].button, &box, use_symbols);
+    /* Left row first, then right, both drawn the same way */
+    for (size_t r = 0u; r < 2u; ++r) {
+        for (uint8_t i = 0u; i < rows_n[r]; ++i) {
+            color = s_titlebar_button_color(rows[r][i].button,
+                    is_focused, is_pinned, is_sticky, is_layered,
+                    can_maximize, color_active, color_inactive,
+                    bg_fill);
+            xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &color);
+            box = s_desktop_titlebar_button_box(rows[r][i].x, btn_y,
+                    btn_size);
+            s_desktop_titlebar_button_shape(connection, target, gc,
+                    rows[r][i].button, &box, use_symbols);
+        }
     }
 
     xcb_free_gc(connection, gc);
@@ -510,6 +507,19 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
  * a pager showing the same title has a way to know it no longer matches
  * @c _NET_WM_NAME verbatim.
  *
+ * @param connection Active XCB connection
+ * @param client     Client whose visible name is kept in sync, or
+ *                   @c NULL to skip that sync
+ * @param target     Drawable the title lands on
+ * @param title_x    Left edge of the space the buttons leave for the
+ *                   title
+ * @param title_w    Width of that space
+ * @param text_y     Baseline the text is drawn at
+ * @param text       Title to draw
+ * @param alignment  Where the title sits within that space
+ *
+ * @note A no-op if @p connection or @p text is @c NULL, @p text is
+ *       empty, or @p title_w is @c 0
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
 static void s_titlebar_draw_title(xcb_connection_t *connection,

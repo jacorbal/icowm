@@ -242,7 +242,6 @@ void ccmd_client_center(client_td *client)
     int32_t my = 0;
     int32_t x;
     int32_t y;
-    xcb_window_t target;
 
     if (client == NULL || client_is_maximized(client) ||
             client_is_fullscreen(client)) {
@@ -261,7 +260,6 @@ void ccmd_client_center(client_td *client)
         return;
     }
 
-    target = ccmd_target_win(client);
     x = ((int32_t) sw - (int32_t) client->layout.geometry.cur.dim.w) / 2;
     y = ((int32_t) sh - (int32_t) client->layout.geometry.cur.dim.h) / 2;
     if (x < 0) {
@@ -270,33 +268,10 @@ void ccmd_client_center(client_td *client)
     if (y < 0) {
         y = 0;
     }
-    x += mx;
-    y += my;
 
-    /* Same reasoning as 'ccmd_client_move''s identical clamp: a
-     * client maximized on just one axis keeps that axis pinned to
-     * the workarea edge, only the still-free axis actually
-     * re-centers. */
-    if (client_is_maximized_horz(client)) {
-        x = client->layout.geometry.cur.pos.x;
-    }
-    if (client_is_maximized_vert(client)) {
-        y = client->layout.geometry.cur.pos.y;
-    }
-
-    ccmd_client_apply_geometry(client, target,
-            (uint16_t) XCB_CONFIG_WINDOW_X |
-            (uint16_t) XCB_CONFIG_WINDOW_Y,
-            x, y, 0u, 0u, 0u);
-    client->layout.geometry.cur.pos.x = x;
-    client->layout.geometry.cur.pos.y = y;
-    client->has_rule_position_locked = false;
-    wm_request_client_redraw(client);
-
-    /* Same reasoning as 'ccmd_client_move''s identical call: a move
-     * alone never generates a real 'ConfigureNotify' the client could
-     * use to learn its own new screen position. */
-    client_send_synthetic_configure_notify(xcb_connection_get(), client);
+    /* The move itself, a maximized axis kept pinned and the client
+     * told its new position included, is exactly a plain move's */
+    ccmd_client_move(client, (struct position_s) { x + mx, y + my });
 }
 
 

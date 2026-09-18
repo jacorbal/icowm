@@ -958,6 +958,19 @@ int ci_create_decorations(client_td *client)
     frame.dim.h = (uint16_t)
         (client->layout.geometry.cur.dim.h + top + bottom);
 
+    /* The frame and titlebar created below are brand-new windows,
+     * painted with the inactive colors they are created with; these
+     * caches, though, still hold whatever a previous frame of this
+     * same client (destroyed when its decoration was removed) last
+     * had them set to.  Left alone, that stale, coincidentally
+     * matching cache would make 'render_client_decoration_repaint_frame'
+     * (render/client/decoration.c) and
+     * 'render_client_titlebar_repaint_content'
+     * (render/client/titlebar.c) believe these new windows already
+     * show the right content and skip painting them for real. */
+    client->layout.has_frame_bg = false;
+    client->layout.titlebar_paint.has_titlebar_paint = false;
+
     client->frame = xcb_generate_id(xcb_connection_get());
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = client->config->theme.window.inactive.border.color;
@@ -1060,7 +1073,6 @@ int ci_create_decorations(client_td *client)
     }
 
     client->layout.geometry.cur = frame;
-    client->layout.geometry.old = client->layout.geometry.cur;
     client_decoration_layout_sync(client);
 
     /* Publish '_NET_FRAME_EXTENTS' so clients and taskbars know the

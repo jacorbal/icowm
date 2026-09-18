@@ -231,7 +231,7 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
-    if (client->titlebar != event->window || client->info.name == NULL) {
+    if (client->titlebar != event->window) {
         return;
     }
 

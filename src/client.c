@@ -1352,6 +1352,15 @@ client_td *client_init(xcb_connection_t *connection,
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);
 
+    /* A freshly managed client's restore geometry starts out as the
+     * frame just built around it; set here rather than inside
+     * 'ci_create_decorations', which also decorates a client again
+     * later on, when whatever restore geometry it holds by then (from
+     * before a maximize, say) must survive untouched */
+    if (client->frame != 0) {
+        client->layout.geometry.old = client->layout.geometry.cur;
+    }
+
     /* Only grab buttons on client windows that the window manager
      * decorates or that could receive focus.  Dock and notification
      * windows manage their pointer events; grabbing buttons on them
