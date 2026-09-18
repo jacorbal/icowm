@@ -222,8 +222,11 @@ focus.
 Whether focus left behind by a window that closes, is iconified or
 hidden, or leaves the desktop goes first to another window of the same
 application, the same
-.Ql WM_CLIENT_LEADER ,
-rather than to the window focused most recently before it.
+.Ql WM_CLIENT_LEADER
+or, failing that, the same
+.Ql WM_HINTS
+window group, rather than to the window focused most recently before
+it.
 When none of that application is left, focus goes to the most recent
 window as it does with this off.
 .Pp

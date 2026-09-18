@@ -811,14 +811,15 @@ holding it without another one being chosen: it closes, is iconified or
 hidden, or leaves the desktop.  With the default of `false`, focus goes
 to the window that was focused most recently before it, whatever
 application that window belongs to.  With `true`, a window of the same
-application group (the same `WM_CLIENT_LEADER`, ICCCM §4.1.2.5) is
-preferred, even over a more recently focused one of another application,
-and only if none is left does focus go to the most recent window as
-before.  It is off by default because many applications keep all their
-windows in one group, a file manager being a common case, and focus then
-jumping to another of its windows, rather than to the one used last, is
-rarely what is expected unless it was asked for.  Clicking a window, or
-any other way of choosing one, is not affected.
+application (the same `WM_CLIENT_LEADER`, ICCCM §4.1.2.5, or failing
+that the same `WM_HINTS` window group) is preferred, even over a more
+recently focused one of another application, and only if none is left
+does focus go to the most recent window as before.  It is off by default
+because many applications keep all their windows in one group, a file
+manager being a common case, and focus then jumping to another of its
+windows, rather than to the one used last, is rarely what is expected
+unless it was asked for.  Clicking a window, or any other way of
+choosing one, is not affected.
 
 #### `windows.placement`
 

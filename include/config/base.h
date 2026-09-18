@@ -391,8 +391,9 @@ struct config_base_s {
              *        window of its same application
              *
              * Same application meaning a shared @c WM_CLIENT_LEADER
-             * (ICCCM §4.1.2.5).  When @c false (the default), the
-             * most recently focused remaining window takes it, whatever
+             * (ICCCM §4.1.2.5) or, failing that, a shared @c WM_HINTS
+             * window group.  When @c false (the default), the most
+             * recently focused remaining window takes it, whatever
              * application it belongs to.
              *
              * @see @a client_focus_fallback

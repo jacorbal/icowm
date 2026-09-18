@@ -331,10 +331,11 @@ void client_focus_fallback(desktop_td *desktop, stage_td *stage,
     desktop->is_focus_dirty = true;
 
     /* A window left behind by 'exclude' from the same application
-     * (sharing its 'WM_CLIENT_LEADER', ICCCM 4.1.2.5) is a more natural
-     * fallback than an unrelated one equally close in MRU order, the
-     * same reasoning 'place_window_apply' (policy/placement/window.c)
-     * already applies when placing a new sibling window near its group;
+     * (sharing its 'WM_CLIENT_LEADER', ICCCM 4.1.2.5, or failing that
+     * its 'WM_HINTS' window group) is a more natural fallback than an
+     * unrelated one equally close in MRU order, the same reasoning
+     * 'place_window_apply' (policy/placement/window.c) already applies
+     * when placing a new sibling window near its group;
      * mirrors how Openbox's 'focus_valid_target' (focus.c) weighs group
      * membership when picking a focus target.  Tried first and only as
      * a preference, not a requirement: falls through to the plain MRU
