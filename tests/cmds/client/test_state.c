@@ -285,6 +285,25 @@ void ccmd_client_ungrab_buttons(client_td *client)
 
 
 /**
+ * @brief Link-only stand-in for @a client_native_border_rebase
+ *
+ * Reached only by 'ccmd_client_fullscreen'/'_unfullscreen' once past
+ * the guards this file tests.
+ *
+ * @param client       Client whose border is about to change
+ * @param border_width Width the border is about to get
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_native_border_rebase(client_td *client,
+        uint32_t border_width)
+{
+    (void) client;
+    (void) border_width;
+}
+
+
+/**
  * @brief Link-only stand-in for @a ci_create_decorations
  *
  * Reached only by 's_client_enable_decoration', unreachable without a

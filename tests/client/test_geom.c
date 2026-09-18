@@ -7,11 +7,12 @@
  * Exercises 'client_titlebar_layout', 'client_size_constrain' and
  * 'client_aspect_ratio_clamp' (client/geom.c) linked against the
  * real source file, so the size-hint arithmetic under test runs
- * exactly as it does in the real window manager.  Nothing else in
- * that file is reached by any test here (no decoration is created,
- * no window is themed live, no synthetic event is sent), so every
- * other external symbol 'client/geom.c' calls is a link-only
- * stand-in below, never actually invoked.
+ * exactly as it does in the real window manager, along with the
+ * geometry 'client_send_synthetic_configure_notify' reports.  Nothing
+ * else in that file is reached by any test here (no decoration is
+ * created, no window is themed live), so every other external symbol
+ * 'client/geom.c' calls is a link-only stand-in below, never actually
+ * invoked.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -60,6 +61,24 @@ void ccmd_client_apply_geometry(client_td *client,
     (void) w;
     (void) h;
     (void) border_width;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a ccmd_publish_frame_extents
+ *
+ * Reached only by 'ci_create_decorations', which no test here calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_publish_frame_extents(client_td *client,
+        uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+{
+    (void) client;
+    (void) left;
+    (void) right;
+    (void) top;
+    (void) bottom;
 }
 
 
@@ -283,11 +302,14 @@ xcb_void_cookie_t xcb_change_property(xcb_connection_t *connection,
 }
 
 
+/** Last event handed to 'xcb_send_event', for the assertions */
+static xcb_configure_notify_event_t s_sent_notify;
+
 /**
- * @brief Link-only stand-in for @a xcb_send_event
+ * @brief Recording stand-in for @a xcb_send_event
  *
- * Reached only by 'client_send_synthetic_configure_notify', which
- * nothing here calls.
+ * Reached only by 'client_send_synthetic_configure_notify'; keeps
+ * a copy of the event it was asked to send.
  *
  * @note Complexity: @e O(1)
  */
@@ -301,7 +323,7 @@ xcb_void_cookie_t xcb_send_event(xcb_connection_t *connection,
     (void) propagate;
     (void) destination;
     (void) event_mask;
-    (void) event;
+    memcpy(&s_sent_notify, event, sizeof(s_sent_notify));
     memset(&cookie, 0, sizeof(cookie));
 
     return cookie;
@@ -998,9 +1020,92 @@ static void s_test_aspect_ratio_clamp_null_args_are_a_no_op(void)
 }
 
 
+/* A frameless window reports the outer corner of its native border
+ * together with that border's width, so the client adds it back and
+ * finds its content where it really is; a framed one has none */
+static void s_test_synthetic_configure_notify_border(void)
+{
+    client_td *client = calloc(1, sizeof(*client));
+
+    client->window = 0x500u;
+    client->layout.geometry.cur.pos.x = 300;
+    client->layout.geometry.cur.pos.y = 250;
+    client->layout.geometry.cur.dim.w = 400u;
+    client->layout.geometry.cur.dim.h = 300u;
+    client->last_border_width = 6u;
+    memset(&s_sent_notify, 0, sizeof(s_sent_notify));
+
+    client_send_synthetic_configure_notify((xcb_connection_t *) 1, client);
+
+    TAP_OK(s_sent_notify.x == 300 && s_sent_notify.y == 250 &&
+            s_sent_notify.border_width == 6u,
+            "a frameless window reports its border's outer corner and"
+            " the 6 pixel border it has");
+
+    client->frame = 0x501u;
+    client->properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client->layout.frame_extents.left = 6;
+    client->layout.frame_extents.right = 6;
+    client->layout.frame_extents.top = 28;
+    client->layout.frame_extents.bottom = 6;
+    memset(&s_sent_notify, 0, sizeof(s_sent_notify));
+
+    client_send_synthetic_configure_notify((xcb_connection_t *) 1, client);
+
+    TAP_OK(s_sent_notify.x == 306 && s_sent_notify.y == 278 &&
+            s_sent_notify.border_width == 0u,
+            "a framed window reports its content's corner and no"
+            " border, whatever width it had before being framed");
+
+    free(client);
+}
+
+
+/* Rebasing moves both stored positions by what the border loses or
+ * gains, and leaves a framed client or an unmeasured one alone */
+static void s_test_native_border_rebase(void)
+{
+    client_td *client = calloc(1, sizeof(*client));
+
+    client->window = 0x600u;
+    client->layout.geometry.cur.pos.x = 300;
+    client->layout.geometry.cur.pos.y = 250;
+    client->layout.geometry.old.pos.x = 100;
+    client->layout.geometry.old.pos.y = 80;
+    client->last_border_width = 6u;
+
+    client_native_border_rebase(client, 2u);
+
+    TAP_OK(client->layout.geometry.cur.pos.x == 304 &&
+            client->layout.geometry.cur.pos.y == 254 &&
+            client->layout.geometry.old.pos.x == 104 &&
+            client->layout.geometry.old.pos.y == 84,
+            "a border going from 6 to 2 moves both stored corners 4"
+            " pixels in, leaving the content where it was");
+
+    client->last_border_width = UINT32_MAX;
+    client_native_border_rebase(client, 6u);
+
+    TAP_OK(client->layout.geometry.cur.pos.x == 304 &&
+            client->layout.geometry.old.pos.x == 104,
+            "with no border ever sent, nothing is moved");
+
+    client->last_border_width = 2u;
+    client->frame = 0x601u;
+    client->properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client_native_border_rebase(client, 6u);
+
+    TAP_OK(client->layout.geometry.cur.pos.x == 304 &&
+            client->layout.geometry.old.pos.x == 104,
+            "a framed client's positions are the frame's, never moved");
+
+    free(client);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(58);
+    TAP_PLAN(63);
 
     s_test_titlebar_layout_null_theme_is_empty();
     s_test_titlebar_layout_no_buttons_full_title_width();
@@ -1025,6 +1130,8 @@ int main(void)
     s_test_aspect_ratio_clamp_enforces_minimum();
     s_test_aspect_ratio_clamp_enforces_maximum();
     s_test_aspect_ratio_clamp_null_args_are_a_no_op();
+    s_test_synthetic_configure_notify_border();
+    s_test_native_border_rebase();
 
     return TAP_DONE();
 }

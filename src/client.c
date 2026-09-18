@@ -905,12 +905,18 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
                     XCB_EVENT_MASK_POINTER_MOTION;
     }
 
-    bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK)
+    /* The same width the first render pass gives a focused window,
+     * none at all for a dock or a notification, so that pass has
+     * nothing to change on a window mapped with focus and the border
+     * recorded here is the one the window really has */
+    bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
+            client->properties.type ==
+                (uint16_t) CLIENT_TYPE_NOTIFICATION)
         ? 0u
-        : ((client->config != NULL)
-                ? client->config->theme.window.active.border.width : 0u);
+        : client_border_width(client, true, false);
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
+    client->last_border_width = bw[0];
 
     values[1] = mouse_plain_cursor();
     xcb_change_window_attributes(connection, window,

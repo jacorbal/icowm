@@ -39,6 +39,7 @@
 #include <wm.h>
 
 /* Command includes */
+#include <cmds/client/ewmh.h>
 #include <cmds/client/move.h>
 
 /* Local includes */
@@ -1077,18 +1078,34 @@ int ci_create_decorations(client_td *client)
 
     /* Publish '_NET_FRAME_EXTENTS' so clients and taskbars know the
      * size of the WM-added decoration around the content window */
-    if (xcb_ewmh_connection_get() != NULL) {
-        uint32_t extents[4];
-        extents[0] = (uint32_t) client->layout.frame_extents.left;
-        extents[1] = (uint32_t) client->layout.frame_extents.right;
-        extents[2] = (uint32_t) client->layout.frame_extents.top;
-        extents[3] = (uint32_t) client->layout.frame_extents.bottom;
-        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
-                client->window, xcb_ewmh_connection_get()->_NET_FRAME_EXTENTS,
-                XCB_ATOM_CARDINAL, 32, 4, extents);
-    }
+    ccmd_publish_frame_extents(client,
+            (uint32_t) client->layout.frame_extents.left,
+            (uint32_t) client->layout.frame_extents.right,
+            (uint32_t) client->layout.frame_extents.top,
+            (uint32_t) client->layout.frame_extents.bottom);
 
     return 0;
+}
+
+
+/* Move the positions stored for a frameless client so its content
+ * keeps its place across a native border change */
+void client_native_border_rebase(client_td *client,
+        uint32_t border_width)
+{
+    int32_t shift;
+
+    if (client == NULL ||
+            (client_is_decorated(client) && client->frame != 0) ||
+            client->last_border_width == UINT32_MAX) {
+        return;
+    }
+
+    shift = (int32_t) client->last_border_width - (int32_t) border_width;
+    client->layout.geometry.cur.pos.x += shift;
+    client->layout.geometry.cur.pos.y += shift;
+    client->layout.geometry.old.pos.x += shift;
+    client->layout.geometry.old.pos.y += shift;
 }
 
 
@@ -1129,7 +1146,12 @@ void client_send_synthetic_configure_notify(xcb_connection_t *connection,
         (uint16_t) ((client->layout.geometry.cur.dim.h > top + bottom)
                 ? (client->layout.geometry.cur.dim.h - top - bottom)
                 : WM_MIN_WINDOW_DIMENSION);
-    notify.border_width = 0;
+    /* X places a window by the outer corner of its border, so 'x' and
+     * 'y' above are that corner, and a client works out where its
+     * content starts by adding this width back; reported as 0 for
+     * a window that has one, the client would believe its content
+     * sits that many pixels up and to the left of where it is */
+    notify.border_width = (uint16_t) client_native_border_width(client);
     notify.override_redirect = 0;
 
     xcb_send_event(connection, 0, client->window,

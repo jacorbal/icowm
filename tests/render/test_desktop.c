@@ -18,7 +18,7 @@
  *
  * Every XCB entry point desktop.c calls (xcb_window_hide,
  * xcb_window_place, xcb_window_set_border, xcb_window_show,
- * xcb_clear_area) and every cross-module project symbol it reaches
+ * xcb_clear_area, xcb_configure_window) and every cross-module project symbol it reaches
  * (client_border_color_apply, client_send_synthetic_configure_notify,
  * logger_msg, render_client_decoration_repaint_frame_unless_hidden,
  * render_client_titlebar_repaint_content,
@@ -189,6 +189,38 @@ void xcb_window_set_border(xcb_window_t window, uint32_t width)
     (void) window;
     s_window_set_border_calls++;
     s_window_set_border_last_width = width;
+}
+
+/* xcb/xcb.h, for the one request that moves a frameless window and
+ * changes its border together */
+static int s_configure_calls;
+static uint16_t s_configure_last_mask;
+static uint32_t s_configure_last_values[3];
+
+xcb_void_cookie_t xcb_configure_window(xcb_connection_t *c,
+        xcb_window_t window, uint16_t value_mask, const void *value_list)
+{
+    xcb_void_cookie_t cookie = {0};
+    (void) c;
+    (void) window;
+    s_configure_calls++;
+    s_configure_last_mask = value_mask;
+    memcpy(s_configure_last_values, value_list,
+            sizeof(s_configure_last_values));
+    return cookie;
+}
+
+/* client.h: only whether it was asked, and for which width; the
+ * shift itself is covered by tests/client/test_geom.c */
+static int s_rebase_calls;
+static uint32_t s_rebase_last_width;
+
+void client_native_border_rebase(client_td *client,
+        uint32_t border_width)
+{
+    (void) client;
+    s_rebase_calls++;
+    s_rebase_last_width = border_width;
 }
 
 static int s_window_show_calls;
@@ -885,6 +917,11 @@ static void s_reset_fixture(void)
     s_window_place_calls = 0;
     s_window_set_border_calls = 0;
     s_window_set_border_last_width = 0u;
+    s_configure_calls = 0;
+    s_configure_last_mask = 0u;
+    s_rebase_calls = 0;
+    s_rebase_last_width = 0u;
+    memset(s_configure_last_values, 0, sizeof(s_configure_last_values));
     s_window_show_calls = 0;
     s_window_hide_calls = 0;
     s_border_color_apply_calls = 0;
@@ -1222,11 +1259,14 @@ static void s_test_render_one_client_border_width_dock(void)
 
     desktop_render_one_client(&fx.desktop, &client, false);
 
-    TAP_EQ_INT(s_window_set_border_calls, 1,
+    TAP_EQ_INT(s_configure_calls, 1,
             "a dock client's border width changes from its prior 5"
-            " to 0, so xcb_window_set_border is actually called");
-    TAP_EQ_INT(s_window_set_border_last_width, 0u,
+            " to 0, so the window is actually reconfigured");
+    TAP_EQ_INT(s_configure_last_values[2], 0u,
             "...a dock window is never given a WM border");
+    TAP_OK(s_rebase_calls == 1 && s_rebase_last_width == 0u,
+            "...its stored positions rebased onto the new width first,"
+            " so its content stays where it was");
 }
 
 static void s_test_render_one_client_border_width_notification(void)
@@ -1242,7 +1282,7 @@ static void s_test_render_one_client_border_width_notification(void)
 
     desktop_render_one_client(&fx.desktop, &client, false);
 
-    TAP_EQ_INT(s_window_set_border_last_width, 0u,
+    TAP_EQ_INT(s_configure_last_values[2], 0u,
             "a notification client is likewise never given a"
             " WM border");
 }
@@ -1282,6 +1322,7 @@ static void s_test_render_one_client_border_width_plain_uses_theme(
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x407u);
     client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
+    client.last_border_width = UINT32_MAX;
     fx.config.theme.window.active.border.width = 7u;
     fx.config.theme.window.inactive.border.width = 2u;
     fx.desktop.client_active_id = client.id;
@@ -1295,6 +1336,44 @@ static void s_test_render_one_client_border_width_plain_uses_theme(
     TAP_EQ_INT(s_border_color_apply_calls, 1,
             "...and does get client_border_color_apply called,"
             " unlike the framed case above");
+}
+
+/* A frameless window losing focus, going from the active border to
+ * a thinner inactive one, moves by the difference in the same request,
+ * so its content does not move on screen */
+static void s_test_render_one_client_border_width_keeps_content(void)
+{
+    struct s_desktop_fixture_s fx;
+    client_td client;
+
+    s_reset_fixture();
+    s_desktop_fixture_init(&fx, 0u, 0u);
+    s_client_fixture_init(&client, &fx.config, 0x409u);
+    client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
+    client.layout.geometry.cur.pos.x = 300;
+    client.layout.geometry.cur.pos.y = 250;
+    client.last_border_width = 6u;
+    fx.config.theme.window.active.border.width = 6u;
+    fx.config.theme.window.inactive.border.width = 2u;
+
+    desktop_render_one_client(&fx.desktop, &client, false);
+
+    TAP_EQ_INT(s_window_set_border_calls, 0,
+            "a frameless window's border is never changed on its own");
+    TAP_OK(s_configure_calls == 1 &&
+            s_configure_last_mask == (XCB_CONFIG_WINDOW_X |
+                XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_BORDER_WIDTH) &&
+            s_configure_last_values[2] == 2u,
+            "...but with its position, in one request");
+    TAP_OK(s_rebase_calls == 1 && s_rebase_last_width == 2u &&
+            s_configure_last_values[0] == 300u &&
+            s_configure_last_values[1] == 250u &&
+            client.layout.requested_pos.x == 300 &&
+            client.layout.requested_pos.y == 250,
+            "...rebased onto the new width, then placed at the stored"
+            " position that rebase leaves, recorded as requested");
+    TAP_EQ_INT(client.last_border_width, 2u,
+            "...and the new width is recorded as the one it has");
 }
 
 static void s_test_render_one_client_border_width_unchanged_skips_set(
@@ -1477,7 +1556,7 @@ static void s_test_render_one_client_neither_dirty_nor_outdated_noop(
 
 int main(void)
 {
-    TAP_PLAN(40);
+    TAP_PLAN(45);
 
     s_test_render_full_null_desktop();
     s_test_render_full_current_paints_background();
@@ -1493,6 +1572,7 @@ int main(void)
     s_test_render_one_client_border_width_notification();
     s_test_render_one_client_border_width_framed_is_zero();
     s_test_render_one_client_border_width_plain_uses_theme();
+    s_test_render_one_client_border_width_keeps_content();
     s_test_render_one_client_border_width_unchanged_skips_set();
     s_test_render_one_client_maps_when_current();
     s_test_render_one_client_does_not_map_when_not_current();

@@ -143,6 +143,15 @@ void ccmd_client_apply_geometry(client_td *client,
         client->layout.has_requested_pos = true;
     }
 
+    /* Recorded too, so the render pass compares its own width against
+     * the one the window really has rather than an older one, and
+     * never mistakes a border set here for one it still has to change;
+     * see 'last_border_width' in client.h */
+    if ((mask & (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH) &&
+            (target == client->window || target == client->frame)) {
+        client->last_border_width = border_width;
+    }
+
     xcb_configure_window(xcb_connection_get(), target, mask, values);
 }
 

@@ -694,6 +694,32 @@ static inline uint32_t client_border_width(const client_td *client,
 }
 
 /**
+ * @brief Native X border width the client's own window has right now
+ *
+ * A window inside a frame of ours always has none; any other takes the
+ * width last sent for it, as recorded in @p client->last_border_width.
+ * X places a window by the outer corner of that border, so its content
+ * starts this many pixels further in on each axis.
+ *
+ * @param client Client to query
+ *
+ * @return Width of the border around @p client->window, or @c 0 if
+ *         @p client is @c NULL or no width was ever sent
+ *
+ * @note Complexity: @e O(1)
+ */
+static inline uint32_t client_native_border_width(const client_td *client)
+{
+    if (client == NULL ||
+            (client_is_decorated(client) && client->frame != 0) ||
+            client->last_border_width == UINT32_MAX) {
+        return 0u;
+    }
+
+    return client->last_border_width;
+}
+
+/**
  * @brief Synchronize the inner client and titlebar windows with the
  *        frame extents stored in @p client
  *
@@ -902,6 +928,28 @@ void client_size_constrain(const client_td *client,
  */
 void client_aspect_ratio_clamp(const client_td *client,
         uint32_t width, uint32_t *height);
+
+/**
+ * @brief Move the positions stored for a frameless client so its
+ *        content keeps its place across a native border change
+ *
+ * X places a window by the outer corner of its native border, and
+ * @c geometry.cur and @c geometry.old both hold that corner.  Before
+ * the border of a window with no frame of ours goes from the width it
+ * has to @p border_width, this moves both by the difference, so that
+ * whatever is later placed at either one, now or on a restore, has its
+ * content exactly where it was.  The caller still sends the request
+ * that actually changes the border.
+ *
+ * @param client       Client whose border is about to change
+ * @param border_width Width the border is about to get
+ *
+ * @note A no-op for a framed client, whose window has no border of its
+ *       own, and for one with no border ever sent to measure from
+ * @note Complexity: @e O(1)
+ */
+void client_native_border_rebase(client_td *client,
+        uint32_t border_width);
 
 /**
  * @brief Send a synthetic @c ConfigureNotify to an ICCCM-compliant

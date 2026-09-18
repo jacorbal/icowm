@@ -84,6 +84,57 @@ struct s_desktop_render_ctx_s {
 
 
 /**
+ * @brief Give a client's frame or window a new native border width
+ *
+ * X places a window by the outer corner of its border, so a border
+ * that grows or shrinks on a window placed there moves its content by
+ * the difference.  A frame's border is always 0, so for one the width
+ * is simply sent; for a window with no frame of ours, the one whose
+ * border shows focus, the window moves by that same difference in the
+ * same request, and its content stays where it was on screen, the way
+ * it does for a framed window, whose border lives inside the frame; its
+ * restore geometry moves along with it, through
+ * @a client_native_border_rebase.  The server reports that move to the client with a real
+ * @c ConfigureNotify, as a direct child of the root.
+ *
+ * @param client       Client whose border is changing
+ * @param target       The client's frame, or its own window when it
+ *                     has none
+ * @param border_width Width to give @p target
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_render_apply_border(client_td *client, xcb_window_t target,
+        uint32_t border_width)
+{
+    if (target != client->window ||
+            client->last_border_width == UINT32_MAX) {
+        xcb_window_set_border(target, border_width);
+        client->last_border_width = border_width;
+        return;
+    }
+
+    client_native_border_rebase(client, border_width);
+
+    /* Same bookkeeping 'ccmd_client_apply_geometry' does, since this
+     * places the very same window without going through it; see
+     * 'requested_pos' in client/layout.h */
+    client->layout.requested_pos.x = client->layout.geometry.cur.pos.x;
+    client->layout.requested_pos.y = client->layout.geometry.cur.pos.y;
+    client->layout.has_requested_pos = true;
+
+    xcb_configure_window(xcb_connection_get(), target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            (const uint32_t[]) {
+                (uint32_t) client->layout.geometry.cur.pos.x,
+                (uint32_t) client->layout.geometry.cur.pos.y,
+                border_width });
+    client->last_border_width = border_width;
+}
+
+
+/**
  * @brief Apply a client's geometry, and repaint what it moves
  *
  * Taken when the client is marked outdated, so its position and size
@@ -501,8 +552,7 @@ void desktop_render_one_client(desktop_td *desktop,
      * still re-sent border width for every other window on the desktop
      * each time). */
     if (border_width != client->last_border_width) {
-        xcb_window_set_border(target, border_width);
-        client->last_border_width = border_width;
+        s_render_apply_border(client, target, border_width);
     }
 
     /* An undecorated client shows its focus through this border and

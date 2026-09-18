@@ -235,22 +235,10 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
          * reports for stale echoes of it and throw them away, leaving
          * what is stored here disagreeing with what is on screen. */
         client->layout.has_requested_pos = false;
-
-        /* Keeps 'client_border_color_apply' (client.c) from seeing
-         * a stale 'last_border_width' the moment focus is reapplied
-         * a few lines below (via 'ccmd_client_focus'): without this,
-         * that call would compare its freshly computed width against
-         * whatever this field happened to hold from this same client's
-         * last undecorated period (or 'UINT32_MAX' if there never was
-         * one), and shift the position it just correctly set above by
-         * whatever spurious delta that comparison produces, on every
-         * single toggle. */
-        client->last_border_width = (uint32_t) bw;
     } else {
         ccmd_client_apply_geometry(client, client->window,
                 (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
                 0, 0, 0u, 0u, (uint32_t) bw);
-        client->last_border_width = (uint32_t) bw;
     }
 
     client->layout.frame_extents.left = 0;
@@ -283,11 +271,8 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
      * its native border, so its content starts that border's width
      * further in; the frame is built around that content, whatever
      * the client's gravity, so the content stays exactly where it was
-     * on screen.  'last_border_width' is the width last actually sent
-     * for this window, still at its initial 'UINT32_MAX' only if no
-     * border was ever sent, meaning there is none. */
-    native_bw = (client->last_border_width == UINT32_MAX)
-        ? 0u : client->last_border_width;
+     * on screen */
+    native_bw = client_native_border_width(client);
     content.x = client->layout.geometry.cur.pos.x + (int32_t) native_bw;
     content.y = client->layout.geometry.cur.pos.y + (int32_t) native_bw;
 
@@ -755,6 +740,11 @@ void ccmd_client_fullscreen(client_td *client)
     client->was_decorated_fullscreen = was_decorated;
     target = ccmd_target_win(client);
 
+    /* A frameless window loses its native border below; the geometry
+     * just saved is moved to match, so leaving fullscreen puts its
+     * content back where it is now */
+    client_native_border_rebase(client, 0u);
+
     /* Resized to fill the screen FIRST, before the content window below
      * (when there is a separate one, i.e., 'target' is the frame).  The
      * reverse order leaves a real, if brief, window between the two
@@ -987,7 +977,11 @@ void ccmd_client_unfullscreen(client_td *client)
      * 'was_decorated_fullscreen' block above.  For an undecorated
      * client, 'target' is its window and this is the only place its
      * border gets restored at all, since there is no separate frame for
-     * an earlier step to already have set it on. */
+     * an earlier step to already have set it on; the restored position
+     * is moved to match that border first, so the content lands where
+     * it was before entering fullscreen. */
+    client_native_border_rebase(client,
+            (client->was_decorated_fullscreen) ? 0u : border_width);
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_X |
                 (uint16_t) XCB_CONFIG_WINDOW_Y |
