@@ -669,6 +669,24 @@ xcb_key_symbols_t *wm_get_keysyms(void);
 void wm_request_client_redraw(client_td *client);
 
 /**
+ * @brief Mark the client owner desktop and stage as outdated, without
+ *        asking for a decoration repaint
+ *
+ * Meant for a client's own quiet, intermediate steps (a live move's
+ * own per-step position update, say), where the frame's screen
+ * position needs applying but nothing about how the frame border and
+ * titlebar look has actually changed; @a wm_request_client_redraw
+ * already asks for one, so any other reason a client becomes
+ * outdated still gets its repaint.
+ *
+ * @param client Client whose owner context should be redrawn
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       stages and desktops
+ */
+void wm_request_client_reposition(client_td *client);
+
+/**
  * @brief Mark all stages and desktops as outdated
  *
  * Requests a full redraw on demand by setting the outdated flags across

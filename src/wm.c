@@ -920,8 +920,21 @@ xcb_key_symbols_t *wm_get_keysyms(void)
 }
 
 
-/* Mark the client owner desktop and stage as outdated */
-void wm_request_client_redraw(client_td *client)
+/**
+ * @brief Mark the client owner desktop and stage as outdated
+ *
+ * @param client                  Client whose owner context should be
+ *                                redrawn
+ * @param needs_decoration_repaint Whether the frame border and
+ *                                 titlebar actually need repainting
+ *                                 on the next outdated pass, not
+ *                                 just repositioning
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       stages and desktops
+ */
+static void s_wm_request_client_redraw(client_td *client,
+        bool needs_decoration_repaint)
 {
     desktop_td *desktop;
 
@@ -933,6 +946,8 @@ void wm_request_client_redraw(client_td *client)
      * geometry configure and expose only to this client, avoiding
      * spurious redraws (and visible flicker) in other windows */
     client->is_outdated = true;
+    client->needs_decoration_repaint = client->needs_decoration_repaint ||
+        needs_decoration_repaint;
 
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
@@ -951,6 +966,21 @@ void wm_request_client_redraw(client_td *client)
             break;
         }
     } /* ! for (snode) */
+}
+
+
+/* Mark the client owner desktop and stage as outdated */
+void wm_request_client_redraw(client_td *client)
+{
+    s_wm_request_client_redraw(client, true);
+}
+
+
+/* Mark the client owner desktop and stage as outdated, without asking
+ * for a decoration repaint */
+void wm_request_client_reposition(client_td *client)
+{
+    s_wm_request_client_redraw(client, false);
 }
 
 

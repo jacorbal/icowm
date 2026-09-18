@@ -235,25 +235,44 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
                  * 'exposures=1' causes the X server to generate an
                  * 'Expose' event, which arrives in the client's queue
                  * after both the 'xcb_configure_window' and the
-                 * synthetic 'ConfigureNotify' above. */
-                xcb_clear_area(xcb_connection_get(), 1,
-                        client->window, 0, 0, 0, 0);
+                 * synthetic 'ConfigureNotify' above.
+                 *
+                 * Skipped for a client already using
+                 * '_NET_WM_SYNC_REQUEST': that protocol already tells
+                 * it exactly when to redraw, via the sync request
+                 * 'ccmd_client_resize' (cmds/client/resize.c) sends
+                 * for every interactive resize step, so forcing
+                 * a clear here on top of that, once per step, only
+                 * blanks a compositing client's own content out from
+                 * under it a moment before it repaints on its own,
+                 * seen as a brief flicker on every step rather than
+                 * a smooth resize. */
+                if (!client->hints_ewmh.sync.is_supported ||
+                        !wm_sync_is_available()) {
+                    xcb_clear_area(xcb_connection_get(), 1,
+                            client->window, 0, 0, 0, 0);
+                }
             }
         }
-        render_client_decoration_repaint_frame_unless_hidden(
-                xcb_connection_get(), client, is_focused,
-                hide_decoration, &desktop->config->theme);
+        if (client->needs_decoration_repaint) {
+            render_client_decoration_repaint_frame_unless_hidden(
+                    xcb_connection_get(), client, is_focused,
+                    hide_decoration, &desktop->config->theme);
+        }
 
         if (titlebar_visible) {
             xcb_window_place(client->titlebar, left,
                     (top > title_h) ? top - title_h : 0,
                     inner_w, title_h);
-            render_client_titlebar_repaint_content(
-                    xcb_connection_get(), client, is_focused,
-                    inner_w, title_h, &desktop->config->theme);
+            if (client->needs_decoration_repaint) {
+                render_client_titlebar_repaint_content(
+                        xcb_connection_get(), client, is_focused,
+                        inner_w, title_h, &desktop->config->theme);
+            }
         } else if (client->titlebar != 0) {
             xcb_window_hide(client->titlebar);
         }
+        client->needs_decoration_repaint = false;
     }
 
     wm_validate_client(client);

@@ -274,6 +274,22 @@ void wm_request_client_redraw(client_td *client)
 }
 
 
+/** Whether @a wm_request_client_reposition was called at all */
+static int s_reposition_count;
+
+
+/**
+ * @brief Link-only stand-in for @a wm_request_client_reposition,
+ *        recording only whether it fired
+ * @note Complexity: @e O(1)
+ */
+void wm_request_client_reposition(client_td *client)
+{
+    (void) client;
+    s_reposition_count++;
+}
+
+
 /** Whether @a client_send_synthetic_configure_notify was called at
  *  all */
 static int s_synthetic_configure_count;
@@ -377,6 +393,7 @@ static void s_reset(void)
     s_direction_neighbor_is_set = false;
     memset(&s_direction_neighbor, 0, sizeof(s_direction_neighbor));
     s_redraw_count = 0;
+    s_reposition_count = 0;
     s_synthetic_configure_count = 0;
     s_cw_window = XCB_WINDOW_NONE;
     s_cw_mask = 0u;

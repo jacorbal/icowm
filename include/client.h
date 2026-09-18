@@ -437,6 +437,18 @@ struct client_s {
                                      full configure+repaint needed on
                                      next render pass (cleared after
                                      render) */
+    bool needs_decoration_repaint;  /**< Frame border and titlebar
+                                     actually need repainting on the
+                                     next outdated pass, not just
+                                     repositioning; left false by
+                                     a plain move's own quiet steps,
+                                     true for every other reason
+                                     @p is_outdated gets set, so a
+                                     pass that moves nothing but the
+                                     frame's screen position never
+                                     redraws decoration that looks
+                                     no different than it already
+                                     did (cleared after render) */
 
     struct {
         /** Unmaps the window manager started, to be suppressed */

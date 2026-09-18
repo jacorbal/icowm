@@ -21,10 +21,10 @@
  * read-only query accessors (wm_get_client_desktop,
  * wm_get_stage_by_id, wm_sync_is_available, wm_get_stages,
  * wm_get_desktop_stage, wm_get_config, wm_get_keysyms) together with
- * the two redraw-flagging functions (wm_request_client_redraw,
- * wm_request_full_redraw), all of which only ever read wm_td's fields
- * and a real stages/desktops list, never touch the X connection
- * directly.
+ * the three redraw-flagging functions (wm_request_client_redraw,
+ * wm_request_client_reposition, wm_request_full_redraw), all of
+ * which only ever read wm_td's fields and a real stages/desktops
+ * list, never touch the X connection directly.
  *
  * wm.c's own translation unit is linked for real and reaches, through
  * the functions above, exactly three external symbols:
@@ -1061,6 +1061,95 @@ static void s_test_request_client_redraw_marks_owner_chain(void)
     TAP_OK(!stage_a.is_outdated,
             "wm_request_client_redraw leaves an unrelated stage"
             " untouched");
+    TAP_OK(client.needs_decoration_repaint,
+            "wm_request_client_redraw also asks for a decoration"
+            " repaint, not just a reposition");
+
+    list_destroy(stages);
+    wm = NULL;
+}
+
+
+/* wm_request_client_reposition marks the same owner chain outdated
+ * as wm_request_client_redraw, but leaves needs_decoration_repaint
+ * false: a plain move never changes how the frame border or
+ * titlebar look, only where the frame sits on screen */
+static void s_test_request_client_reposition_skips_decoration(void)
+{
+    wm_td local_wm = s_make_wm();
+    stage_td stage;
+    desktop_td desktop;
+    client_td client;
+    list_td *stages;
+
+    memset(&stage, 0, sizeof(stage));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&client, 0, sizeof(client));
+    stage.id = 0u;
+    client.screen_id = 0u;
+    client.is_outdated = false;
+    client.needs_decoration_repaint = false;
+    desktop.is_outdated = false;
+
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
+
+    local_wm.stages = stages;
+    wm = &local_wm;
+
+    s_stub_reset();
+    s_stub_found_desktop = &desktop;
+
+    wm_request_client_reposition(&client);
+
+    TAP_OK(client.is_outdated,
+            "wm_request_client_reposition marks the client itself"
+            " outdated, the same as wm_request_client_redraw");
+    TAP_OK(desktop.is_outdated,
+            "...and its owner desktop too");
+    TAP_OK(stage.is_outdated,
+            "...and its owner stage too");
+    TAP_OK(!client.needs_decoration_repaint,
+            "...but never asks for a decoration repaint on its own");
+
+    list_destroy(stages);
+    wm = NULL;
+}
+
+
+/* A decoration repaint already pending from an earlier call stays
+ * pending through a later wm_request_client_reposition; one quiet
+ * call must never cancel a repaint some other, real reason already
+ * asked for */
+static void s_test_request_client_reposition_keeps_pending_repaint(void)
+{
+    wm_td local_wm = s_make_wm();
+    stage_td stage;
+    desktop_td desktop;
+    client_td client;
+    list_td *stages;
+
+    memset(&stage, 0, sizeof(stage));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&client, 0, sizeof(client));
+    stage.id = 0u;
+    client.screen_id = 0u;
+
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
+
+    local_wm.stages = stages;
+    wm = &local_wm;
+
+    s_stub_reset();
+    s_stub_found_desktop = &desktop;
+
+    wm_request_client_redraw(&client);
+    wm_request_client_reposition(&client);
+
+    TAP_OK(client.needs_decoration_repaint,
+            "a decoration repaint already pending stays pending"
+            " through a later, quiet reposition call");
 
     list_destroy(stages);
     wm = NULL;
@@ -1116,7 +1205,7 @@ static void s_test_request_full_redraw_marks_everything(void)
 
 int main(void)
 {
-    TAP_PLAN(42);
+    TAP_PLAN(48);
 
     s_test_null_singleton_guards();
     s_test_request_stop_flips_running_flag();
@@ -1129,6 +1218,8 @@ int main(void)
     s_test_plain_field_accessors();
     s_test_get_desktop_stage_finds_owner();
     s_test_request_client_redraw_marks_owner_chain();
+    s_test_request_client_reposition_skips_decoration();
+    s_test_request_client_reposition_keeps_pending_repaint();
     s_test_request_full_redraw_marks_everything();
 
     return TAP_DONE();

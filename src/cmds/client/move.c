@@ -186,7 +186,13 @@ static void s_ccmd_client_move_apply(client_td *client,
     client->layout.geometry.cur.pos.x = pos.x;
     client->layout.geometry.cur.pos.y = pos.y;
     client->has_rule_position_locked = false;
-    wm_request_client_redraw(client);
+
+    /* A move alone never changes how the frame border or titlebar
+     * look, only where the frame sits on screen, so this only ever
+     * asks the render pass to reposition it, never to repaint
+     * decoration that would come out looking identical to what is
+     * already showing. */
+    wm_request_client_reposition(client);
 }
 
 

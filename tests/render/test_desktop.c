@@ -670,6 +670,12 @@ xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
     return cookie;
 }
 
+
+bool wm_sync_is_available(void)
+{
+    return false;
+}
+
 static uint32_t s_next_generated_id = 900u;
 
 uint32_t xcb_generate_id(xcb_connection_t *connection)
