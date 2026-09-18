@@ -406,11 +406,14 @@ static void s_test_arrows_move_by_step(void)
             "...one quiet move per arrow press, four so far");
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config);
-    TAP_OK(s_move_count == 1,
-            "Return sends exactly one real, notifying move as the"
-            " session actually ends");
-    TAP_OK(s_moved_x == 100 && s_moved_y == 200,
-            "...at the final, already-settled position");
+    TAP_OK(s_move_count == 0,
+            "Return closes the session quietly too, with no final"
+            " real move of its own: the position is already"
+            " settled by the last arrow press");
+    TAP_OK(client.layout.geometry.cur.pos.x == 100 &&
+            client.layout.geometry.cur.pos.y == 200,
+            "...that last quiet move already left it at the"
+            " settled position");
 }
 
 

@@ -1357,9 +1357,9 @@ static void s_test_end_no_active_drag_is_noop(void)
 }
 
 
-/* drag_end for a plain solid move issues one final enact_client_move,
- * the one call withheld from every live drag_update step along the
- * way (see ccmd_client_move_track's own comment), then hides the
+/* drag_end for a plain solid move finalizes nothing further, quiet
+ * the same way every live drag_update step along the way already
+ * was (see ccmd_client_move_track's own comment); it still hides the
  * overlay, ungrabs the pointer and resets every drag field back to
  * idle */
 static void s_test_end_move_resets_state(void)
@@ -1381,13 +1381,14 @@ static void s_test_end_move_resets_state(void)
 
     drag_end((xcb_connection_t *) 1, NULL, NULL, root_pos);
 
-    TAP_EQ_INT(s_enact_move_calls, 1,
-            "solid move: exactly one finalizing enact_client_move"
-            " call happens");
-    TAP_EQ_INT(s_enact_move_last_pos.x, 123,
-            "at the client's own already-live-updated position X");
-    TAP_EQ_INT(s_enact_move_last_pos.y, 456,
-            "at the client's own already-live-updated position Y");
+    TAP_EQ_INT(s_enact_move_calls, 0,
+            "solid move: no finalizing enact_client_move call"
+            " happens, quiet to the very end");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 123,
+            "the position stays at what the last live step"
+            " already settled it to, X");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, 456,
+            "...and Y likewise");
 
     TAP_OK(!s_drag.is_active, "drag ends: is_active reset to false");
     TAP_OK(s_drag.operation == CLIENT_OPERATION_IDLE,

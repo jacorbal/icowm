@@ -113,53 +113,53 @@ static void s_ccmd_resize_configure(client_td *client,
     /* For decorated (reparented) clients the inner window must be
      * repositioned and resized to match the new frame dimensions.
      * 'ccmd_client_resize' is the single configure point, called
-     * directly for every resize, interactive or not. */
+     * directly for every resize, interactive or not.  This already
+     * sends its own synthetic 'ConfigureNotify' and, unless the client
+     * is already using '_NET_WM_SYNC_REQUEST', its own 'clear_area'
+     * too (see its own comment for why), so neither is repeated below
+     * for a decorated client; only an undecorated one, which this
+     * call is a no-op for, still needs them done here instead. */
     client_decoration_layout_sync(client);
-
-    /* Use 'exposures=1' so the X server generates an 'Expose' event and
-     * the client redraws the newly exposed area immediately after
-     * a non-interactive (keyboard or programmatic) resize, rather than
-     * leaving stale content until the next user-triggered redraw.
-     *
-     * Skipped for a client already using '_NET_WM_SYNC_REQUEST':
-     * that protocol already tells it exactly when to redraw, via the
-     * sync request this same call chain sends further down in
-     * 'ccmd_client_resize', so forcing a clear here on top of that,
-     * every single step of an interactive resize, only blanks
-     * a compositing client's (Chromium, Electron) own content out
-     * from under it a moment before it repaints on its own, seen as
-     * a brief flicker on every step rather than a smooth resize. */
-    if (!client->hints_ewmh.sync.is_supported ||
-            !wm_sync_is_available()) {
-        xcb_clear_area(xcb_connection_get(), 1, client->window,
-                0, 0, 0, 0);
-    }
 
     /* Mark the client's desktop as outdated so the frame decoration
      * (titlebar background, text, border grips) is repainted on the
      * next render pass to match the new frame size */
     wm_request_client_redraw(client);
 
-    /* ICCCM §4.2.3: send a synthetic 'ConfigureNotify' with
-     * screen-relative coordinates so the application always knows its
-     * true on-screen position and content-area size.
-     *
-     * For decorated (reparented) clients the X server delivers
-     * a frame-relative 'ConfigureNotify' (x=border, y=titlebar+border)
-     * from 'client_decoration_layout_sync'; the synthetic event
-     * overrides that with screen-relative coordinates.
-     *
-     * For undecorated clients there is no reparenting, so the X server
-     * would normally supply the correct screen-relative coordinates.
-     * However applications that size themselves on character increments
-     * rely on receiving 'ConfigureNotify' to recompute their internal
-     * layout; without an explicit notification after a non-interactive
-     * (keyboard or programmatic) resize they do not redraw the newly
-     * exposed region, leaving a fragment of stale content visible until
-     * the next user-triggered repaint.  Send the synthetic event
-     * unconditionally so every client always receives the definitive
-     * geometry notification. */
-    client_send_synthetic_configure_notify(xcb_connection_get(), client);
+    if (!client_is_decorated(client)) {
+        /* Use 'exposures=1' so the X server generates an 'Expose'
+         * event and the client redraws the newly exposed area
+         * immediately after a non-interactive (keyboard or
+         * programmatic) resize, rather than leaving stale content
+         * until the next user-triggered redraw.
+         *
+         * Skipped for a client already using '_NET_WM_SYNC_REQUEST':
+         * that protocol already tells it exactly when to redraw, via
+         * the sync request this same call chain sends further down,
+         * so forcing a clear here on top of that, every single step
+         * of an interactive resize, only blanks a compositing
+         * client's own content out from under it a moment before it
+         * repaints on its own, seen as a brief flicker on every step
+         * rather than a smooth resize. */
+        if (!client->hints_ewmh.sync.is_supported ||
+                !wm_sync_is_available()) {
+            xcb_clear_area(xcb_connection_get(), 1, client->window,
+                    0, 0, 0, 0);
+        }
+
+        /* ICCCM §4.2.3: for an undecorated client there is no
+         * reparenting, so the X server already supplies correct
+         * screen-relative coordinates on its own.  Sent anyway: an
+         * application that sizes itself on character increments
+         * relies on receiving a 'ConfigureNotify' to recompute its
+         * internal layout, and without an explicit one here after
+         * a non-interactive (keyboard or programmatic) resize it
+         * does not redraw the newly exposed region, leaving
+         * a fragment of stale content visible until the next
+         * user-triggered repaint. */
+        client_send_synthetic_configure_notify(xcb_connection_get(),
+                client);
+    }
 }
 
 

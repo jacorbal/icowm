@@ -126,15 +126,6 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
     int32_t y;
 
     if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
-        /* One real, notifying move now that the session actually
-         * ends, the one call withheld from every quiet key-by-key
-         * step along the way (see ccmd_client_move_track's own
-         * comment for why), so the client's belief about where it
-         * sits on screen is never left stale. */
-        if (s_client != NULL) {
-            enact_client_move(s_client,
-                    s_client->layout.geometry.cur.pos);
-        }
         s_modal_exit();
         return;
     }

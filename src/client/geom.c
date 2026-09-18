@@ -703,8 +703,19 @@ void client_decoration_layout_sync(client_td *client)
      * lower area without requiring an additional user-triggered
      * action.  Skipped while shaded: the content window is unmapped
      * then, and X11 never generates 'Expose' for an unmapped window,
-     * so this would be a no-op request anyway. */
-    if (!is_shaded_now) {
+     * so this would be a no-op request anyway.
+     *
+     * Also skipped for a client already using '_NET_WM_SYNC_REQUEST':
+     * that protocol already tells it exactly when to redraw, via the
+     * sync request 'ccmd_client_resize' (cmds/client/resize.c) sends
+     * for every interactive resize step, so forcing a clear here on
+     * top of that, once per step, only blanks a compositing client's
+     * own content out from under it a moment before it repaints on
+     * its own, seen as a brief flicker on every step rather than
+     * a smooth resize. */
+    if (!is_shaded_now &&
+            (!client->hints_ewmh.sync.is_supported ||
+                !wm_sync_is_available())) {
         xcb_clear_area(xcb_connection_get(), 1, client->window, 0, 0, 0, 0);
     }
 }

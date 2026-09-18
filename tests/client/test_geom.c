@@ -136,6 +136,20 @@ void xcb_window_save_set(xcb_window_t window, bool add)
 
 
 /**
+ * @brief Link-only stand-in for @a wm_sync_is_available
+ *
+ * Reached only by 'client_decoration_layout_sync', which nothing here
+ * calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+bool wm_sync_is_available(void)
+{
+    return false;
+}
+
+
+/**
  * @brief Link-only stand-in for @a xcb_clear_area
  *
  * Reached only by 'client_decoration_layout_sync', which nothing here

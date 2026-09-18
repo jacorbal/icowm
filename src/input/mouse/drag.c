@@ -1018,25 +1018,27 @@ void drag_end(xcb_connection_t *connection,
             if (s_drag.is_solid_drag) {
                 /* Already fully applied live, one
                  * 'ccmd_client_move_track'/'enact_client_resize' per
-                 * 'drag_update' along the way.  A move alone still
-                 * gets one more 'enact_client_move' here, deliberately
-                 * withheld from every one of those live calls (see
-                 * 'ccmd_client_move_track''s own comment), so the
-                 * client finally learns its settled screen position
-                 * now that the drag has actually stopped moving it.
-                 * A resize alone gets one more here too, to finalize
+                 * 'drag_update' along the way.  A resize alone gets
+                 * one more 'enact_client_resize' here, to finalize
                  * whatever that last live call left off at (e.g.,
                  * snapping fully onto the size-hint grid a client
                  * with 'WM_NORMAL_HINTS' increments declares, which
                  * the live calls only approach step by step as the
-                 * pointer moves). */
+                 * pointer moves).  A move alone applies its settled
+                 * position the same quiet way every live step
+                 * already did, without a final notifying call: see
+                 * 'ccmd_client_move_track''s own comment for why one
+                 * step's worth of screen-position staleness is
+                 * preferred here over the recompositing flicker
+                 * a compositing client shows on every notifying
+                 * 'ConfigureNotify' it receives. */
                 if (finalize_resize) {
                     enact_client_resize(s_drag.client,
                             (struct geometry_s) {
                                 s_drag.client->layout.geometry.cur.pos,
                                 { final_w, final_h } });
                 } else {
-                    enact_client_move(s_drag.client,
+                    ccmd_client_move_track(s_drag.client,
                             s_drag.client->layout.geometry.cur.pos);
                 }
             } else {
