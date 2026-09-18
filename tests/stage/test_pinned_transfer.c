@@ -246,6 +246,16 @@ void xcb_window_show(xcb_window_t window)
 
 
 /**
+ * @brief Link-only stand-in for @a wm_request_client_redraw
+ * @note Complexity: @e O(1)
+ */
+void wm_request_client_redraw(client_td *client)
+{
+    (void) client;
+}
+
+
+/**
  * @brief Link-only stand-in for @a xcb_window_stack_above
  * @note Complexity: @e O(1)
  */

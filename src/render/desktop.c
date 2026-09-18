@@ -254,25 +254,20 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
                 }
             }
         }
-        if (client->needs_decoration_repaint) {
-            render_client_decoration_repaint_frame_unless_hidden(
-                    xcb_connection_get(), client, is_focused,
-                    hide_decoration, &desktop->config->theme);
-        }
+        render_client_decoration_repaint_frame_unless_hidden(
+                xcb_connection_get(), client, is_focused,
+                hide_decoration, &desktop->config->theme);
 
         if (titlebar_visible) {
             xcb_window_place(client->titlebar, left,
                     (top > title_h) ? top - title_h : 0,
                     inner_w, title_h);
-            if (client->needs_decoration_repaint) {
-                render_client_titlebar_repaint_content(
-                        xcb_connection_get(), client, is_focused,
-                        inner_w, title_h, &desktop->config->theme);
-            }
+            render_client_titlebar_repaint_content(
+                    xcb_connection_get(), client, is_focused,
+                    inner_w, title_h, &desktop->config->theme);
         } else if (client->titlebar != 0) {
             xcb_window_hide(client->titlebar);
         }
-        client->needs_decoration_repaint = false;
     }
 
     wm_validate_client(client);

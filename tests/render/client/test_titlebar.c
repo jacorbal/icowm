@@ -18,7 +18,7 @@
  * Every XCB entry point titlebar.c calls (xcb_change_window_
  * attributes, xcb_clear_area, xcb_generate_id, xcb_create_gc,
  * xcb_change_gc, xcb_poly_fill_rectangle, xcb_poly_rectangle,
- * xcb_poly_segment, xcb_free_gc, xcb_copy_area, xcb_free_pixmap,
+ * xcb_poly_segment, xcb_free_gc, xcb_free_pixmap,
  * xcb_offscreen_buffer_create, xcb_ewmh_connection_get,
  * xcb_ewmh_set_wm_visible_name_checked) and every cross-module
  * project symbol it reaches (client_sync_visible_name,
@@ -617,6 +617,11 @@ void *xcb_get_property_value(const xcb_get_property_reply_t *reply)
 
 static int s_change_window_attributes_calls;
 
+/** Mask and first value of the latest call, enough to tell a plain
+ *  background color from a background pixmap and which one it was */
+static uint32_t s_change_window_attributes_last_mask;
+static uint32_t s_change_window_attributes_last_value;
+
 xcb_void_cookie_t xcb_change_window_attributes(
         xcb_connection_t *connection, xcb_window_t window,
         uint32_t value_mask, const void *value_list)
@@ -624,9 +629,11 @@ xcb_void_cookie_t xcb_change_window_attributes(
     xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) window;
-    (void) value_mask;
-    (void) value_list;
     s_change_window_attributes_calls++;
+    s_change_window_attributes_last_mask = value_mask;
+    s_change_window_attributes_last_value = (value_list != NULL)
+        ? ((const uint32_t *) value_list)[0]
+        : 0u;
     return cookie;
 }
 
@@ -758,6 +765,8 @@ xcb_void_cookie_t xcb_free_gc(xcb_connection_t *connection,
     return cookie;
 }
 
+/** Never reached by titlebar.c, which no longer copies its paint onto
+ *  the window; kept so a regression back to copying is caught */
 static int s_copy_area_calls;
 
 xcb_void_cookie_t xcb_copy_area(xcb_connection_t *connection,
@@ -848,6 +857,8 @@ static void s_reset_fixture(void)
     s_get_property_reply_format = 32u;
     s_get_property_reply_value_len = 1u;
     s_change_window_attributes_calls = 0;
+    s_change_window_attributes_last_mask = 0u;
+    s_change_window_attributes_last_value = 0u;
     s_clear_area_calls = 0;
     s_clear_area_last_window = 0u;
     s_clear_area_watched_window = 0u;
@@ -931,14 +942,21 @@ static void s_test_repaint_titlebar_offscreen_buffer_path(void)
     TAP_EQ_INT(s_offscreen_buffer_calls, 1,
             "a resolvable stage with a working offscreen-buffer"
             " creation draws into that buffer first");
-    TAP_EQ_INT(s_copy_area_calls, 1,
-            "...then copies the finished buffer onto the titlebar in"
-            " one request");
+    TAP_OK(s_change_window_attributes_last_mask == XCB_CW_BACK_PIXMAP &&
+            s_change_window_attributes_last_value == s_next_buffer_id,
+            "...then installs the finished buffer as the titlebar's"
+            " background pixmap, which the server restores by itself"
+            " on any region uncovered later");
+    TAP_EQ_INT(s_copy_area_calls, 0,
+            "...rather than copying it onto the window, where the"
+            " next window passing over it would wipe it");
+    TAP_OK(s_clear_area_calls == 1 &&
+            s_clear_area_last_window == client.titlebar,
+            "...clearing the titlebar once so the new background"
+            " shows in one request");
     TAP_EQ_INT(s_free_pixmap_calls, 1,
-            "...and frees the temporary buffer afterward");
-    TAP_EQ_INT(s_clear_area_calls, 0,
-            "...never taking the clear-in-place fallback path at"
-            " all when the buffer path succeeded");
+            "...and frees the buffer, which the window keeps"
+            " referenced on its own");
 }
 
 
@@ -1011,6 +1029,18 @@ static void s_test_repaint_titlebar_fallback_when_buffer_fails(void)
     TAP_OK(s_clear_area_calls >= 1,
             "...falling back to clearing the titlebar directly and"
             " drawing in place instead");
+    TAP_EQ_INT((int) s_change_window_attributes_last_mask,
+            (int) XCB_CW_BACK_PIXEL,
+            "...with the plain background color, not a pixmap, as"
+            " what the server restores on an uncovered region");
+
+    render_client_titlebar_repaint_content(s_connection_stub, &client, false,
+            120u, 20u, &theme);
+
+    TAP_EQ_INT(s_offscreen_buffer_calls, 2,
+            "a paint drawn in place leaves no snapshot behind, so an"
+            " identical next pass, an 'Expose' among them, draws it"
+            " again instead of skipping it");
 }
 
 static void s_test_repaint_titlebar_hide_pin_single_desktop(void)
@@ -1324,7 +1354,7 @@ static void s_test_repaint_titlebar_maximize_disabled_when_not_maximizable(
  * the color it just set is not the one already showing */
 int main(void)
 {
-    TAP_PLAN(28);
+    TAP_PLAN(31);
 
     s_test_repaint_titlebar_guard_clauses();
     s_test_repaint_titlebar_offscreen_buffer_path();

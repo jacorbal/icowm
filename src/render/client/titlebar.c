@@ -599,15 +599,17 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_maximizable(client);
 
-    /* Nothing render_client_titlebar_repaint_content actually draws
-     * from differs from the last real repaint, so redoing the same
-     * paint here would only cost a pixmap round trip for a result
-     * indistinguishable from what is already showing; this is what
-     * lets a plain move (nothing above ever changes) and most steps
-     * of a resize (only 'inner_w' does) skip the full repaint below,
-     * the same reasoning already applied by 'bg_changed' just above
-     * this comment, just carried across every input this function
-     * draws from instead of one alone. */
+    /* Nothing this function draws from differs from the last real
+     * repaint, so redoing the same paint here would only cost a pixmap
+     * round trip for a result indistinguishable from what is already
+     * showing; this is what lets a plain move (nothing above ever
+     * changes) and most steps of a resize (only 'inner_w' does) skip
+     * the full repaint below.  Skipping is safe on an 'Expose' too:
+     * the snapshot is only ever recorded for a paint installed as the
+     * titlebar's own background (see the end of this function), which
+     * the server itself restores onto any region that gets uncovered,
+     * so a titlebar whose snapshot still matches is already showing
+     * the right content again by the time its 'Expose' arrives. */
     if (client->layout.titlebar_paint.has_titlebar_paint &&
             client->layout.titlebar_paint.bg_color == bg_color &&
             client->layout.titlebar_paint.fg_color == fg_color &&
@@ -633,21 +635,6 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
         return;
     }
 
-    /* Only when the color just chosen is not the one already set.
-     * Changing a window's background makes the server discard what is
-     * on it, and this repaint runs on every title change: a client that
-     * renames itself as the user moves about, which a browser does on
-     * each page, would have its titlebar dropped and redrawn each time
-     * for a color that never moved. */
-    if (!client->layout.has_titlebar_bg ||
-            client->layout.titlebar_bg != bg_color) {
-        client->layout.titlebar_bg = bg_color;
-        client->layout.has_titlebar_bg = true;
-        xcb_change_window_attributes(connection,
-                client->titlebar, XCB_CW_BACK_PIXEL,
-                (const uint32_t[]) { bg_color });
-    }
-
     buffer = (stage != NULL)
         ? xcb_offscreen_buffer_create(connection,
                 stage->screen->root_depth, client->titlebar,
@@ -665,6 +652,12 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
                 });
         xcb_free_gc(connection, gc);
     } else {
+        /* No buffer to install as background, so the plain color is
+         * what the server restores on an uncovered region, and this
+         * paint is drawn straight onto the window instead */
+        xcb_change_window_attributes(connection,
+                client->titlebar, XCB_CW_BACK_PIXEL,
+                (const uint32_t[]) { bg_color });
         xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
     }
 
@@ -701,12 +694,24 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
             (client->properties.layer != CLIENT_LAYER_NORMAL),
             can_maximize, theme);
 
+    /* The finished paint becomes the titlebar's background pixmap
+     * rather than being copied onto it, the way Openbox's 'RrPaint'
+     * does for every piece of its frame.  Copied content lives only
+     * until something covers it (another window passing over, an
+     * unmap on iconify, a fullscreen stint), after which the server
+     * fills the uncovered region with the background alone; as the
+     * background, the paint is what the server itself puts back, with
+     * no round trip through this window manager at all.  Clearing the
+     * window shows the new background in one request, so title and
+     * buttons still never appear one after the other.  The pixmap
+     * can be freed right away: the window keeps its own reference
+     * (Scheifler and Gettys, "X Window System Protocol", CreateWindow
+     * request, 'background-pixmap'). */
     if (buffer != XCB_NONE) {
-        gc = xcb_generate_id(connection);
-        xcb_create_gc(connection, gc, client->titlebar, 0u, NULL);
-        xcb_copy_area(connection, buffer, client->titlebar, gc,
-                0, 0, 0, 0, inner_w, title_h);
-        xcb_free_gc(connection, gc);
+        xcb_change_window_attributes(connection,
+                client->titlebar, XCB_CW_BACK_PIXMAP,
+                (const uint32_t[]) { buffer });
+        xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
         xcb_free_pixmap(connection, buffer);
     }
 
@@ -729,5 +734,10 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
         (client->properties.layer != CLIENT_LAYER_NORMAL);
     client->layout.titlebar_paint.hide_pin = hide_pin;
     client->layout.titlebar_paint.hide_sticky = hide_sticky;
-    client->layout.titlebar_paint.has_titlebar_paint = true;
+
+    /* A paint drawn straight onto the window is lost to the first
+     * window that covers it, so it is left unrecorded: the next
+     * 'Expose' then finds no snapshot to match and draws it again */
+    client->layout.titlebar_paint.has_titlebar_paint =
+        (buffer != XCB_NONE);
 }

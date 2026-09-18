@@ -47,6 +47,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <systray.h>
+#include <wm.h>
 
 /* Stage includes */
 #include <stage.h>
@@ -187,6 +188,15 @@ static void s_client_show_visit(client_td *client, void *data)
                 !client_is_shaded(client)) {
             xcb_window_show(client->window);
         }
+
+        /* A client's frame border and titlebar were last drawn
+         * before this desktop was hidden; nothing since then told
+         * the render pass their content is still correct, and an
+         * unmapped window is never guaranteed to keep its old pixel
+         * content once mapped again, so this asks for a real repaint
+         * rather than trusting whatever was there before still
+         * looks right. */
+        wm_request_client_redraw(client);
     } else if (client != NULL &&
             client_is_iconified(client) &&
             client->icon_window != 0) {

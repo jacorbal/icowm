@@ -46,14 +46,18 @@
  * @a s_desktop_titlebar_buttons_draw.
  *
  * Background, title and buttons are all drawn into an off-screen pixmap
- * first and copied onto the titlebar with a single request only once
- * every one of them is on it, rather than drawn straight onto the
- * titlebar itself across several separate requests; without that, the
- * gap between the first of those requests and the last was wide enough
- * for the X server to show the titlebar with its background alone,
- * neither title nor buttons yet drawn, an intermittent flicker on any
- * window regardless of whether that particular window was the one whose
- * focus, urgency, or geometry actually changed.
+ * first, and only once every one of them is on it does that pixmap
+ * become the titlebar's background, shown with a single clear, rather
+ * than drawn straight onto the titlebar itself across several separate
+ * requests; without that, the gap between the first of those requests
+ * and the last was wide enough for the X server to show the titlebar
+ * with its background alone, neither title nor buttons yet drawn, an
+ * intermittent flicker on any window regardless of whether that
+ * particular window was the one whose focus, urgency, or geometry
+ * actually changed.  Being the background, the paint is also what the
+ * server restores by itself on any region uncovered later (another
+ * window passing over, a return from iconified or fullscreen), so
+ * none of those loses the title or buttons.
  *
  * @param connection Active XCB connection
  * @param client     Client whose titlebar is to be repainted

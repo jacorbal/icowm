@@ -106,21 +106,6 @@ struct client_layout_s {
     bool has_frame_bg;
 
     /**
-     * @brief Titlebar background color the decoration repaint last set
-     *
-     * Setting a window's background makes the server discard what is
-     * drawn on it, and the titlebar repaint runs on every title
-     * change, so a client that renames itself as the user moves about
-     * would have its bar dropped and redrawn for a color that never
-     * moved.
-     *
-     * @note @p has_titlebar_bg starts false, so a client's first
-     *       repaint always sets it
-     */
-    uint32_t titlebar_bg;
-    bool has_titlebar_bg;
-
-    /**
      * @brief Everything @a render_client_titlebar_repaint_content
      *        actually draws from, snapshotted right after its last
      *        real repaint

@@ -186,13 +186,6 @@ static void s_ccmd_client_move_apply(client_td *client,
     client->layout.geometry.cur.pos.x = pos.x;
     client->layout.geometry.cur.pos.y = pos.y;
     client->has_rule_position_locked = false;
-
-    /* A move alone never changes how the frame border or titlebar
-     * look, only where the frame sits on screen, so this only ever
-     * asks the render pass to reposition it, never to repaint
-     * decoration that would come out looking identical to what is
-     * already showing. */
-    wm_request_client_reposition(client);
 }
 
 
@@ -205,6 +198,7 @@ void ccmd_client_move(client_td *client, struct position_s pos)
     }
 
     s_ccmd_client_move_apply(client, pos);
+    wm_request_client_redraw(client);
 
     /* A move alone never generates a real 'ConfigureNotify' for the
      * client: the X server only ever reports one to a window when its
@@ -221,7 +215,13 @@ void ccmd_client_move(client_td *client, struct position_s pos)
 }
 
 
-/* Move the client to a new position, without announcing it */
+/* Move the client to a new position, without announcing it, and
+ * without asking for a repaint: the frame's own new position is
+ * already applied directly, synchronously, by the shared geometry
+ * apply above, not through the render pass, so this is meant only
+ * for one intermediate step of a drag still in progress, where
+ * nothing about how the frame border or titlebar look has actually
+ * changed */
 void ccmd_client_move_track(client_td *client, struct position_s pos)
 {
     if (client == NULL || client_is_maximized(client) ||
