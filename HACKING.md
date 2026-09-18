@@ -18,7 +18,7 @@ top of `src/`, each the entry point of the directory beside it, to wit,
 `client.c` and `client/`, `stage.c` and `stage/`, and suchlike.
 
 | Directory  | What lives there |
-|------------|---|
+|------------|------------------|
 | `adt/`     | Data structures: circular doubly linked list, open hash table |
 | `cctl/`    | Client control: adopting windows the manager did not map |
 | `client/`  | What a client is, its properties, layout and predicates |
@@ -224,17 +224,17 @@ question.
 
 Allowed values for log level:
 
-| Value | Level |
-|-------|---|
-| 0     | Trace |
-| 1     | Debug |
-| 2     | Info |
-| 3     | Notice |
-| 4     | Warning |
-| 5     | Error |
+| Value | Level    |
+|-------|----------|
+| 0     | Trace    |
+| 1     | Debug    |
+| 2     | Info     |
+| 3     | Notice   |
+| 4     | Warning  |
+| 5     | Error    |
 | 6     | Critical |
-| 7     | Alert |
-| 8     | Fatal |
+| 7     | Alert    |
+| 8     | Fatal    |
 
 Tests
 -----
@@ -243,7 +243,7 @@ Tests
 make test
 ```
 
-A hundred threescore and sixteen suites under `tests/`, mirroring the
+A hundred fourscore and nine suites under `tests/`, mirroring the
 directories they exercise, plus thirteen at the top for the pieces that
 have no directory of their own.  They run without an X server, as what
 they test is the logic that can be reached without one, which is most of
