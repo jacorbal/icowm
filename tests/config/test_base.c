@@ -606,6 +606,21 @@ static void s_test_missing_topology_leaves_defaults(void)
 }
 
 
+/* 'windows.focus.group-fallback' left out stays off: preferring
+ * a window of the same application has to be asked for */
+static void s_test_group_fallback_defaults_off(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load_with_defaults("{\"windows\": {\"focus\": {}}}", &base,
+            &desktop);
+
+    TAP_OK(!base.windows.focus.use_group_fallback,
+            "windows.focus.group-fallback defaults to false");
+}
+
+
 /* A representative field from each remaining config_load_base
  * section: theme, programs, windows (edges.snap/gravity/focus/
  * placement), icons, the 3 boolean shortcuts, startup-notification,
@@ -623,7 +638,7 @@ static void s_test_representative_fields(void)
         "  \"edges\": {\"snap\": {\"window\": 12, \"screen\": 18} },"
         "  \"gravity\": \"center\","
         "  \"focus\": {\"policy\": \"sloppy\","
-        "    \"focus-new\": false},"
+        "    \"focus-new\": false, \"group-fallback\": true},"
         "  \"placement\": {\"policy\": \"cascade\", \"monitor\": \"primary\"}"
         "},"
         "\"icons\": {\"placement\": {\"policy\": \"top\"}},"
@@ -648,6 +663,8 @@ static void s_test_representative_fields(void)
             "windows.focus.policy");
     TAP_OK(!base.windows.focus.focus_new,
             "windows.focus.focus-new");
+    TAP_OK(base.windows.focus.use_group_fallback,
+            "windows.focus.group-fallback");
     TAP_EQ_INT(base.windows.placement_policy,
             CONFIG_PLACEMENT_POLICY_CASCADE, "windows.placement.policy");
     TAP_EQ_INT(base.windows.monitor_policy,
@@ -1009,7 +1026,7 @@ static void s_test_overlay_section_loads(void)
 
 int main(void)
 {
-    TAP_PLAN(123);
+    TAP_PLAN(125);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -1040,6 +1057,7 @@ int main(void)
     s_test_mesh_valid_values_kept();
     s_test_mesh_below_minimum_clamped();
     s_test_mesh_above_maximum_clamped();
+    s_test_group_fallback_defaults_off();
     s_test_representative_fields();
     s_test_icons_placement_modern_object_form();
     s_test_icons_placement_bare_string_form();

@@ -137,14 +137,15 @@ void ccmd_client_make_active(client_td *client);
  * and @a client_is_urgent already carve out elsewhere for the identical
  * reasoning).
  *
- * Run twice, not once: a first pass over that same search restricted to
- * clients sharing @p exclude's @c WM_CLIENT_LEADER (ICCCM §4.1.2.5)
- * takes precedence over an equally-recent but unrelated window, the
- * same group-awareness @a place_window_apply
- * (@c policy/placement/window.c) already applies when placing a new
- * sibling window.  A second, plain pass with no group restriction runs
- * only when the first finds nothing, so a client with no group-mates
- * left visible falls back exactly as it always did.
+ * With @c windows.focus.group-fallback set, run twice, not once: a first
+ * pass over that same search restricted to clients sharing
+ * @p exclude's @c WM_CLIENT_LEADER (ICCCM §4.1.2.5) takes precedence
+ * over an equally-recent but unrelated window, the same group-awareness
+ * @a place_window_apply (@c policy/placement/window.c) already applies
+ * when placing a new sibling window.  A second, plain pass with no group
+ * restriction runs only when the first finds nothing, so a client with
+ * no group-mates left visible falls back exactly as it always did.
+ * Unset, which is the default, only that plain pass runs.
  *
  * The winner, if any, is given real focus through @a ccmd_client_focus
  * itself, not a raw @c xcb_set_input_focus, so urgency clearing, the

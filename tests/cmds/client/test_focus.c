@@ -113,12 +113,15 @@ list_td *wm_get_stages(void)
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_config
+ * @brief Stand-in for @a wm_get_config, returning @c NULL unless a test
+ *        points it at a configuration of its own
  * @note Complexity: @e O(1)
  */
+static config_td *s_config;
+
 config_td *wm_get_config(void)
 {
-    return NULL;
+    return s_config;
 }
 
 
@@ -1352,10 +1355,14 @@ static void s_test_client_focus_fallback_tries_group_first(void)
     desktop_td desktop;
     stage_td stage;
     client_td *exclude;
+    config_td config;
 
     s_reset();
     memset(&desktop, 0, sizeof(desktop));
     memset(&stage, 0, sizeof(stage));
+    memset(&config, 0, sizeof(config));
+    config.base.windows.focus.use_group_fallback = true;
+    s_config = &config;
     exclude = s_make_client(42u);
     exclude->hints_icccm.hints.client_leader = (xcb_window_t) 500u;
     s_focus_order_best_result = NULL;
@@ -1363,10 +1370,41 @@ static void s_test_client_focus_fallback_tries_group_first(void)
     client_focus_fallback(&desktop, &stage, exclude);
 
     TAP_EQ_INT(s_focus_order_best_calls, 2,
-            "excluding a client with a real group leader runs both the"
-            " group-restricted pass and the plain MRU pass when the"
-            " first finds nothing");
+            "with group-fallback on, excluding a client with a real"
+            " group leader runs both the group-restricted pass and the"
+            " plain MRU pass when the first finds nothing");
 
+    s_config = NULL;
+    s_teardown();
+}
+
+
+/* client_focus_fallback: with 'windows.focus.group-fallback' off, the
+ * default, a real group leader changes nothing and only the plain MRU
+ * pass runs */
+static void s_test_client_focus_fallback_group_off_is_mru_only(void)
+{
+    desktop_td desktop;
+    stage_td stage;
+    client_td *exclude;
+    config_td config;
+
+    s_reset();
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&stage, 0, sizeof(stage));
+    memset(&config, 0, sizeof(config));
+    s_config = &config;
+    exclude = s_make_client(44u);
+    exclude->hints_icccm.hints.client_leader = (xcb_window_t) 500u;
+    s_focus_order_best_result = NULL;
+
+    client_focus_fallback(&desktop, &stage, exclude);
+
+    TAP_EQ_INT(s_focus_order_best_calls, 1,
+            "with group-fallback off, a client with a real group"
+            " leader still falls back through the plain MRU pass only");
+
+    s_config = NULL;
     s_teardown();
 }
 
@@ -1457,7 +1495,7 @@ static void
 
 int main(void)
 {
-    TAP_PLAN(84);
+    TAP_PLAN(85);
 
     s_test_close_null_is_a_no_op();
     s_test_close_sends_delete_message_when_supported();
@@ -1489,6 +1527,7 @@ int main(void)
     s_test_client_focus_fallback_null_desktop_is_a_no_op();
     s_test_client_focus_fallback_winner_is_focused();
     s_test_client_focus_fallback_tries_group_first();
+    s_test_client_focus_fallback_group_off_is_mru_only();
     s_test_client_focus_fallback_skips_group_pass_without_leader();
     s_test_client_focus_fallback_unfocuses_exclude_when_none_found();
     s_test_client_focus_fallback_relinquishes_with_no_exclude();

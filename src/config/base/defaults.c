@@ -202,6 +202,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.group_related = false;
     config_base->windows.focus.focus_new = true;
     config_base->windows.focus.raise = false;
+    config_base->windows.focus.use_group_fallback = false;
     config_base->windows.focus.delay_ms = 250;
     config_base->icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config_base->icons.show_geom = false;

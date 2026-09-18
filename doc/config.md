@@ -761,17 +761,19 @@ below.
 
 #### `windows.focus`
 
-| Key               | Type    | Default   | Description |
-|-------------------|---------|-----------|-------------|
-| `focus.policy`    | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
-| `focus.focus-new` | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
-| `focus.raise`     | boolean | `false`   | When `true`, a window is also raised when it gains focus by pointer or wheel. |
-| `focus.delay-ms`  | integer | `250`     | Milliseconds the pointer must sit still over a window before it is focused. Only takes effect under `"sloppy"`; has no effect under `"click"`. |
+| Key                    | Type    | Default   | Description |
+|------------------------|---------|-----------|-------------|
+| `focus.policy`         | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
+| `focus.group-fallback` | boolean | `false`   | When `true`, focus left behind by a window that closes or is hidden goes first to another window of the same group. |
+| `focus.focus-new`      | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
+| `focus.raise`          | boolean | `false`   | When `true`, a window is also raised when it gains focus by pointer or wheel. |
+| `focus.delay-ms`       | integer | `250`     | Milliseconds the pointer must sit still over a window before it is focused. Only takes effect under `"sloppy"`; has no effect under `"click"`. |
 
 ```json
 "windows": {
     "focus": {
         "policy": "click",
+        "group-fallback": false,
         "focus-new": true,
         "raise": false,
         "delay-ms": 250
@@ -803,6 +805,20 @@ still over the window for that many milliseconds before it actually
 gains focus; leaving early cancels it, so passing through a window on
 the way to another one never steals focus along the way.  Under
 `"click"` focus this key is simply never consulted at all.
+
+`group-fallback` decides where focus goes when the focused window stops
+holding it without another one being chosen: it closes, is iconified or
+hidden, or leaves the desktop.  With the default of `false`, focus goes
+to the window that was focused most recently before it, whatever
+application that window belongs to.  With `true`, a window of the same
+application group (the same `WM_CLIENT_LEADER`, ICCCM §4.1.2.5) is
+preferred, even over a more recently focused one of another application,
+and only if none is left does focus go to the most recent window as
+before.  It is off by default because many applications keep all their
+windows in one group, a file manager being a common case, and focus then
+jumping to another of its windows, rather than to the one used last, is
+rarely what is expected unless it was asked for.  Clicking a window, or
+any other way of choosing one, is not affected.
 
 #### `windows.placement`
 
@@ -2766,6 +2782,7 @@ not merely refuse to act.
 | `windows.edges.snap.screen`              | integer           | `6`                           | Same as `config.json`'s `windows.edges.snap.screen`: attraction distance in pixels toward the screen's edge. |
 | `windows.edges.resistance`               | integer           | `20`                          | Same as `config.json`'s `windows.edges.resistance`: pixels of deliberate extra drag before a maximized axis starts changing while interactively resizing. |
 | `windows.gravity`                        | string            | `"north-west"`                | Same as `config.json`'s `windows.gravity`: a fallback only, for a client that never declares it; see §2.4 for the accepted values and why this is fallback-only. |
+| `windows.focus.group-fallback`           | boolean           | `false`                       | Same as `config.json`'s `focus.group-fallback`: when `true`, focus left behind by a window that closes or is hidden goes first to another window of the same group. |
 | `windows.focus.raise`                    | boolean           | `false`                       | Same as `config.json`'s `focus.raise`: when `true`, a window is also raised when it gains focus by pointer or wheel. |
 | `windows.focus.delay-ms`                 | integer           | `250`                         | Same as `config.json`'s `focus.delay-ms`: milliseconds the pointer must sit still over a window before it is focused; only takes effect under `"sloppy"`. |
 | `windows.focus.focus-new`                | boolean           | `true`                        | Same as `config.json`'s `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
@@ -2906,6 +2923,7 @@ to whatever theme loads, unconditionally.
         "solid-drag": true,
         "focus": {
             "policy": "click",
+            "group-fallback": false,
             "focus-new": true,
             "raise": false,
             "delay-ms": 250

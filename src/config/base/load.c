@@ -285,6 +285,8 @@ int config_load_base(const char *filename,
                     &config_base->windows.focus.focus_new);
             json_load_bool(focus, "raise",
                     &config_base->windows.focus.raise);
+            json_load_bool(focus, "group-fallback",
+                    &config_base->windows.focus.use_group_fallback);
             json_load_uint(focus, "delay-ms",
                     &config_base->windows.focus.delay_ms);
             focus_policy_item = json_get_item(focus,

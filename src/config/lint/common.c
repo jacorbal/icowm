@@ -55,6 +55,8 @@ const config_lint_key_td schema_windows_focus[] = {
         0, NULL, 0u, NULL},
     {"raise", NULL, 0u,
         0, NULL, 0u, NULL},
+    {"group-fallback", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"delay-ms", NULL, 0u,
         0, NULL, 0u, NULL}
 };

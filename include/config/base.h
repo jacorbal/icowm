@@ -386,6 +386,20 @@ struct config_base_s {
             bool raise;
 
             /**
+             * @brief Whether focus left behind by a window that
+             *        closes or stops qualifying goes first to another
+             *        window of its same application
+             *
+             * Same application meaning a shared @c WM_CLIENT_LEADER
+             * (ICCCM §4.1.2.5).  When @c false (the default), the
+             * most recently focused remaining window takes it, whatever
+             * application it belongs to.
+             *
+             * @see @a client_focus_fallback
+             */
+            bool use_group_fallback;
+
+            /**
              * @brief Milliseconds the pointer must sit still over a
              *        client before it is focused, meaningful only
              *        under @c focus_policy's @c CONFIG_FOCUS_POLICY_

@@ -218,6 +218,20 @@ way.
 Has no effect at all under
 .Ql click
 focus.
+.It Ic windows.focus.group-fallback Pq boolean, default Ql false
+Whether focus left behind by a window that closes, is iconified or
+hidden, or leaves the desktop goes first to another window of the same
+application, the same
+.Ql WM_CLIENT_LEADER ,
+rather than to the window focused most recently before it.
+When none of that application is left, focus goes to the most recent
+window as it does with this off.
+.Pp
+Off by default, because many applications keep all their windows in one
+group, a file manager being a common case, and focus jumping to another
+of their windows instead of the one used last is rarely expected unless
+asked for.
+Choosing a window, by clicking it or otherwise, is not affected.
 .It Ic windows.placement.policy Pq string, default Ql \&"smart\&"
 Where a newly mapped window is put:
 .Ql smart

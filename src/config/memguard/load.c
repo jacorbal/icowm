@@ -90,6 +90,8 @@ static void s_memguard_load_windows(cJSON *json, config_td *config)
                     &config->base.windows.focus.focus_new);
             json_load_bool(focus_item, "raise",
                     &config->base.windows.focus.raise);
+            json_load_bool(focus_item, "group-fallback",
+                    &config->base.windows.focus.use_group_fallback);
             json_load_uint(focus_item, "delay-ms",
                     &config->base.windows.focus.delay_ms);
             focus_policy_item = json_get_item(focus_item, "policy");

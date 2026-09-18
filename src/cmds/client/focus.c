@@ -321,6 +321,7 @@ void client_focus_fallback(desktop_td *desktop, stage_td *stage,
     client_td *next_focus = NULL;
     xcb_window_t exclude_leader;
     struct s_fallback_ctx_s ctx;
+    const config_td *const config = wm_get_config();
 
     if (desktop == NULL) {
         return;
@@ -338,8 +339,13 @@ void client_focus_fallback(desktop_td *desktop, stage_td *stage,
      * membership when picking a focus target.  Tried first and only as
      * a preference, not a requirement: falls through to the plain MRU
      * search below, unchanged from before, whenever no such sibling
-     * qualifies. */
-    exclude_leader = (exclude != NULL)
+     * qualifies.  Only when the user asked for it with
+     * 'windows.focus.group-fallback': an application such as a file
+     * manager keeps all its windows in one group, and focus jumping to
+     * another of them, rather than to the window last used, is not
+     * what anyone expects without knowing why. */
+    exclude_leader = (exclude != NULL && config != NULL &&
+            config->base.windows.focus.use_group_fallback)
         ? client_group_leader(exclude) : XCB_WINDOW_NONE;
 
     ctx.exclude = exclude;
