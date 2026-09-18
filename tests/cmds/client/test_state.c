@@ -370,29 +370,6 @@ void client_decoration_layout_sync(client_td *client)
 
 
 /**
- * @brief Link-only stand-in for @a client_gravity_adjust_pos
- *
- * Reached only inside 's_ccmd_decorate_remove'/'_restore', both
- * themselves unreachable without a live X connection creating or
- * destroying real frame windows.
- *
- * @note Complexity: @e O(1)
- */
-void client_gravity_adjust_pos(int32_t *out_x, int32_t *out_y,
-        uint32_t old_w, uint32_t old_h,
-        uint32_t new_w, uint32_t new_h, uint16_t gravity)
-{
-    (void) out_x;
-    (void) out_y;
-    (void) old_w;
-    (void) old_h;
-    (void) new_w;
-    (void) new_h;
-    (void) gravity;
-}
-
-
-/**
  * @brief Recording stand-in for @a client_send_synthetic_configure_notify
  * @note Complexity: @e O(1)
  */

@@ -75,14 +75,16 @@
  * titlebar child window, and updates the client layout fields so
  * rendering and geometry operations use the decorated extents.
  *
- * @param client Pointer to the client
- * @param bw     Border width to apply
- * @param th     Titlebar height to apply
+ * @param client  Pointer to the client
+ * @param content Root position of the client's content, which the new
+ *                frame is built around so the content stays put
+ * @param bw      Border width to apply
+ * @param th      Titlebar height to apply
  *
  * @note Complexity: @e O(1)
  */
 static void s_client_enable_decoration(client_td *client,
-        int32_t bw, int32_t th)
+        struct position_s content, int32_t bw, int32_t th)
 {
     uint32_t mask;
     uint32_t values[3];
@@ -111,8 +113,8 @@ static void s_client_enable_decoration(client_td *client,
         ? client->config->theme.window.inactive.color.background
         : 0x000000U;
 
-    frame.pos.x = client->layout.geometry.cur.pos.x - bw;
-    frame.pos.y = client->layout.geometry.cur.pos.y - (bw + th);
+    frame.pos.x = content.x - bw;
+    frame.pos.y = content.y - (bw + th);
     frame_w = (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
     frame_h = (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
 
@@ -276,10 +278,17 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
             client->layout.frame_extents.top -
             client->layout.frame_extents.bottom;
 
+        /* The content stays exactly where it was on screen, whatever
+         * the client's gravity: 'inner.pos' is where the window goes,
+         * and X places a window by the outer corner of its own native
+         * border, which the undecorated window is about to get with
+         * width 'bw'.  Placing that corner where the content was
+         * would push the content right and down by 'bw', so the
+         * corner goes 'bw' up and to the left of it instead. */
         inner.pos.x = client->layout.geometry.cur.pos.x +
-            client->layout.frame_extents.left;
+            client->layout.frame_extents.left - bw;
         inner.pos.y = client->layout.geometry.cur.pos.y +
-            client->layout.frame_extents.top;
+            client->layout.frame_extents.top - bw;
 
         if (inner_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
             inner_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
@@ -287,20 +296,6 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
             inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
         }
-
-        /* Above, 'inner.pos' keeps the content's top-left corner fixed
-         * on screen, correct outright for 'CLIENT_GRAVITY_NORTH_WEST'
-         * (the ICCCM default) and 'CLIENT_GRAVITY_STATIC', for which
-         * this call is a no-op; for any other gravity a client's
-         * 'WM_NORMAL_HINTS' actually requested, this adds whatever
-         * further displacement keeps that gravity's anchor fixed
-         * instead, given the frame shrinking from its decorated outer
-         * size down to this content's, now-undecorated one. */
-        client_gravity_adjust_pos(&inner.pos.x, &inner.pos.y,
-                client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h,
-                (uint32_t) inner_w, (uint32_t) inner_h,
-                client->layout.gravity);
 
         inner.dim.w = (uint32_t) inner_w;
         inner.dim.h = (uint32_t) inner_h;
@@ -392,8 +387,23 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
 static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
         int32_t th)
 {
+    uint32_t native_bw;
+    struct position_s content;
+
+    /* The undecorated window sits at 'cur.pos' by the outer corner of
+     * its native border, so its content starts that border's width
+     * further in; the frame is built around that content, whatever
+     * the client's gravity, so the content stays exactly where it was
+     * on screen.  'last_border_width' is the width last actually sent
+     * for this window, still at its initial 'UINT32_MAX' only if no
+     * border was ever sent, meaning there is none. */
+    native_bw = (client->last_border_width == UINT32_MAX)
+        ? 0u : client->last_border_width;
+    content.x = client->layout.geometry.cur.pos.x + (int32_t) native_bw;
+    content.y = client->layout.geometry.cur.pos.y + (int32_t) native_bw;
+
     if (client->frame == 0) {
-        s_client_enable_decoration(client, bw, th);
+        s_client_enable_decoration(client, content, bw, th);
     } else {
         struct geometry_s frame;
         int32_t frame_w =
@@ -401,8 +411,8 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
         int32_t frame_h =
             (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
 
-        frame.pos.x = client->layout.geometry.cur.pos.x - bw;
-        frame.pos.y = client->layout.geometry.cur.pos.y - (bw + th);
+        frame.pos.x = content.x - bw;
+        frame.pos.y = content.y - (bw + th);
 
         if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
             frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
@@ -411,19 +421,6 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
         if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
             frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
         }
-
-        /* Same reasoning as the remove-decoration branch above,
-         * mirrored: the baseline 'frame.pos' keeps the content's own
-         * top-left corner fixed, correct outright for
-         * 'CLIENT_GRAVITY_NORTH_WEST'/'STATIC'; any other gravity gets
-         * whatever further displacement keeps its anchor fixed instead,
-         * now going from this content's own undecorated size up to the
-         * restored frame's, larger one. */
-        client_gravity_adjust_pos(&frame.pos.x, &frame.pos.y,
-                client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h,
-                (uint32_t) frame_w, (uint32_t) frame_h,
-                client->layout.gravity);
 
         frame.dim.w = (uint32_t) frame_w;
         frame.dim.h = (uint32_t) frame_h;
