@@ -36,6 +36,9 @@
 /* Command includes */
 #include <cmds/client/state.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
 /* Input includes */
 #include <input/kbd/bind.h>
 #include <input/mouse/bind.h>
@@ -63,6 +66,66 @@
 /* Local includes */
 #include <handler.h>
 #include <handler/focus.h>
+
+
+/** Deepest window nesting walked looking for a client's own window */
+#define S_FOCUS_IN_MAX_DEPTH (16u)
+
+
+/**
+ * @brief Whether the X input focus is still on @p window or inside it
+ *
+ * A @c FocusIn is only news if it still describes the server's focus:
+ * focus given to one window and at once to another yields a
+ * @c FocusIn for the first after the window manager already made the
+ * second active, and following that one would undo it.  Asked only
+ * when a @c FocusIn names a client other than the active one, which
+ * is rare, so the round trips it costs are not on any common path.
+ *
+ * @param connection XCB connection
+ * @param window     Client window the @c FocusIn was for
+ *
+ * @return @c true if the focus is @p window or one of its descendants
+ *
+ * @note Complexity: @e O(d) round trips, where @e d is how deep inside
+ *       @p window the focus is, at most @c S_FOCUS_IN_MAX_DEPTH
+ */
+static bool s_focus_in_is_current(xcb_connection_t *connection,
+        xcb_window_t window)
+{
+    xcb_get_input_focus_reply_t *focus_reply;
+    xcb_window_t current;
+
+    focus_reply = xcb_get_input_focus_reply(connection,
+            xcb_get_input_focus(connection), NULL);
+    if (focus_reply == NULL) {
+        return false;
+    }
+    current = focus_reply->focus;
+    free(focus_reply);
+
+    for (uint32_t depth = 0u; depth < S_FOCUS_IN_MAX_DEPTH &&
+            current != XCB_WINDOW_NONE &&
+            current != (xcb_window_t) XCB_INPUT_FOCUS_POINTER_ROOT;
+            ++depth) {
+        xcb_query_tree_reply_t *tree_reply;
+
+        if (current == window) {
+            return true;
+        }
+
+        tree_reply = xcb_query_tree_reply(connection,
+                xcb_query_tree(connection, current), NULL);
+        if (tree_reply == NULL) {
+            return false;
+        }
+        current = (tree_reply->parent == tree_reply->root)
+            ? XCB_WINDOW_NONE : tree_reply->parent;
+        free(tree_reply);
+    }
+
+    return false;
+}
 
 
 /* Handle a 'PROPERTY_NOTIFY' event */
@@ -387,8 +450,9 @@ void handler_property_notify(const wm_td *wm,
 void handler_focus_in(xcb_connection_t *connection,
         list_td *stages, const xcb_focus_in_event_t *event)
 {
-    (void) connection;
-    (void) stages;
+    client_td *client;
+    stage_td *stage = NULL;
+    desktop_td *desktop = NULL;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in focus handler", L_NARG);
@@ -398,6 +462,32 @@ void handler_focus_in(xcb_connection_t *connection,
     if (mouse_enter_focus_is_active()) {
         mouse_enter_focus_clear();
     }
+
+    /* Only a real move of the focus: the ones a keyboard grab starting
+     * or ending produces, the cycle menu's among them, say nothing
+     * about where it now is, and one for the window under the pointer
+     * is the server following the pointer while the focus itself sits
+     * on the root */
+    if ((event->mode != XCB_NOTIFY_MODE_NORMAL &&
+                event->mode != XCB_NOTIFY_MODE_WHILE_GRABBED) ||
+            event->detail == XCB_NOTIFY_DETAIL_POINTER ||
+            event->detail == XCB_NOTIFY_DETAIL_POINTER_ROOT ||
+            event->detail == XCB_NOTIFY_DETAIL_NONE) {
+        return;
+    }
+
+    /* Only a client's own window, never its frame or titlebar, and only
+     * one the window manager does not already count as active, which
+     * is every focus it gave itself */
+    client = lookup_find_client(stages, event->event, &stage, &desktop);
+    if (client == NULL || client->window != event->event ||
+            stage == NULL || desktop == NULL ||
+            desktop->client_active_id == client->id ||
+            !s_focus_in_is_current(connection, client->window)) {
+        return;
+    }
+
+    focus_adopt(stages, stage, desktop, client);
 }
 
 

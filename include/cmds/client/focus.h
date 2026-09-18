@@ -86,6 +86,24 @@ void ccmd_client_kill(client_td *client);
 void ccmd_client_restore(client_td *client);
 
 /**
+ * @brief Show, everywhere outside the X server's own focus, that
+ *        a client now holds input focus
+ *
+ * Clears its urgency, installs its colormaps, sets its
+ * @c _NET_WM_STATE_FOCUSED, repaints its frame as active and names it
+ * in @c _NET_ACTIVE_WINDOW.  Leaves the real input focus itself untouched:
+ * @a ccmd_client_focus gives it first, and @a focus_adopt calls this
+ * alone for a client that already took it on its own.
+ *
+ * @param client Client that holds input focus
+ *
+ * @note A no-op if @p client is @c NULL
+ * @note Complexity: @e O(c), where @e c is the number of colormap
+ *       windows @p client lists
+ */
+void ccmd_client_focus_publish(client_td *client);
+
+/**
  * @brief Focus on the given client
  *
  * @param client Window to focus
@@ -178,6 +196,21 @@ void ccmd_client_make_active(client_td *client);
  */
 void client_focus_fallback(desktop_td *desktop, stage_td *stage,
         client_td *exclude);
+
+/**
+ * @brief Show, everywhere outside the X server's own focus, that
+ *        a client no longer holds input focus
+ *
+ * Clears its @c _NET_WM_STATE_FOCUSED and repaints its frame as
+ * inactive.  Unlike @a ccmd_client_unfocus, never moves the real input
+ * focus, which may already be on another window that must keep it.
+ *
+ * @param client Client that lost input focus
+ *
+ * @note A no-op if @p client is @c NULL
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_unfocus_publish(client_td *client);
 
 /**
  * @brief Remove focus from the given client

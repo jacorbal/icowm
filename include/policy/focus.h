@@ -207,5 +207,34 @@ void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client,
         bool raise, const config_td *cfg);
 
+/**
+ * @brief Make a client that took input focus on its own the active one
+ *
+ * The X server's focus is the truth, as in Openbox's
+ * @c focus_set_client: a client may move it by itself (ICCCM §4.1.7
+ * allows a Globally Active one to, and a Locally Active one moves it
+ * when answering @c WM_TAKE_FOCUS), and this brings the rest of the
+ * window manager in line with where it went.  Unfocuses the previous
+ * active client's marks and frame, publishes @p client's through
+ * @a ccmd_client_focus_publish, moves it to the top of the focus order,
+ * hides a scratchpad that lost focus and tells IPC subscribers.  Never
+ * moves the input focus, raises @p client or brings its transient
+ * family, since the client, not the user, chose this.
+ *
+ * @param stages  All managed stages (needed for unfocus lookup)
+ * @param stage   Stage containing the client
+ * @param desktop Desktop @p client belongs to
+ * @param client  Client that now holds input focus
+ *
+ * @note A no-op if @p client is already the active one, or is not
+ *       focusable by type (@a client_is_focusable)
+ * @note A @c NULL @p stages leaves the previous client's marks
+ *       untouched
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+void focus_adopt(list_td *stages, stage_td *stage, desktop_td *desktop,
+        client_td *client);
+
 
 #endif  /* ! POLICY_FOCUS_H */

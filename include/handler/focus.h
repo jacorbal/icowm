@@ -34,14 +34,19 @@
  * @brief Handle a @c FOCUS_IN event
  *
  * Synchronizes the desktop active-client identifier with the real X11
- * input focus when a managed client receives focus.
+ * input focus when a managed client receives focus: a client that took
+ * it on its own, rather than being given it by the window manager,
+ * becomes the active one through @a focus_adopt.  Events from keyboard
+ * grabs and from the focus following the pointer are ignored, and so
+ * is one the server's focus has already moved on from.
  *
  * @param connection XCB connection
  * @param stages     All managed stages
  * @param event      Focus-in event
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ *       clients, plus the round trips @a focus_adopt is preceded by
+ *       for a client other than the active one
  */
 void handler_focus_in(xcb_connection_t *connection,
         list_td *stages, const xcb_focus_in_event_t *event);

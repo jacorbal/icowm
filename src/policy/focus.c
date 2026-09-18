@@ -323,6 +323,29 @@ bool focus_is_sloppy(const config_td *cfg)
 }
 
 
+/**
+ * @brief Tell IPC subscribers which client of a stage now has focus
+ *
+ * @param stage  Stage the client is on
+ * @param client Client that now has focus
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_focus_broadcast_changed(const stage_td *stage,
+        const client_td *client)
+{
+    cJSON *fields = cJSON_CreateObject();
+
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "stage_id",
+                (double) stage->id);
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
+    }
+    ipc_broadcast_event(IPC_EVENT_FOCUS_CHANGED, fields);
+}
+
+
 /* Focus a client and keep focus-related state in sync */
 void focus_apply(list_td *stages, stage_td *stage,
         desktop_td *desktop, client_td *client,
@@ -330,7 +353,6 @@ void focus_apply(list_td *stages, stage_td *stage,
 {
     client_td *previous = NULL;
     bool should_raise;
-    cJSON *fields;
 
     if (stage == NULL || desktop == NULL || client == NULL) {
         return;
@@ -468,12 +490,52 @@ void focus_apply(list_td *stages, stage_td *stage,
         ccmd_desktop_enforce_layers(desktop);
     }
 
-    fields = cJSON_CreateObject();
-    if (fields != NULL) {
-        cJSON_AddNumberToObject(fields, "stage_id",
-                (double) stage->id);
-        cJSON_AddNumberToObject(fields, "client_id",
-                (double) client->id);
+    s_focus_broadcast_changed(stage, client);
+}
+
+
+/* Make a client that took input focus on its own the active one */
+void focus_adopt(list_td *stages, stage_td *stage, desktop_td *desktop,
+        client_td *client)
+{
+    client_td *previous = NULL;
+
+    if (stage == NULL || desktop == NULL || client == NULL ||
+            desktop->client_active_id == client->id ||
+            !client_is_focusable(client)) {
+        return;
     }
-    ipc_broadcast_event(IPC_EVENT_FOCUS_CHANGED, fields);
+
+    if (stages != NULL && desktop->client_active_id != 0) {
+        previous = lookup_find_client(stages,
+                desktop->client_active_id, NULL, NULL);
+        if (previous != NULL) {
+            ccmd_client_unfocus_publish(previous);
+        }
+    }
+
+    desktop->client_active_id = client->id;
+    desktop->is_focus_dirty = true;
+    ccmd_client_focus_publish(client);
+    focus_order_to_top(client);
+
+    /* Hidden only now that 'client' is the active one: hiding the
+     * active client hands focus back through 'client_focus_fallback',
+     * which would take it from the window that just took it */
+    if (previous != NULL && scratchpad_is_client(previous) &&
+            !client_is_hidden(previous)) {
+        enact_client_hide(previous);
+    }
+
+    /* The same fullscreen stacking 'focus_apply' keeps when it does not
+     * raise, which this never does */
+    if (client_is_fullscreen(client) ||
+            (previous != NULL && client_is_fullscreen(previous))) {
+        ccmd_desktop_enforce_layers(desktop);
+    }
+
+    desktop->is_outdated = true;
+    stage->is_outdated = true;
+
+    s_focus_broadcast_changed(stage, client);
 }

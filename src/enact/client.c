@@ -215,7 +215,28 @@ void enact_client_restore(client_td *client)
 /* Give input focus to the client */
 void enact_client_focus(client_td *client)
 {
-    ccmd_client_focus(client);
+    stage_td *stage;
+    desktop_td *desktop;
+
+    if (client == NULL || client_is_hidden(client) ||
+            client_is_iconified(client)) {
+        return;
+    }
+
+    stage = wm_get_stage_by_id(client->screen_id);
+    desktop = wm_get_client_desktop(client);
+    if (stage == NULL || desktop == NULL ||
+            (desktop->id != stage->desktop_cur &&
+             !client_is_pinned(client))) {
+        return;
+    }
+
+    /* Through the same path a click takes, so the window manager's
+     * active client, '_NET_ACTIVE_WINDOW' and the frames all follow the
+     * keyboard, and a modal dialog still open over 'client' gets the
+     * focus in its place; without the configuration, which is only
+     * consulted for raise-on-focus, this never raises it */
+    focus_apply(wm_get_stages(), stage, desktop, client, false, NULL);
 }
 
 

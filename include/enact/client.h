@@ -80,9 +80,16 @@ void enact_client_restore(client_td *client);
 /**
  * @brief Give input focus to the client
  *
+ * Through @a focus_apply, without raising it, so the active client,
+ * @c _NET_ACTIVE_WINDOW and the frames all follow.
+ *
  * @param client Client to focus
  *
- * @note Complexity: @e O(1)
+ * @note A no-op for a client that is hidden, iconified, or on a desktop
+ *       other than the one shown, and not pinned, since none of those
+ *       has a window on screen to take the focus
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p client's desktop
  */
 void enact_client_focus(client_td *client);
 

@@ -529,6 +529,66 @@ void ccmd_client_restore(client_td *client)
 }
 
 
+/* Show, everywhere outside the X server's own focus, that a client
+ * now holds input focus */
+void ccmd_client_focus_publish(client_td *client)
+{
+    xcb_ewmh_connection_t *const ewmh = xcb_ewmh_connection_get();
+
+    if (client == NULL) {
+        return;
+    }
+
+    /* A client receiving real input focus has, by definition, gotten
+     * the user's attention it was asking for.  Clear any pending
+     * urgency hint here, at the one place every real focus-granting
+     * path (a plain click via 'focus_apply', restoring an iconified
+     * client, focus recovery when the previously active client closes,
+     * and the rest) already converges on, rather than at each of those
+     * call sites individually; a client that took focus on its own
+     * ('focus_adopt', policy/focus.c) got that attention just the
+     * same. */
+    if (client_is_urgent(client)) {
+        ccmd_client_unurge(client);
+    }
+
+    /* ICCCM §4.1.8/§2.8: colormap focus follows input focus here, the
+     * common policy most window managers implement.  Only the explicit
+     * 'WM_COLORMAP_WINDOWS' case is covered, the one
+     * 'client_props_refresh_colormap_windows' in 'client/props.c'
+     * populates this from, caching each window's colormap attribute
+     * there already, so nothing here needs a round trip of its own);
+     * a client that omits it but still uses a non-default colormap on
+     * its top-level window falls back to whatever is already
+     * installed. */
+    for (uint32_t i = 0u; i < client->colormap_windows.count; ++i) {
+        if (client->colormap_windows.colormap_ids[i] !=
+                (xcb_colormap_t) XCB_NONE) {
+            xcb_install_colormap(xcb_connection_get(),
+                    client->colormap_windows.colormap_ids[i]);
+        }
+    }
+
+    /* EWMH: advertise keyboard focus via '_NET_WM_STATE_FOCUSED' */
+    client_focus_mark(client);
+    ccmd_client_sync_states(client);
+
+    /* An undecorated client's border is no longer painted from here:
+     * the render pass writes it from 'is_focused', the same state the
+     * frame of a decorated one is repainted from, so a focus change is
+     * something to record rather than something to draw. */
+    if (client_is_decorated(client) && client->frame != 0) {
+        client_theme_layout_resync(client, true);
+    }
+
+    if (ewmh != NULL) {
+        xcb_ewmh_set_active_window(ewmh,
+                (int) client->screen_id,
+                client->window);
+    }
+}
+
+
 /* Focus a client */
 void ccmd_client_focus(client_td *client)
 {
@@ -570,17 +630,6 @@ void ccmd_client_focus(client_td *client)
      * they originally asked for by name. */
     client = ccmd_client_focus_target(client);
 
-    /* A client receiving real input focus has, by definition, gotten
-     * the user's attention it was asking for.  Clear any pending
-     * urgency hint here, at the one place every real focus-granting
-     * path (a plain click via 'focus_apply', restoring an iconified
-     * client, focus recovery when the previously active client closes,
-     * and the rest) already converges on, rather than at each of those
-     * call sites individually. */
-    if (client_is_urgent(client)) {
-        ccmd_client_unurge(client);
-    }
-
     /* ICCCM §4.1.7: 'SetInputFocus' is called only for a client whose
      * input model actually wants it, meaning one whose 'WM_HINTS' input
      * field is true and that does not register 'WM_TAKE_FOCUS'.  That
@@ -620,23 +669,6 @@ void ccmd_client_focus(client_td *client)
                             focus_win, focus_time);
     }
 
-    /* ICCCM §4.1.8/§2.8: colormap focus follows input focus here, the
-     * common policy most window managers implement.  Only the explicit
-     * 'WM_COLORMAP_WINDOWS' case is covered, the one
-     * 'client_props_refresh_colormap_windows' in 'client/props.c'
-     * populates this from, caching each window's colormap attribute
-     * there already, so nothing here needs a round trip of its own);
-     * a client that omits it but still uses a non-default colormap on
-     * its top-level window falls back to whatever is already
-     * installed. */
-    for (uint32_t i = 0u; i < client->colormap_windows.count; ++i) {
-        if (client->colormap_windows.colormap_ids[i] !=
-                (xcb_colormap_t) XCB_NONE) {
-            xcb_install_colormap(xcb_connection_get(),
-                    client->colormap_windows.colormap_ids[i]);
-        }
-    }
-
     /* ICCCM §4.2.7: send 'WM_TAKE_FOCUS' 'ClientMessage' when the
      * client has registered that protocol.  This covers both the
      * Locally Active and Globally Active input models, and for those
@@ -666,49 +698,33 @@ void ccmd_client_focus(client_td *client)
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
     }
 
-    /* EWMH: advertise keyboard focus via '_NET_WM_STATE_FOCUSED' */
-    client_focus_mark(client);
-    ccmd_client_sync_states(client);
-
-    /* Same as the matching block in 'ccmd_client_unfocus' just below.
-     * An undecorated client's border follows from the render pass now,
-     * so only a framed one has anything to resync here. */    
     if (!client_is_shaded(client)) {
         xcb_window_show(client->window);
     }
 
-    /* 'client_border_color_apply' ('client.h') preserves this same
-     * condition (undecorated-or-frameless, never fullscreen), and
-     * additionally honors 'border_override' for a client that themes
-     * its border independently of 'theme->window.active/inactive' (the
-     * scratchpad, 'scratchpad.c', is the only one that does so today)
-     * unconditionally applying the theme's real border width here on
-     * every single focus change (this function runs on every click, via
-     * 'focus_apply') would undo the zero width 'ccmd_client_fullscreen'
-     * ('cmds/state.c') has already set, putting a real, visible border
-     * back on an undecorated fullscreen client's window; confirmed
-     * directly from runtime diagnostics.
-     *
-     * An undecorated client (e.g., 'mpv', which requests no decoration
-     * of its own from the very start, so 'client_is_decorated' is
-     * already false before it ever goes fullscreen, unlike a client
-     * that only loses decoration because it went fullscreen) has no
-     * separate frame at all ('client->frame' stays 0 throughout, this
-     * branch's 'hide_decoration' equivalent everywhere else in the
-     * project never even applies to it), so this call is the only place
-     * actually restoring its border on focus. */
-    /* An undecorated client's border is no longer painted from here:
-     * the render pass writes it from 'is_focused', the same state the
-     * frame of a decorated one is repainted from, so a focus change is
-     * something to record rather than something to draw. */
-    if (client_is_decorated(client) && client->frame != 0) {
-        client_theme_layout_resync(client, true);
+    ccmd_client_focus_publish(client);
+}
+
+
+/* Show, everywhere outside the X server's own focus, that a client no
+ * longer holds input focus */
+void ccmd_client_unfocus_publish(client_td *client)
+{
+    if (client == NULL) {
+        return;
     }
 
-    if (ewmh != NULL) {
-        xcb_ewmh_set_active_window(ewmh,
-                (int) client->screen_id,
-                client->window);
+    /* Clear the EWMH '_NET_WM_STATE_FOCUSED' on losing focus */
+    client_unfocus_mark(client);
+    ccmd_client_sync_states(client);
+
+    client_unfocus(client);
+
+    /* Same as the matching block in 'ccmd_client_focus_publish': an
+     * undecorated client's border follows from the render pass, so
+     * only a framed one has anything to resync here */
+    if (client_is_decorated(client) && client->frame != 0) {
+        client_theme_layout_resync(client, false);
     }
 }
 
@@ -720,11 +736,7 @@ void ccmd_client_unfocus(client_td *client)
         return;
     }
 
-    /* Clear the EWMH '_NET_WM_STATE_FOCUSED' on losing focus */
-    client_unfocus_mark(client);
-    ccmd_client_sync_states(client);
-
-    client_unfocus(client);
+    ccmd_client_unfocus_publish(client);
 
     /* Actually redirect the X server's real input focus away from this
      * client, not just the window manager's bookkeeping of which client
@@ -754,13 +766,6 @@ void ccmd_client_unfocus(client_td *client)
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 relinquish_time);
-    }
-
-    /* Same as the matching block in 'ccmd_client_focus' just above.
-     * An undecorated client's border follows from the render pass now,
-     * so only a framed one has anything to resync here. */
-    if (client_is_decorated(client) && client->frame != 0) {
-        client_theme_layout_resync(client, false);
     }
 
     if (xcb_ewmh_connection_get() != NULL) {

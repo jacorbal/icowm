@@ -9,9 +9,10 @@
  * covered in full: each is a small, self-contained function whose
  * every branch is exercised below via link-only stand-ins for its few
  * collaborators (mouse_enter_focus_is_active/_clear, lookup_find_client,
- * xcb_connection_get, xcb_refresh_keyboard_mapping, xcb_ungrab_key,
- * xcb_ungrab_button, keyboard_load, mouse_load), all recording what
- * they were called with.
+ * focus_adopt, xcb_get_input_focus, xcb_query_tree, xcb_connection_get,
+ * xcb_refresh_keyboard_mapping, xcb_ungrab_key, xcb_ungrab_button,
+ * keyboard_load, mouse_load), all recording what they were called
+ * with.
  *
  * handler_property_notify is, by contrast, a much larger dispatcher
  * with roughly a dozen atom-keyed branches, most of which call into
@@ -45,6 +46,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <stdlib.h>     /* calloc */
 #include <string.h>
 
 /* XCB includes */
@@ -101,12 +103,26 @@ static int s_call_keyboard_load;
 static int s_call_mouse_load;
 
 
+/** Desktop the lookup stand-in reports, and where the server's focus
+ *  is, for 'handler_focus_in' */
+static desktop_td *s_lookup_desktop_out;
+static xcb_window_t s_input_focus_window;
+static int s_call_get_input_focus;
+static int s_call_focus_adopt;
+static client_td *s_focus_adopt_client;
+
+
 static void s_reset(void)
 {
     s_call_mouse_enter_focus_clear = 0;
     s_mouse_enter_focus_is_active_result = false;
     s_lookup_result = NULL;
     s_lookup_stage_out = NULL;
+    s_lookup_desktop_out = NULL;
+    s_input_focus_window = XCB_WINDOW_NONE;
+    s_call_get_input_focus = 0;
+    s_call_focus_adopt = 0;
+    s_focus_adopt_client = NULL;
     s_call_systray_property_notify = 0;
     s_call_bg_pixmap_invalidate = 0;
     s_call_repaint = 0;
@@ -160,10 +176,73 @@ client_td *lookup_find_client(list_td *stages, xcb_window_t window,
         *stage = s_lookup_stage_out;
     }
     if (desktop != NULL) {
-        *desktop = NULL;
+        *desktop = s_lookup_desktop_out;
     }
 
     return s_lookup_result;
+}
+
+
+/** Recording stand-in for focus_adopt */
+void focus_adopt(list_td *stages, stage_td *stage, desktop_td *desktop,
+        client_td *client)
+{
+    (void) stages;
+    (void) stage;
+    (void) desktop;
+    s_call_focus_adopt++;
+    s_focus_adopt_client = client;
+}
+
+
+/** Stand-ins for the server's focus: 'xcb_get_input_focus' reports
+ *  's_input_focus_window', and every window's parent is the root */
+xcb_get_input_focus_cookie_t xcb_get_input_focus(xcb_connection_t *c)
+{
+    xcb_get_input_focus_cookie_t cookie = {0};
+
+    (void) c;
+    s_call_get_input_focus++;
+    return cookie;
+}
+
+xcb_get_input_focus_reply_t *xcb_get_input_focus_reply(xcb_connection_t *c,
+        xcb_get_input_focus_cookie_t cookie, xcb_generic_error_t **e)
+{
+    xcb_get_input_focus_reply_t *reply = calloc(1, sizeof(*reply));
+
+    (void) c;
+    (void) cookie;
+    (void) e;
+    if (reply != NULL) {
+        reply->focus = s_input_focus_window;
+    }
+    return reply;
+}
+
+xcb_query_tree_cookie_t xcb_query_tree(xcb_connection_t *c,
+        xcb_window_t window)
+{
+    xcb_query_tree_cookie_t cookie = {0};
+
+    (void) c;
+    (void) window;
+    return cookie;
+}
+
+xcb_query_tree_reply_t *xcb_query_tree_reply(xcb_connection_t *c,
+        xcb_query_tree_cookie_t cookie, xcb_generic_error_t **e)
+{
+    xcb_query_tree_reply_t *reply = calloc(1, sizeof(*reply));
+
+    (void) c;
+    (void) cookie;
+    (void) e;
+    if (reply != NULL) {
+        reply->root = 0x1u;
+        reply->parent = 0x1u;
+    }
+    return reply;
 }
 
 
@@ -538,6 +617,7 @@ void mouse_load(list_td *stages, const config_td *config)
 int main(void)
 {
     xcb_focus_in_event_t focus_event;
+    desktop_td adopt_desktop;
     xcb_focus_out_event_t focus_out_event;
     xcb_mapping_notify_event_t mapping_event;
     wm_td wm;
@@ -549,7 +629,7 @@ int main(void)
     list_td stages_storage;
     list_td *stages = &stages_storage;
 
-    TAP_PLAN(22);
+    TAP_PLAN(28);
 
     memset(&wm, 0, sizeof(wm));
     memset(&config, 0, sizeof(config));
@@ -574,6 +654,68 @@ int main(void)
     handler_focus_in(NULL, NULL, &focus_event);
     TAP_EQ_INT(s_call_mouse_enter_focus_clear, 1,
             "focus_in clears a pending enter-focus exactly once");
+
+    /* handler_focus_in: a client that took the focus on its own, and
+     * still has it, is adopted as the active one */
+    s_reset();
+    memset(&stage, 0, sizeof(stage));
+    memset(&client, 0, sizeof(client));
+    memset(&adopt_desktop, 0, sizeof(adopt_desktop));
+    client.id = 0x500u;
+    client.window = 0x500u;
+    adopt_desktop.client_active_id = 0x600u;
+    s_lookup_result = &client;
+    s_lookup_stage_out = &stage;
+    s_lookup_desktop_out = &adopt_desktop;
+    s_input_focus_window = 0x500u;
+    memset(&focus_event, 0, sizeof(focus_event));
+    focus_event.event = 0x500u;
+    focus_event.mode = XCB_NOTIFY_MODE_NORMAL;
+    focus_event.detail = XCB_NOTIFY_DETAIL_NONLINEAR;
+    handler_focus_in(NULL, NULL, &focus_event);
+    TAP_OK(s_call_focus_adopt == 1 && s_focus_adopt_client == &client,
+            "focus_in adopts a client that took the focus on its own");
+
+    /* ...but not one the window manager already counts as active,
+     * which every focus it gives itself is, nor asks the server */
+    s_call_focus_adopt = 0;
+    s_call_get_input_focus = 0;
+    adopt_desktop.client_active_id = 0x500u;
+    handler_focus_in(NULL, NULL, &focus_event);
+    TAP_OK(s_call_focus_adopt == 0 && s_call_get_input_focus == 0,
+            "focus_in leaves the already active client alone, without"
+            " a round trip");
+
+    /* ...nor one the server's focus has already moved on from */
+    adopt_desktop.client_active_id = 0x600u;
+    s_input_focus_window = 0x700u;
+    handler_focus_in(NULL, NULL, &focus_event);
+    TAP_EQ_INT(s_call_focus_adopt, 0,
+            "focus_in ignores a stale event for a window that no longer"
+            " has the focus");
+
+    /* ...nor the pseudo-moves made by a keyboard grab starting or
+     * ending */
+    s_input_focus_window = 0x500u;
+    focus_event.mode = XCB_NOTIFY_MODE_UNGRAB;
+    handler_focus_in(NULL, NULL, &focus_event);
+    TAP_EQ_INT(s_call_focus_adopt, 0,
+            "focus_in ignores the events of a keyboard grab");
+
+    /* ...nor the focus following the pointer over the root */
+    focus_event.mode = XCB_NOTIFY_MODE_NORMAL;
+    focus_event.detail = XCB_NOTIFY_DETAIL_POINTER;
+    handler_focus_in(NULL, NULL, &focus_event);
+    TAP_EQ_INT(s_call_focus_adopt, 0,
+            "focus_in ignores the focus following the pointer");
+
+    /* ...nor an event for the client's frame instead of its window */
+    focus_event.detail = XCB_NOTIFY_DETAIL_NONLINEAR;
+    focus_event.event = 0x501u;
+    handler_focus_in(NULL, NULL, &focus_event);
+    TAP_EQ_INT(s_call_focus_adopt, 0,
+            "focus_in ignores an event that is not for the client's own"
+            " window");
 
     /* handler_focus_out: a null wm or null event is a silent no-op */
     s_reset();

@@ -3,11 +3,12 @@
  *
  * @brief Test battery for the focus policy predicate
  *
- * focus_apply, this module's other public function, is deliberately
- * not covered here: it calls ccmd_client_focus/ccmd_client_unfocus,
- * enact_client_raise/enact_client_hide, and issues a real XCB
- * request through each, none of which can run meaningfully without a
- * live X connection.  focus_is_sloppy is the one piece of real,
+ * focus_apply and focus_adopt, this module's other public functions,
+ * are deliberately not covered here: they call ccmd_client_focus,
+ * ccmd_client_unfocus and their _publish halves,
+ * enact_client_raise/enact_client_hide, and issue real XCB requests
+ * through each, none of which can run meaningfully without a live X
+ * connection.  focus_is_sloppy is the one piece of real,
  * pure logic in this module, and gets its own full coverage.
  */
 /*
@@ -47,6 +48,16 @@ void ccmd_client_focus(client_td *client)
 }
 
 void ccmd_client_unfocus(client_td *client)
+{
+    (void) client;
+}
+
+void ccmd_client_focus_publish(client_td *client)
+{
+    (void) client;
+}
+
+void ccmd_client_unfocus_publish(client_td *client)
 {
     (void) client;
 }

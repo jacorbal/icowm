@@ -19,9 +19,11 @@
  * enact_client_unfocus itself reads.  wm_get_stage_by_id,
  * stage_desktop_get, stage_desktop_north/south/east/west,
  * enact_desktop_client_send, enact_stage_desktop_switch, and
- * focus_apply are stand-ins too, needed only by the four
+ * focus_apply are stand-ins too, needed by the four
  * enact_client_send_to_desktop_* functions, whose own real
- * behavior otherwise needs a live stage's full desktop grid.
+ * behavior otherwise needs a live stage's full desktop grid, and
+ * together with wm_get_client_desktop and wm_get_stages by
+ * enact_client_focus.
  * cJSON is linked for real throughout, so enact_broadcast_client_event
  * and the metadata-carrying actions (rename/reclass/rerole/set_icon)
  * build their own real JSON payload exactly as they do in production,
@@ -423,6 +425,21 @@ stage_td *wm_get_stage_by_id(uint32_t stage_id)
 }
 
 
+/** Controllable stand-ins needed only by enact_client_focus */
+static desktop_td *s_client_desktop_result;
+
+desktop_td *wm_get_client_desktop(const client_td *client)
+{
+    (void) client;
+    return s_client_desktop_result;
+}
+
+list_td *wm_get_stages(void)
+{
+    return NULL;
+}
+
+
 static desktop_td s_cur_desktop;
 static desktop_td s_target_desktop;
 static bool s_desktop_get_returns_cur;
@@ -485,6 +502,8 @@ desktop_td *stage_desktop_west(stage_td *stage,
 static int s_call_desktop_client_send;
 static int s_call_stage_desktop_switch;
 static int s_call_focus_apply;
+static bool s_focus_apply_last_raise;
+static const config_td *s_focus_apply_last_cfg;
 
 void enact_desktop_client_send(const desktop_td *desktop,
         client_td *client, desktop_td *target)
@@ -510,9 +529,9 @@ void focus_apply(list_td *stages, stage_td *stage,
     (void) stage;
     (void) desktop;
     (void) client;
-    (void) raise;
-    (void) cfg;
     s_call_focus_apply++;
+    s_focus_apply_last_raise = raise;
+    s_focus_apply_last_cfg = cfg;
 }
 
 
@@ -555,10 +574,13 @@ static void s_reset(void)
     s_call_desktop_client_send = 0;
     s_call_stage_desktop_switch = 0;
     s_call_focus_apply = 0;
+    s_focus_apply_last_raise = false;
+    s_focus_apply_last_cfg = NULL;
+    s_client_desktop_result = NULL;
 }
 
 
-/* enact_client_close/kill/focus/raise/lower/urge/unurge: every
+/* enact_client_close/kill/raise/lower/urge/unurge: every
  * broadcast-free action forwards straight to its own ccmd_client_*
  * call, and never touches ipc_broadcast_event at all */
 static void s_test_broadcast_free_actions(void)
@@ -572,9 +594,6 @@ static void s_test_broadcast_free_actions(void)
     TAP_EQ_INT(s_calls.kill, 1, "enact_client_kill calls"
             " ccmd_client_kill exactly once");
 
-    enact_client_focus(&s_client);
-    TAP_EQ_INT(s_calls.focus, 1, "enact_client_focus calls"
-            " ccmd_client_focus exactly once");
 
     enact_client_raise(&s_client);
     enact_client_lower(&s_client);
@@ -990,11 +1009,57 @@ static void s_test_send_to_desktop_moves_and_follows(void)
 }
 
 
+/* enact_client_focus: a client on screen is focused through
+ * focus_apply, never raised, and never through the raw
+ * ccmd_client_focus, so the window manager's own record follows */
+static void s_test_focus_goes_through_focus_apply(void)
+{
+    stage_td stage;
+
+    s_reset();
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_cur = s_cur_desktop.id;
+    s_stage_by_id_result = &stage;
+    s_client_desktop_result = &s_cur_desktop;
+
+    enact_client_focus(&s_client);
+
+    TAP_EQ_INT(s_call_focus_apply, 1,
+            "enact_client_focus goes through focus_apply once");
+    TAP_OK(!s_focus_apply_last_raise && s_focus_apply_last_cfg == NULL &&
+            s_calls.focus == 0,
+            "...without raising, and never through the raw"
+            " ccmd_client_focus");
+}
+
+
+/* enact_client_focus: a client with no window on screen, here one on
+ * a desktop other than the one shown, is left alone */
+static void s_test_focus_skips_clients_off_screen(void)
+{
+    stage_td stage;
+
+    s_reset();
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_cur = s_target_desktop.id;
+    s_stage_by_id_result = &stage;
+    s_client_desktop_result = &s_cur_desktop;
+
+    enact_client_focus(&s_client);
+
+    TAP_EQ_INT(s_call_focus_apply, 0,
+            "enact_client_focus leaves a client on another desktop"
+            " alone");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(70);
+    TAP_PLAN(72);
 
     s_test_broadcast_free_actions();
+    s_test_focus_goes_through_focus_apply();
+    s_test_focus_skips_clients_off_screen();
     s_test_restore_broadcasts_deiconified();
     s_test_call_then_fixed_broadcast_actions();
     s_test_toggle_actions_pick_event_by_resulting_state();
