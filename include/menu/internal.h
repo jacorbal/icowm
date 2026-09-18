@@ -121,8 +121,10 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
 /**
  * @brief Apply cycle preview highlighting and stacking
  *
- * Updates border color and stacking of the currently selected client in
- * the preview.  Restores the previous preview client's border color.
+ * Stacks the currently selected client right below the cycle menu and
+ * moves the cycle outline onto it.  A window's own border is left as it
+ * is, the outline alone marking the selection; in the icon menu, the
+ * selected and deselected icons' borders are recolored.
  *
  * @param connection XCB connection
  * @param cfg        Active configuration (theme data)
@@ -134,21 +136,24 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
         const config_td *cfg);
 
 /**
- * @brief Apply preview border color and width to a target window
+ * @brief Apply the icon cycle menu's border to an icon window
+ *
+ * Gives @p icon_window the icon theme's active border width, whether
+ * selected or not, and @p border_color.  The window cycle menu has no
+ * counterpart: it marks its selection with the cycle outline alone.
  *
  * @param connection   Active XCB connection
- * @param target       Target window
- * @param client       Client associated with @p target
+ * @param icon_window  Icon window to restyle
  * @param cfg          Active configuration
- * @param is_icon_menu Whether the cycle menu shows icons
  * @param border_color Border color to apply
  *
+ * @note A no-op if @p connection or @p cfg is @c NULL, or if
+ *       @p icon_window is @c XCB_WINDOW_NONE
  * @note Implemented in @c menu/cycle/draw.c
  * @note Complexity: @e O(1)
  */
-void mi_cycle_preview_style_target(xcb_connection_t *connection,
-        xcb_window_t target, const client_td *client,
-        const config_td *cfg, bool is_icon_menu,
+void mi_cycle_preview_style_icon(xcb_connection_t *connection,
+        xcb_window_t icon_window, const config_td *cfg,
         uint32_t border_color);
 
 

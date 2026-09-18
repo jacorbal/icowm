@@ -636,13 +636,11 @@ static void s_test_draw_applies_preview_to_selection(void)
             "the outline windows array is filled in after creation");
     TAP_OK(g_cycle_menu.preview_client == selected,
             "preview_client is updated to the newly selected client");
-    TAP_EQ_INT(s_call_xcb_change_window_attributes, 1,
-            "a decorated client whose frame is the resolved target"
-            " gets its frame's back/border pixel repainted directly");
-    TAP_EQ_INT((long) s_last_change_attr_value,
-            (long) cfg.theme.window.active.border.color,
-            "the active border color is applied to the newly"
-            " selected decorated frame");
+    TAP_EQ_INT(s_call_xcb_window_set_border, 0,
+            "the selected window's own border width is never touched:"
+            " the cycle outline alone marks the selection");
+    TAP_EQ_INT(s_call_xcb_change_window_attributes, 0,
+            "...nor its frame's or border's colors");
 }
 
 
@@ -699,14 +697,9 @@ static void s_test_draw_preview_transitions_between_targets(void)
     TAP_OK(g_cycle_menu.preview_client == second,
             "preview_client now tracks the second, newly selected"
             " client");
-    /* First draw: no previous preview client yet, so only the newly
-     * selected target is styled (1 call).  Second draw: both the
-     * newly deselected and newly selected targets are styled
-     * (2 more calls).  3 total. */
-    TAP_EQ_INT(s_call_xcb_window_set_border, 3,
-            "the first draw styles only the newly selected target,"
-            " and the second styles both the deselected and the"
-            " newly selected targets");
+    TAP_EQ_INT(s_call_xcb_window_set_border, 0,
+            "neither the deselected nor the newly selected window has"
+            " its own border restyled");
 }
 
 
@@ -757,6 +750,9 @@ static void s_test_draw_icon_menu_preview_repaints_icons(void)
             "moving the icon selection repaints both the newly"
             " deselected and newly selected icons for real (1 more"
             " from the first draw, 2 more from this one)");
+    TAP_EQ_INT(s_call_xcb_window_set_border, 3,
+            "icon borders are still restyled: the selected one on the"
+            " first draw, both on the second");
 }
 
 
@@ -788,8 +784,8 @@ static void s_test_draw_preview_noop_on_same_selection(void)
     g_cycle_menu.clients[0] = only;
 
     cycle_draw(s_fake_connection, &cfg);
-    TAP_EQ_INT(s_call_xcb_window_set_border, 1,
-            "styling the target happens exactly once on the first"
+    TAP_EQ_INT(s_call_xcb_window_stack_below, 1,
+            "stacking the target happens exactly once on the first"
             " draw");
 
     g_cycle_menu.has_drawn_once = true;
@@ -799,9 +795,9 @@ static void s_test_draw_preview_noop_on_same_selection(void)
      * called unconditionally every time */
     cycle_draw(s_fake_connection, &cfg);
 
-    TAP_EQ_INT(s_call_xcb_window_set_border, 1,
+    TAP_EQ_INT(s_call_xcb_window_stack_below, 1,
             "re-previewing the exact same already-selected client a"
-            " second time restyles nothing further");
+            " second time restacks nothing further");
 }
 
 
@@ -821,16 +817,16 @@ static void s_test_preview_apply_direct_guards(void)
     desktop = s_make_desktop(XCB_WINDOW_NONE);
 
     mi_cycle_preview_apply(NULL, &cfg);
-    TAP_EQ_INT(s_call_xcb_window_set_border, 0,
+    TAP_EQ_INT(s_call_xcb_window_stack_below, 0,
             "a null connection is a harmless no-op");
 
     mi_cycle_preview_apply(s_fake_connection, NULL);
-    TAP_EQ_INT(s_call_xcb_window_set_border, 0,
+    TAP_EQ_INT(s_call_xcb_window_stack_below, 0,
             "a null config is a harmless no-op");
 
     g_cycle_menu.window = XCB_WINDOW_NONE;
     mi_cycle_preview_apply(s_fake_connection, &cfg);
-    TAP_EQ_INT(s_call_xcb_window_set_border, 0,
+    TAP_EQ_INT(s_call_xcb_window_stack_below, 0,
             "no cycle window open is a harmless no-op");
 
     g_cycle_menu.window = 42u;
@@ -839,80 +835,54 @@ static void s_test_preview_apply_direct_guards(void)
     g_cycle_menu.count = 1;
     g_cycle_menu.selected = 5;
     mi_cycle_preview_apply(s_fake_connection, &cfg);
-    TAP_EQ_INT(s_call_xcb_window_set_border, 0,
+    TAP_EQ_INT(s_call_xcb_window_stack_below, 0,
             "an out-of-range selected index is a harmless no-op");
 }
 
 
-/* mi_cycle_preview_style_target's own null guards, exercised
- * directly since every path through mi_cycle_preview_apply above
- * already resolves a valid, non-null target before calling it */
-static void s_test_style_target_null_guards(void)
+/* mi_cycle_preview_style_icon's own guards, exercised directly
+ * since every path through mi_cycle_preview_apply above already
+ * resolves a valid icon window before calling it */
+static void s_test_style_icon_null_guards(void)
 {
     config_td cfg;
-    client_td *client;
 
     s_reset();
     cfg = s_make_config();
-    client = s_make_client(0, 0x90u, "X", CLIENT_FLAG_FOCUSABLE);
 
-    mi_cycle_preview_style_target(NULL, 0x9000u, client, &cfg, false,
-            0x123456u);
+    mi_cycle_preview_style_icon(NULL, 0x9000u, &cfg, 0x123456u);
     TAP_EQ_INT(s_call_xcb_window_set_border, 0,
             "a null connection styles nothing");
 
-    mi_cycle_preview_style_target(s_fake_connection, XCB_WINDOW_NONE,
-            client, &cfg, false, 0x123456u);
+    mi_cycle_preview_style_icon(s_fake_connection, XCB_WINDOW_NONE, &cfg,
+            0x123456u);
     TAP_EQ_INT(s_call_xcb_window_set_border, 0,
-            "an XCB_WINDOW_NONE target styles nothing");
+            "an XCB_WINDOW_NONE icon window styles nothing");
 
-    mi_cycle_preview_style_target(s_fake_connection, 0x9000u, client,
-            NULL, false, 0x123456u);
+    mi_cycle_preview_style_icon(s_fake_connection, 0x9000u, NULL,
+            0x123456u);
     TAP_EQ_INT(s_call_xcb_window_set_border, 0,
             "a null config styles nothing");
 }
 
 
-/* An icon-menu preview target's border width comes from
- * theme.icon.active.border.width, and an undecorated window target's
- * from theme.window.active.border.width; a decorated frame target
- * gets no reserved border width at all */
-static void s_test_style_target_border_width_selection(void)
+/* An icon window gets the icon theme's active border width, selected
+ * or not, and the color it is given */
+static void s_test_style_icon_width_and_color(void)
 {
     config_td cfg;
-    client_td *icon_client;
-    client_td *plain_window_client;
-    client_td *decorated_client;
 
     s_reset();
     cfg = s_make_config();
-    icon_client = s_make_client(0, 0xa0u, "Icon", CLIENT_FLAG_FOCUSABLE);
-    plain_window_client = s_make_client(1, 0xa1u, "Plain",
-            CLIENT_FLAG_FOCUSABLE);
-    decorated_client = s_make_client(2, 0xa2u, "Decorated",
-            (uint16_t) (CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_DECORATED));
-    decorated_client->frame = 55u;
 
-    mi_cycle_preview_style_target(s_fake_connection, 0x9000u,
-            icon_client, &cfg, true, 0x111111u);
+    mi_cycle_preview_style_icon(s_fake_connection, 0x9000u, &cfg,
+            0x111111u);
     TAP_EQ_INT((long) s_last_border_width,
             (long) cfg.theme.icon.active.border.width,
-            "an icon-menu target's border width comes from the"
-            " icon theme's active border width");
-
-    mi_cycle_preview_style_target(s_fake_connection, 0x9001u,
-            plain_window_client, &cfg, false, 0x111111u);
-    TAP_EQ_INT((long) s_last_border_width,
-            (long) cfg.theme.window.active.border.width,
-            "an undecorated window target's border width comes from"
-            " the window theme's active border width");
-
-    mi_cycle_preview_style_target(s_fake_connection, 55u,
-            decorated_client, &cfg, false, 0x111111u);
-    TAP_EQ_INT((long) s_last_border_width, 0,
-            "a decorated client's own frame target reserves no"
-            " extra border width, since its theming is already"
-            " painted elsewhere");
+            "an icon's border width comes from the icon theme's active"
+            " border width");
+    TAP_EQ_INT((long) s_last_change_attr_value, (long) 0x111111u,
+            "...and its color is the one given");
 }
 
 
@@ -930,8 +900,8 @@ int main(void)
     s_test_draw_icon_menu_preview_repaints_icons();
     s_test_draw_preview_noop_on_same_selection();
     s_test_preview_apply_direct_guards();
-    s_test_style_target_null_guards();
-    s_test_style_target_border_width_selection();
+    s_test_style_icon_null_guards();
+    s_test_style_icon_width_and_color();
 
     return TAP_DONE();
 }

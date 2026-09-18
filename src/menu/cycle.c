@@ -165,67 +165,34 @@ static void s_cycle_collect(client_td *c, void *data)
 
 
 /**
- * @brief Restore the preview style for all clients in the cycle menu
+ * @brief Restore the border of every icon in the icon cycle menu
  *
- * Iterates over the clients listed in the global cycle menu and resets
- * their preview windows or icons to the normal border style, using the
- * active or inactive window/icon theme as appropriate.
+ * Only the icon menu restyles anything it has to put back: the window
+ * menu marks its selection with the cycle outline alone and never
+ * touches a window's own border.
  *
- * @param connection XCB connection used to update preview window
- *                   attributes
+ * @param connection XCB connection used to update the icon windows
  *
+ * @note A no-op for the window menu
  * @note Complexity: @e O(n), where @e n is the number of clients in the
  *       cycle menu
  */
 static void s_cycle_preview_restore(xcb_connection_t *connection)
 {
-    xcb_window_t target;
-    uint32_t border_color;
-    bool is_active;
-
     if (connection == NULL || g_cycle_menu.config == NULL ||
-            g_cycle_menu.desktop == NULL || g_cycle_menu.count <= 0) {
+            !g_cycle_menu.is_icon_menu || g_cycle_menu.count <= 0) {
         return;
     }
 
     for (int i = 0; i < g_cycle_menu.count; ++i) {
-        client_td *client = g_cycle_menu.clients[i];
-        if (client == NULL) {
-            continue;
-        }
+        const client_td *client = g_cycle_menu.clients[i];
 
-        target =
-            mi_cycle_preview_target(client, g_cycle_menu.is_icon_menu);
-        if (target == XCB_WINDOW_NONE) {
-            /* A non-icon-menu client with no target here became hidden
-             * while carrying the raw preview border/frame colors
-             * 'mi_cycle_preview_apply' wrote directly over XCB,
-             * bypassing the render pass entirely.  The menu is about to
-             * close and nothing else will ever revisit this same client
-             * to correct it, so mark it outdated instead: the next time
-             * it renders, whenever it is shown again, its decoration is
-             * recomputed from scratch rather than keeping the stale
-             * color indefinitely. */
-            if (!g_cycle_menu.is_icon_menu) {
-                client->is_outdated = true;
-            }
-            continue;
+        if (client != NULL) {
+            mi_cycle_preview_style_icon(connection,
+                    mi_cycle_preview_target(client, true),
+                    g_cycle_menu.config,
+                    g_cycle_menu.config->theme.icon.inactive.border.color);
         }
-
-        if (g_cycle_menu.is_icon_menu) {
-            border_color =
-                g_cycle_menu.config->theme.icon.inactive.border.color;
-        } else {
-            is_active =
-                (g_cycle_menu.desktop->client_active_id == client->id);
-            border_color = (is_active)
-                ? g_cycle_menu.config->theme.window.active.border.color
-                : g_cycle_menu.config->theme.window.inactive.border.color;
-        }
-
-        mi_cycle_preview_style_target(connection, target,
-                client, g_cycle_menu.config, g_cycle_menu.is_icon_menu,
-                border_color);
     }
 }
 

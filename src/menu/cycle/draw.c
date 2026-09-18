@@ -282,52 +282,6 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
 }
 
 
-/**
- * @brief Return the border width for a cycle-preview target
- *
- * Computes the border width to use for a preview target in the cycle
- * interface, selecting the icon border width for icon previews, no
- * border for decorated client frames, and the normal window border
- * width for undecorated window targets.
- *
- * @param client       Client the target belongs to
- * @param config       Active configuration
- * @param is_icon_menu Whether the cycle menu is showing icon previews
- *
- * @return Border width to apply to the preview target
- *
- * @note Complexity: @e O(1)
- */
-static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
-        const config_td *config, bool is_icon_menu)
-{
-    uint32_t border_width;
-
-    if (config == NULL) {
-        return 0u;
-    }
-
-    if (is_icon_menu) {
-        border_width = config->theme.icon.active.border.width;
-    } else if (client != NULL &&
-            ((client_is_decorated(client) && client->frame != 0) ||
-             client_is_fullscreen(client))) {
-        /* No border for a decorated client's frame (it already has its
-         * themed border painted elsewhere), and none for a fullscreen
-         * client either: applying the normal window border width here
-         * would paint a real, visible border over fullscreen content
-         * (e.g., mpv, undecorated from the start), the exact same
-         * reasoning 'ccmd_client_focus' in 'cmds/client/focus.c'
-         * already applies for a plain focus change. */
-        border_width = 0u;
-    } else {
-        border_width = config->theme.window.active.border.width;
-    }
-
-    return border_width;
-}
-
-
 /* Resolve the X window used as the visual target for cycle preview */
 xcb_window_t mi_cycle_preview_target(const client_td *client,
         bool is_icon_menu)
@@ -354,37 +308,20 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
 }
 
 
-/* Apply preview border color and width to a target window */
-void mi_cycle_preview_style_target(xcb_connection_t *connection,
-        xcb_window_t target, const client_td *client,
-        const config_td *config, bool is_icon_menu,
+/* Apply the cycle border color and width to an icon window */
+void mi_cycle_preview_style_icon(xcb_connection_t *connection,
+        xcb_window_t icon_window, const config_td *config,
         uint32_t border_color)
 {
-    uint32_t border_width;
-
-    if (connection == NULL || target == XCB_WINDOW_NONE ||
+    if (connection == NULL || icon_window == XCB_WINDOW_NONE ||
             config == NULL) {
         return;
     }
 
-    border_width = s_mi_cycle_preview_border_width(client, config,
-            is_icon_menu);
-    xcb_window_set_border(target, border_width);
-
-    if (!is_icon_menu &&
-            client != NULL &&
-            client_is_decorated(client) &&
-            client->frame == target) {
-        uint32_t frame_values[2] = { border_color, border_color };
-
-        xcb_change_window_attributes(connection, target,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                frame_values);
-        xcb_clear_area(connection, 0, target, 0, 0, 0, 0);
-    } else {
-        xcb_change_window_attributes(connection, target,
-                XCB_CW_BORDER_PIXEL, &border_color);
-    }
+    xcb_window_set_border(icon_window,
+            config->theme.icon.active.border.width);
+    xcb_change_window_attributes(connection, icon_window,
+            XCB_CW_BORDER_PIXEL, &border_color);
 }
 
 
@@ -396,7 +333,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     client_td *previous;
     xcb_window_t selected_target;
     xcb_window_t previous_target;
-    uint32_t selected_border;
 
     if (connection == NULL || config == NULL ||
             g_cycle_menu.window == XCB_WINDOW_NONE ||
@@ -427,52 +363,38 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
         return;
     }
 
-    if (previous != NULL) {
-        previous_target = mi_cycle_preview_target(previous,
-                g_cycle_menu.is_icon_menu);
+    /* A window's own border is never touched here: the cycle outline
+     * drawn further down is what marks the selection, and the border
+     * stays whatever the render pass gives it for focus.  Changing it
+     * here once moved the window's content by the difference in width
+     * and left a window the selection only passed over with the active
+     * width while unfocused.  An icon keeps the same width selected or
+     * not, so recoloring its border moves nothing, and the icon menu
+     * goes on doing it */
+    if (previous != NULL && g_cycle_menu.is_icon_menu) {
+        previous_target = mi_cycle_preview_target(previous, true);
 
         if (previous_target != XCB_WINDOW_NONE) {
-            uint32_t previous_border;
-            bool prev_is_active =
-                (g_cycle_menu.desktop->client_active_id == previous->id);
+            mi_cycle_preview_style_icon(connection, previous_target,
+                    config, config->theme.icon.inactive.border.color);
 
-            if (g_cycle_menu.is_icon_menu) {
-                previous_border =
-                    config->theme.icon.inactive.border.color;
-            } else if (prev_is_active) {
-                previous_border =
-                    config->theme.window.active.border.color;
-            } else {
-                previous_border =
-                    config->theme.window.inactive.border.color;
-            }
-
-            mi_cycle_preview_style_target(connection, previous_target,
-                    previous, config, g_cycle_menu.is_icon_menu,
-                    previous_border);
-
-            if (g_cycle_menu.is_icon_menu) {
-                /* Full render (stacking below the tray, colors, pixmap,
-                 * caption, and hint indicators all included) via the
-                 * same shared function every other place a deselected
-                 * icon needs repainting already uses (see
-                 * 's_cycle_repaint_icon' in 'menu/cycle.c'), rather
-                 * than a separate, duplicated implementation of the
-                 * same thing.  That duplication is exactly how this one
-                 * and that other one drifted out of sync in the first
-                 * place (this one never learned to omit the pixmap for
-                 * a newly *selected* icon, below). */
-                ri_render_client_icon(previous, true, true, true);
-            } /* ! if (g_cycle_menu.is_icon_menu) */
-        } /* ! if (previous_target) */
+            /* Full render (stacking below the tray, colors, pixmap,
+             * caption, and hint indicators all included) via the same
+             * shared function every other place a deselected icon
+             * needs repainting already uses (see 's_cycle_repaint_icon'
+             * in 'menu/cycle.c'), rather than a separate, duplicated
+             * implementation of the same thing.  That duplication is
+             * exactly how this one and that other one drifted out of
+             * sync in the first place (this one never learned to omit
+             * the pixmap for a newly *selected* icon, below). */
+            ri_render_client_icon(previous, true, true, true);
+        }
     }
 
-    selected_border = (g_cycle_menu.is_icon_menu)
-        ? config->theme.icon.active.border.color
-        : config->theme.window.active.border.color;
-    mi_cycle_preview_style_target(connection, selected_target,
-            selected, config, g_cycle_menu.is_icon_menu,
-            selected_border);
+    if (g_cycle_menu.is_icon_menu) {
+        mi_cycle_preview_style_icon(connection, selected_target, config,
+                config->theme.icon.active.border.color);
+    }
 
     if (g_cycle_menu.is_icon_menu) {
         /* Same "selected" render every other place a newly selected

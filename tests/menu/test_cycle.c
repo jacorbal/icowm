@@ -23,7 +23,7 @@
  * 'scmd_stage_viewport_center_on_client' (cmds/stage.c),
  * and 'ri_render_client_icon'
  * (render/icon.c) are recording no-ops; 'mi_cycle_preview_target' /
- * 'mi_cycle_preview_apply' / 'mi_cycle_preview_style_target'
+ * 'mi_cycle_preview_apply' / 'mi_cycle_preview_style_icon'
  * (menu/cycle/draw.c, covered on their own in
  * 'tests/menu/cycle/test_draw.c') are recording stand-ins too, since
  * that file owns their real behavior; 'render_outline_hide'
@@ -89,7 +89,7 @@ static int s_call_viewport_center_on_client;
 static client_td *s_last_viewport_centered;
 static int s_call_ri_render_client_icon;
 static int s_call_mi_cycle_preview_apply;
-static int s_call_mi_cycle_preview_style_target;
+static int s_call_mi_cycle_preview_style_icon;
 static int s_call_mi_cycle_preview_target;
 static xcb_window_t s_last_destroyed_window;
 static xcb_window_t s_last_focused_window;
@@ -506,20 +506,18 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 
 
 /**
- * @brief Recording no-op stand-in for @a mi_cycle_preview_style_target
+ * @brief Recording no-op stand-in for @a mi_cycle_preview_style_icon
  * @note Complexity: @e O(1)
  */
-void mi_cycle_preview_style_target(xcb_connection_t *connection,
-        xcb_window_t target, const client_td *client,
-        const config_td *cfg, bool is_icon_menu, uint32_t border_color)
+void mi_cycle_preview_style_icon(xcb_connection_t *connection,
+        xcb_window_t icon_window, const config_td *cfg,
+        uint32_t border_color)
 {
     (void) connection;
-    (void) target;
-    (void) client;
+    (void) icon_window;
     (void) cfg;
-    (void) is_icon_menu;
     (void) border_color;
-    s_call_mi_cycle_preview_style_target++;
+    s_call_mi_cycle_preview_style_icon++;
 }
 
 
@@ -557,7 +555,7 @@ static void s_reset(void)
     s_last_viewport_centered = NULL;
     s_call_ri_render_client_icon = 0;
     s_call_mi_cycle_preview_apply = 0;
-    s_call_mi_cycle_preview_style_target = 0;
+    s_call_mi_cycle_preview_style_icon = 0;
     s_call_mi_cycle_preview_target = 0;
     s_last_destroyed_window = XCB_WINDOW_NONE;
     s_last_focused_window = XCB_WINDOW_NONE;
