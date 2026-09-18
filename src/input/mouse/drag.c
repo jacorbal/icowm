@@ -145,7 +145,7 @@ drag_state_td s_drag = {
  * @note No-op if @p connection or @p client is null
  * @note Complexity: @e O(1)
  */
-static void s_drag_client_move_offscreen(xcb_connection_t *connection,
+static void s_drag_client_move_offscreen(const xcb_connection_t *connection,
         client_td *client)
 {
     xcb_window_t target;

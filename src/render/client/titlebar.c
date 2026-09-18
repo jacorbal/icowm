@@ -17,6 +17,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>     /* strncmp */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -33,6 +34,7 @@
 /* Utils includes */
 #include <utils/xcb/connection.h>
 #include <utils/xcb/pixmap.h>
+#include <utils/safe/safestr.h>   /* safe_strncpy */
 
 /* Local includes */
 #include <render/client/titlebar.h>
@@ -571,6 +573,7 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
     bool hide_sticky;
     const stage_td *stage;
     uint32_t bg_color;
+    uint32_t fg_color;
     xcb_pixmap_t buffer;
     xcb_drawable_t target;
     xcb_gcontext_t gc;
@@ -590,6 +593,45 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
     bg_color = (is_focused)
         ? theme->window.active.color.background
         : theme->window.inactive.color.background;
+    fg_color = (is_focused)
+        ? theme->window.active.color.foreground
+        : theme->window.inactive.color.foreground;
+    can_maximize = !client_is_fullscreen(client) &&
+        (bool) client_is_maximizable(client);
+
+    /* Nothing render_client_titlebar_repaint_content actually draws
+     * from differs from the last real repaint, so redoing the same
+     * paint here would only cost a pixmap round trip for a result
+     * indistinguishable from what is already showing; this is what
+     * lets a plain move (nothing above ever changes) and most steps
+     * of a resize (only 'inner_w' does) skip the full repaint below,
+     * the same reasoning already applied by 'bg_changed' just above
+     * this comment, just carried across every input this function
+     * draws from instead of one alone. */
+    if (client->layout.titlebar_paint.has_titlebar_paint &&
+            client->layout.titlebar_paint.bg_color == bg_color &&
+            client->layout.titlebar_paint.fg_color == fg_color &&
+            client->layout.titlebar_paint.inner_w == inner_w &&
+            client->layout.titlebar_paint.title_h == title_h &&
+            client->layout.titlebar_paint.can_maximize ==
+                can_maximize &&
+            client->layout.titlebar_paint.is_pinned ==
+                (bool) client_is_pinned(client) &&
+            client->layout.titlebar_paint.is_sticky ==
+                (bool) client_is_sticky(client) &&
+            client->layout.titlebar_paint.is_marked_layer ==
+                (client->properties.layer != CLIENT_LAYER_NORMAL) &&
+            client->layout.titlebar_paint.hide_pin == hide_pin &&
+            client->layout.titlebar_paint.hide_sticky ==
+                hide_sticky &&
+            strncmp(client->layout.titlebar_paint.name,
+                    client->info.name, CONFIG_MAX_LENGTH_NAME) == 0 &&
+            strncmp(client->layout.titlebar_paint.font,
+                    (is_focused) ? theme->window.active.font
+                        : theme->window.inactive.font,
+                    CONFIG_MAX_LENGTH_FONTNAME) == 0) {
+        return;
+    }
 
     /* Only when the color just chosen is not the one already set.
      * Changing a window's background makes the server discard what is
@@ -630,11 +672,7 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
             (is_focused)
                 ? theme->window.active.font
                 : theme->window.inactive.font);
-    text_renderer_set_color(
-            (is_focused)
-                ? theme->window.active.color.foreground
-                : theme->window.inactive.color.foreground,
-            bg_color);
+    text_renderer_set_color(fg_color, bg_color);
 
     client_titlebar_layout(theme, inner_w, title_h, hide_pin,
             hide_sticky, left, &left_n, right, &right_n, &title_x,
@@ -656,8 +694,6 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
             title_x, title_w, text_y, client->info.name,
             theme->window.titlebar.alignment);
 
-    can_maximize = !client_is_fullscreen(client) &&
-        (bool) client_is_maximizable(client);
     s_desktop_titlebar_buttons_draw(connection, target,
             btn_y, title_h, left, left_n, right, right_n, is_focused,
             (bool) client_is_pinned(client),
@@ -673,4 +709,25 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
         xcb_free_gc(connection, gc);
         xcb_free_pixmap(connection, buffer);
     }
+
+    client->layout.titlebar_paint.bg_color = bg_color;
+    client->layout.titlebar_paint.fg_color = fg_color;
+    (void) safe_strncpy(client->layout.titlebar_paint.name,
+            client->info.name, CONFIG_MAX_LENGTH_NAME);
+    (void) safe_strncpy(client->layout.titlebar_paint.font,
+            (is_focused) ? theme->window.active.font
+                : theme->window.inactive.font,
+            CONFIG_MAX_LENGTH_FONTNAME);
+    client->layout.titlebar_paint.inner_w = inner_w;
+    client->layout.titlebar_paint.title_h = title_h;
+    client->layout.titlebar_paint.can_maximize = can_maximize;
+    client->layout.titlebar_paint.is_pinned =
+        (bool) client_is_pinned(client);
+    client->layout.titlebar_paint.is_sticky =
+        (bool) client_is_sticky(client);
+    client->layout.titlebar_paint.is_marked_layer =
+        (client->properties.layer != CLIENT_LAYER_NORMAL);
+    client->layout.titlebar_paint.hide_pin = hide_pin;
+    client->layout.titlebar_paint.hide_sticky = hide_sticky;
+    client->layout.titlebar_paint.has_titlebar_paint = true;
 }

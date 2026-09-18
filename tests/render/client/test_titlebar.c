@@ -941,6 +941,49 @@ static void s_test_repaint_titlebar_offscreen_buffer_path(void)
             " all when the buffer path succeeded");
 }
 
+
+/* A second call with every input identical to the first repaints
+ * nothing at all; changing one of them (here, the focus state) makes
+ * the very next call repaint again */
+static void s_test_repaint_titlebar_skips_unchanged_repaint(void)
+{
+    struct config_theme_s theme;
+    client_td client;
+    stage_td stage;
+    xcb_screen_t screen;
+
+    s_reset_fixture();
+    memset(&theme, 0, sizeof(theme));
+    memset(&client, 0, sizeof(client));
+    memset(&stage, 0, sizeof(stage));
+    memset(&screen, 0, sizeof(screen));
+    screen.root_depth = 24u;
+    stage.screen = &screen;
+    stage.desktop_count = 2u;
+    client.titlebar = 0x801u;
+    client.info.name = "Example";
+    s_stage_by_id_result = &stage;
+    s_offscreen_buffer_should_fail = false;
+
+    render_client_titlebar_repaint_content(s_connection_stub, &client, true,
+            120u, 20u, &theme);
+    render_client_titlebar_repaint_content(s_connection_stub, &client, true,
+            120u, 20u, &theme);
+
+    TAP_EQ_INT(s_offscreen_buffer_calls, 1,
+            "a second call with nothing actually different repaints"
+            " nothing at all, not even a second time");
+
+    theme.window.active.color.background = 0x111111u;
+    theme.window.inactive.color.background = 0x222222u;
+    render_client_titlebar_repaint_content(s_connection_stub, &client, false,
+            120u, 20u, &theme);
+
+    TAP_EQ_INT(s_offscreen_buffer_calls, 2,
+            "a call that actually changes something (here, the focus"
+            " state) repaints again right away");
+}
+
 static void s_test_repaint_titlebar_fallback_when_buffer_fails(void)
 {
     struct config_theme_s theme;
@@ -1281,10 +1324,11 @@ static void s_test_repaint_titlebar_maximize_disabled_when_not_maximizable(
  * the color it just set is not the one already showing */
 int main(void)
 {
-    TAP_PLAN(26);
+    TAP_PLAN(28);
 
     s_test_repaint_titlebar_guard_clauses();
     s_test_repaint_titlebar_offscreen_buffer_path();
+    s_test_repaint_titlebar_skips_unchanged_repaint();
     s_test_repaint_titlebar_fallback_when_buffer_fails();
     s_test_repaint_titlebar_hide_pin_single_desktop();
     s_test_repaint_titlebar_shows_pin_multi_desktop();

@@ -53,6 +53,7 @@ static uint32_t s_resized_w;
 static uint32_t s_resized_h;
 static int s_move_count;
 static int s_resize_count;
+static int s_track_move_count;
 
 
 /**
@@ -203,6 +204,26 @@ void enact_client_move(client_td *client, struct position_s pos)
 
 
 /**
+ * @brief Stand-in for @a ccmd_client_move_track, recording and
+ *        applying it so the next key builds on it as the real one
+ *        does, quiet the same way the real one is
+ *
+ * @param client Client being moved
+ * @param pos    Target position
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_move_track(client_td *client, struct position_s pos)
+{
+    s_track_move_count++;
+
+    if (client != NULL) {
+        client->layout.geometry.cur.pos = pos;
+    }
+}
+
+
+/**
  * @brief Stand-in for the resize verb, recording and applying the size
  *
  * @param client Client being resized
@@ -272,6 +293,7 @@ static void s_stubs_reset(void)
 {
     s_ungrab_count = 0;
     s_move_count = 0;
+    s_track_move_count = 0;
     s_resize_count = 0;
     s_moved_x = 0;
     s_moved_y = 0;
@@ -363,19 +385,32 @@ static void s_test_arrows_move_by_step(void)
     kbd_modal_move_start(s_conn, &s_stage, &client);
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, &config);
-    TAP_OK(s_moved_x == 110 && s_moved_y == 200,
+    TAP_OK(client.layout.geometry.cur.pos.x == 110 &&
+            client.layout.geometry.cur.pos.y == 200,
             "Right moves one step along x and leaves y alone");
+    TAP_OK(s_move_count == 0,
+            "...quietly: no real, notifying move happens for an"
+            " intermediate arrow press");
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_DOWN, &config);
-    TAP_OK(s_moved_x == 110 && s_moved_y == 210,
+    TAP_OK(client.layout.geometry.cur.pos.x == 110 &&
+            client.layout.geometry.cur.pos.y == 210,
             "Down moves one step along y, from where Right left it");
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_LEFT, &config);
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_UP, &config);
-    TAP_OK(s_moved_x == 100 && s_moved_y == 200,
+    TAP_OK(client.layout.geometry.cur.pos.x == 100 &&
+            client.layout.geometry.cur.pos.y == 200,
             "Left and Up undo them, arriving back where it began");
+    TAP_OK(s_track_move_count == 4,
+            "...one quiet move per arrow press, four so far");
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config);
+    TAP_OK(s_move_count == 1,
+            "Return sends exactly one real, notifying move as the"
+            " session actually ends");
+    TAP_OK(s_moved_x == 100 && s_moved_y == 200,
+            "...at the final, already-settled position");
 }
 
 
@@ -488,7 +523,7 @@ static void s_test_null_config_falls_back(void)
     kbd_modal_move_start(s_conn, &s_stage, &client);
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RIGHT, NULL);
-    TAP_OK(s_moved_x == 101,
+    TAP_OK(client.layout.geometry.cur.pos.x == 101,
             "a null configuration moves by one rather than not at all");
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, NULL);
@@ -497,7 +532,7 @@ static void s_test_null_config_falls_back(void)
 
 int main(void)
 {
-    TAP_PLAN(20);
+    TAP_PLAN(24);
 
     s_test_inactive_until_started();
     s_test_start_and_finish();

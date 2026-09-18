@@ -32,6 +32,7 @@
 
 /* Default initial values */
 #include <defs/client.h>
+#include <defs/config.h>   /* CONFIG_MAX_LENGTH_NAME, ..._FONTNAME */
 
 /**
  * @brief Window layout, position, dimensions and strut
@@ -118,6 +119,41 @@ struct client_layout_s {
      */
     uint32_t titlebar_bg;
     bool has_titlebar_bg;
+
+    /**
+     * @brief Everything @a render_client_titlebar_repaint_content
+     *        actually draws from, snapshotted right after its last
+     *        real repaint
+     *
+     * Compared fresh against the client's current state at the top
+     * of that function, on every single field, deciding whether a
+     * pass with nothing left to actually show differently can skip
+     * repainting the same content all over again.  A change in any
+     * one of these, name included, still forces the full repaint;
+     * @c bg_color and @c fg_color are the theme's resolved colors,
+     * not just the focus state that picked between the two, so a
+     * live theme reload that only changes a color or a font, with
+     * every dimension and every button's own state unchanged, is
+     * still caught.
+     *
+     * @note @p has_titlebar_paint starts false, so a client's first
+     *       repaint always paints
+     */
+    struct {
+        uint32_t bg_color;
+        uint32_t fg_color;
+        char name[CONFIG_MAX_LENGTH_NAME];
+        char font[CONFIG_MAX_LENGTH_FONTNAME];
+        uint16_t inner_w;
+        uint16_t title_h;
+        bool can_maximize;
+        bool is_pinned;
+        bool is_sticky;
+        bool is_marked_layer;
+        bool hide_pin;
+        bool hide_sticky;
+        bool has_titlebar_paint;
+    } titlebar_paint;
 
     /**
      * @brief Area where the client exist on the screen, plus the area

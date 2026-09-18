@@ -1824,7 +1824,8 @@ $(O_DIR)/tests/render/client/test_decoration: \
 
 $(O_DIR)/tests/render/client/test_titlebar: \
 		$(TESTS_DIR)/render/client/test_titlebar.c \
-		$(S_DIR)/render/client/titlebar.c
+		$(S_DIR)/render/client/titlebar.c \
+		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

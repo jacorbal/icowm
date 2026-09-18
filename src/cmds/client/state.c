@@ -163,6 +163,7 @@ static void s_client_enable_decoration(client_td *client,
      * shows the right color and skip painting it for real. */
     client->layout.has_frame_bg = false;
     client->layout.has_titlebar_bg = false;
+    client->layout.titlebar_paint.has_titlebar_paint = false;
 
     client->titlebar = xcb_generate_id(xcb_connection_get());
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;

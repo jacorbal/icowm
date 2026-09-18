@@ -26,6 +26,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/client/move.h>
 #include <config.h>
 #include <enact.h>
 #include <enact/client.h>
@@ -125,6 +126,15 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
     int32_t y;
 
     if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
+        /* One real, notifying move now that the session actually
+         * ends, the one call withheld from every quiet key-by-key
+         * step along the way (see ccmd_client_move_track's own
+         * comment for why), so the client's belief about where it
+         * sits on screen is never left stale. */
+        if (s_client != NULL) {
+            enact_client_move(s_client,
+                    s_client->layout.geometry.cur.pos);
+        }
         s_modal_exit();
         return;
     }
@@ -154,7 +164,12 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
         return;
     }
 
-    enact_client_move(s_client, (struct position_s) { x, y });
+    /* Quiet on purpose for every intermediate key press, same
+     * reasoning as a mouse drag's own live steps (see
+     * ccmd_client_move_track's own comment); s_handle_move_key's
+     * Return branch above sends the one real, notifying move once
+     * the session actually ends. */
+    ccmd_client_move_track(s_client, (struct position_s) { x, y });
 }
 
 
