@@ -362,6 +362,27 @@ void client_focus_fallback(desktop_td *desktop, stage_td *stage,
                 s_client_focus_fallback_valid, &ctx);
     }
 
+    /* A desktop not on screen has no window that can take the focus, so
+     * nothing below that gives or takes it may run for it: a focus
+     * request for an unmapped window only fails, and relinquishing to
+     * 'PointerRoot' takes the keyboard from the window the user is
+     * typing into on the desktop that is shown.  Only the record is
+     * kept, and 'stage_client_show_all' gives real focus again from the
+     * focus order once this desktop is shown.  A pinned 'exclude' is on
+     * screen whatever desktop holds it, so it takes the path below */
+    if (stage != NULL && stage->desktop_cur != desktop->id &&
+            !(exclude != NULL && client_is_pinned(exclude))) {
+        if (next_focus != NULL) {
+            desktop->client_active_id = next_focus->id;
+        }
+        if (exclude != NULL) {
+            ccmd_client_unfocus_publish(exclude);
+        }
+        wm_outdate_desktop(desktop);
+        wm_outdate_stage(stage);
+        return;
+    }
+
     if (next_focus != NULL) {
         /* Delegates to the same central path every other real
          * focus-granting call site already uses ('focus_apply',

@@ -1379,6 +1379,45 @@ static void s_test_client_focus_fallback_tries_group_first(void)
 }
 
 
+/* client_focus_fallback on a desktop that is not the one shown: no
+ * focus is given or relinquished, since no window there can take it
+ * and relinquishing would take the keyboard from the desktop that is
+ * shown; only the record of the active client is kept */
+static void s_test_client_focus_fallback_hidden_desktop(void)
+{
+    desktop_td desktop;
+    stage_td stage;
+    client_td *exclude;
+    client_td *candidate;
+
+    s_reset();
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&stage, 0, sizeof(stage));
+    desktop.id = 0u;
+    stage.desktop_cur = 1u;
+    exclude = s_make_client(45u);
+    candidate = s_make_client(46u);
+
+    s_focus_order_best_result = NULL;
+    desktop.client_active_id = exclude->id;
+    client_focus_fallback(&desktop, &stage, exclude);
+    TAP_OK(s_set_input_focus_calls == 0 && s_focus_apply_calls == 0 &&
+            desktop.client_active_id == 0u,
+            "hidden desktop, no candidate: nothing is focused and the"
+            " focus is not relinquished to PointerRoot");
+
+    s_focus_order_best_result = candidate;
+    desktop.client_active_id = exclude->id;
+    client_focus_fallback(&desktop, &stage, exclude);
+    TAP_OK(s_set_input_focus_calls == 0 && s_focus_apply_calls == 0 &&
+            desktop.client_active_id == candidate->id,
+            "hidden desktop with a candidate: it is only recorded as"
+            " the desktop's active client, never given real focus");
+
+    s_teardown();
+}
+
+
 /* client_focus_fallback: with 'windows.focus.group-fallback' off, the
  * default, a real group leader changes nothing and only the plain MRU
  * pass runs */
@@ -1495,7 +1534,7 @@ static void
 
 int main(void)
 {
-    TAP_PLAN(85);
+    TAP_PLAN(87);
 
     s_test_close_null_is_a_no_op();
     s_test_close_sends_delete_message_when_supported();
@@ -1528,6 +1567,7 @@ int main(void)
     s_test_client_focus_fallback_winner_is_focused();
     s_test_client_focus_fallback_tries_group_first();
     s_test_client_focus_fallback_group_off_is_mru_only();
+    s_test_client_focus_fallback_hidden_desktop();
     s_test_client_focus_fallback_skips_group_pass_without_leader();
     s_test_client_focus_fallback_unfocuses_exclude_when_none_found();
     s_test_client_focus_fallback_relinquishes_with_no_exclude();

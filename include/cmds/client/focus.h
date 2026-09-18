@@ -191,6 +191,11 @@ void ccmd_client_make_active(client_td *client);
  *                replacement candidate is found
  *
  * @note No-op if @p desktop is null
+ * @note On a desktop other than the one @p stage shows, only records
+ *       the replacement as that desktop's active client, since no
+ *       window there can take the focus and giving it up would take it
+ *       from the desktop that is shown; a pinned @p exclude is on
+ *       screen anyway and takes the normal path
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
