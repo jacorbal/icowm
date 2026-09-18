@@ -407,9 +407,8 @@ static void s_test_arrows_move_by_step(void)
 
     (void) kbd_modal_handle_keypress(s_conn, &s_stage, KS_RETURN, &config);
     TAP_OK(s_move_count == 0,
-            "Return closes the session quietly too, with no final"
-            " real move of its own: the position is already"
-            " settled by the last arrow press");
+            "Return closes a session that ended where it began"
+            " quietly too: there is no new position to announce");
     TAP_OK(client.layout.geometry.cur.pos.x == 100 &&
             client.layout.geometry.cur.pos.y == 200,
             "...that last quiet move already left it at the"
@@ -450,6 +449,9 @@ static void s_test_escape_restores(void)
 
     TAP_OK(client.layout.geometry.cur.pos.x == 110,
             "while Return leaves it where the arrows put it");
+    TAP_OK(s_move_count == 1 && s_moved_x == 110 && s_moved_y == 200,
+            "...announcing that position with exactly one real,"
+            " notifying move, so the client learns where it is");
 }
 
 
@@ -535,7 +537,7 @@ static void s_test_null_config_falls_back(void)
 
 int main(void)
 {
-    TAP_PLAN(24);
+    TAP_PLAN(25);
 
     s_test_inactive_until_started();
     s_test_start_and_finish();

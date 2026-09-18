@@ -1024,21 +1024,27 @@ void drag_end(xcb_connection_t *connection,
                  * snapping fully onto the size-hint grid a client
                  * with 'WM_NORMAL_HINTS' increments declares, which
                  * the live calls only approach step by step as the
-                 * pointer moves).  A move alone applies its settled
-                 * position the same quiet way every live step
-                 * already did, without a final notifying call: see
-                 * 'ccmd_client_move_track''s own comment for why one
-                 * step's worth of screen-position staleness is
-                 * preferred here over the recompositing flicker
-                 * a compositing client shows on every notifying
-                 * 'ConfigureNotify' it receives. */
+                 * pointer moves).  A move gets its one notifying
+                 * 'enact_client_move' here instead: every live step
+                 * was silent (see 'ccmd_client_move_track''s own
+                 * comment), so without this the client never learns
+                 * where it ended up, and anything it decides against
+                 * its own root position afterwards (a drop target
+                 * test, a popup placed off it) keeps using where it
+                 * was before the drag.  Only when it actually ended
+                 * somewhere else, the same "final and moved on root"
+                 * rule Openbox's 'client_configure' applies, so
+                 * a plain click on the titlebar sends nothing. */
                 if (finalize_resize) {
                     enact_client_resize(s_drag.client,
                             (struct geometry_s) {
                                 s_drag.client->layout.geometry.cur.pos,
                                 { final_w, final_h } });
-                } else {
-                    ccmd_client_move_track(s_drag.client,
+                } else if (s_drag.client->layout.geometry.cur.pos.x !=
+                            s_drag.client_start.pos.x ||
+                        s_drag.client->layout.geometry.cur.pos.y !=
+                            s_drag.client_start.pos.y) {
+                    enact_client_move(s_drag.client,
                             s_drag.client->layout.geometry.cur.pos);
                 }
             } else {

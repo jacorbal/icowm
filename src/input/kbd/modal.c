@@ -125,7 +125,19 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
     int32_t x;
     int32_t y;
 
+    /* Every arrow press below moved the window silently, so this is
+     * where the client is finally told where it ended up; only when
+     * it actually ended somewhere else, as a mouse drag's own end
+     * does ('drag_end', 'input/mouse/drag.c') */
     if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
+        if (s_client != NULL &&
+                (s_client->layout.geometry.cur.pos.x !=
+                    s_saved_geom.pos.x ||
+                 s_client->layout.geometry.cur.pos.y !=
+                    s_saved_geom.pos.y)) {
+            enact_client_move(s_client,
+                    s_client->layout.geometry.cur.pos);
+        }
         s_modal_exit();
         return;
     }

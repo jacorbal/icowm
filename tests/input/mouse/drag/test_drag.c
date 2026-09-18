@@ -1357,11 +1357,12 @@ static void s_test_end_no_active_drag_is_noop(void)
 }
 
 
-/* drag_end for a plain solid move finalizes nothing further, quiet
- * the same way every live drag_update step along the way already
- * was (see ccmd_client_move_track's own comment); it still hides the
- * overlay, ungrabs the pointer and resets every drag field back to
- * idle */
+/* drag_end for a solid move that ended somewhere else issues the one
+ * notifying enact_client_move every silent live drag_update step
+ * along the way left owed (see ccmd_client_move_track's own
+ * comment), at the position the last of them settled; it still hides
+ * the overlay, ungrabs the pointer and resets every drag field back
+ * to idle */
 static void s_test_end_move_resets_state(void)
 {
     client_td client;
@@ -1378,12 +1379,17 @@ static void s_test_end_move_resets_state(void)
     s_drag.operation = CLIENT_OPERATION_MOVING;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.is_solid_drag = true;
+    s_drag.client_start.pos.x = 100;
+    s_drag.client_start.pos.y = 200;
 
     drag_end((xcb_connection_t *) 1, NULL, NULL, root_pos);
 
-    TAP_EQ_INT(s_enact_move_calls, 0,
-            "solid move: no finalizing enact_client_move call"
-            " happens, quiet to the very end");
+    TAP_EQ_INT(s_enact_move_calls, 1,
+            "solid move: exactly one finalizing enact_client_move,"
+            " so the client learns where it ended up");
+    TAP_OK(s_enact_move_last_pos.x == 123 &&
+            s_enact_move_last_pos.y == 456,
+            "...at the position the last live step settled");
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 123,
             "the position stays at what the last live step"
             " already settled it to, X");
@@ -1404,6 +1410,36 @@ static void s_test_end_move_resets_state(void)
     TAP_EQ_INT(s_ungrab_pointer_calls, 1,
             "the pointer grab is released exactly once");
     TAP_EQ_INT(s_flush_calls, 1, "the connection is flushed once");
+}
+
+
+/* drag_end for a solid move that ended right where it started, a
+ * plain click on the titlebar, has nothing to announce and sends
+ * nothing */
+static void s_test_end_move_in_place_is_quiet(void)
+{
+    client_td client;
+    struct position_s root_pos = { 160, 260 };
+
+    s_reset();
+    s_make_client(&client);
+    client.properties.operation = (uint16_t) CLIENT_OPERATION_MOVING;
+    client.layout.geometry.cur.pos.x = 100;
+    client.layout.geometry.cur.pos.y = 200;
+    s_drag.is_active = true;
+    s_drag.client = &client;
+    s_drag.desktop = NULL;
+    s_drag.operation = CLIENT_OPERATION_MOVING;
+    s_drag.drag_window = XCB_WINDOW_NONE;
+    s_drag.is_solid_drag = true;
+    s_drag.client_start.pos.x = 100;
+    s_drag.client_start.pos.y = 200;
+
+    drag_end((xcb_connection_t *) 1, NULL, NULL, root_pos);
+
+    TAP_EQ_INT(s_enact_move_calls, 0,
+            "solid move ending where it started: no enact_client_move"
+            " call at all");
 }
 
 
@@ -1712,7 +1748,7 @@ static void s_test_client_returns_attached_client(void)
 
 int main(void)
 {
-    TAP_PLAN(122);
+    TAP_PLAN(124);
 
     s_test_start_null_guards_are_noop();
     s_test_start_move_success_populates_state();
@@ -1733,6 +1769,7 @@ int main(void)
     s_test_update_resize_dispatches_to_resize_path();
     s_test_end_no_active_drag_is_noop();
     s_test_end_move_resets_state();
+    s_test_end_move_in_place_is_quiet();
     s_test_end_resize_finalizes_once_more();
     s_test_end_outline_move_applies_final_position();
     s_test_end_outline_resize_uses_forced_resize();
