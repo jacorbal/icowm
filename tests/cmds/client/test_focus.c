@@ -834,6 +834,36 @@ static void s_test_focus_null_is_a_no_op(void)
 }
 
 
+/* ccmd_client_refocus_if_active: the active client of its desktop gets
+ * real input focus back, any other client is left alone */
+static void s_test_refocus_if_active(void)
+{
+    client_td *client;
+    desktop_td desktop;
+
+    s_reset();
+    memset(&desktop, 0, sizeof(desktop));
+    s_client_desktop = &desktop;
+    client = s_make_client(60u);
+    client->hints_icccm.hints.accepts_input = true;
+
+    desktop.client_active_id = 61u;
+    ccmd_client_refocus_if_active(client);
+    TAP_EQ_INT(s_set_input_focus_calls, 0,
+            "a client that is not its desktop's active one keeps no"
+            " focus it did not have");
+
+    desktop.client_active_id = client->id;
+    ccmd_client_refocus_if_active(client);
+    TAP_EQ_INT(s_set_input_focus_calls, 1,
+            "the active client of its desktop gets real input focus"
+            " back");
+
+    s_client_desktop = NULL;
+    s_teardown();
+}
+
+
 /* ccmd_client_focus: a Passive-model client (accepts_input true, no
  * WM_TAKE_FOCUS) receives a direct SetInputFocus and no message */
 static void s_test_focus_passive_model_sets_input_focus(void)
@@ -1546,7 +1576,7 @@ static void
 
 int main(void)
 {
-    TAP_PLAN(87);
+    TAP_PLAN(89);
 
     s_test_close_null_is_a_no_op();
     s_test_close_sends_delete_message_when_supported();
@@ -1580,6 +1610,7 @@ int main(void)
     s_test_client_focus_fallback_tries_group_first();
     s_test_client_focus_fallback_group_off_is_mru_only();
     s_test_client_focus_fallback_hidden_desktop();
+    s_test_refocus_if_active();
     s_test_client_focus_fallback_skips_group_pass_without_leader();
     s_test_client_focus_fallback_unfocuses_exclude_when_none_found();
     s_test_client_focus_fallback_relinquishes_with_no_exclude();

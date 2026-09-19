@@ -104,6 +104,22 @@ void ccmd_client_restore(client_td *client);
 void ccmd_client_focus_publish(client_td *client);
 
 /**
+ * @brief Give the focus back to a client its desktop already counts as
+ *        active, if it is on screen
+ *
+ * For a command that remaps or reshapes a client (shading, full screen,
+ * decoration) and must hand the focus back to it when it was the one in
+ * use, without taking the focus from any other window: a client that is
+ * not the active one of its desktop, or not on screen, is left alone.
+ *
+ * @param client Client to refocus
+ *
+ * @note A no-op for a @c NULL @p client
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_refocus_if_active(client_td *client);
+
+/**
  * @brief Focus on the given client
  *
  * @param client Window to focus

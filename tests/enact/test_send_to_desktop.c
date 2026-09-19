@@ -7,8 +7,9 @@
  * Confirms a client sent to another desktop becomes that desktop's
  * own remembered 'client_active_id' whenever it is focusable,
  * whether the destination was empty or not, and is left alone when
- * it is not.  Every stand-in below exists purely so the linker can
- * resolve 'enact_desktop_client_send' (and its own static helper,
+ * it is not, or when the destination is the desktop shown.  Every
+ * stand-in below exists purely so the linker can resolve
+ * 'enact_desktop_client_send' (and its own static helper,
  * 's_enact_desktop_client_send_one'); each test is deliberately
  * built so the branches those stand-ins would otherwise need to
  * behave faithfully for are never actually reached (no currently-
@@ -63,15 +64,19 @@
 static desktop_td *s_stub_client_desktop = NULL;
 
 
-/** Link-only stand-in for wm_get_stage_by_id (wm.c): always
- *  reports "no such stage", so 's_enact_desktop_client_send_one'
- *  never takes its own "currently visible, unmap it" branch, which
- *  this file's own fixtures have no live XCB connection to survive
- *  correctly */
+/** Stand-in for wm_get_stage_by_id (wm.c): "no such stage" unless
+ *  a test points 's_stub_stage' at one, so
+ *  's_enact_desktop_client_send_one' never takes its own "currently
+ *  visible, unmap it" branch, which this file's own fixtures have no
+ *  live XCB connection to survive correctly; a test that sets it keeps
+ *  the source desktop off the one the stage shows for the same
+ *  reason */
+static stage_td *s_stub_stage = NULL;
+
 stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
     (void) stage_id;
-    return NULL;
+    return s_stub_stage;
 }
 
 
@@ -504,13 +509,43 @@ static void s_test_non_focusable_client_leaves_active_id_alone(void)
 }
 
 
+/* A focusable client sent to the desktop shown is not named its active
+ * client: it arrives without the keyboard, which stays on the window
+ * that has it, and the active client must be that one */
+static void s_test_client_sent_to_shown_desktop_keeps_active(void)
+{
+    desktop_td *source = s_make_desktop(0u);
+    desktop_td *target = s_make_desktop(1u);
+    client_td *client = s_make_client(100u, true);
+    stage_td stage;
+
+    memset(&stage, 0, sizeof(stage));
+    stage.desktop_cur = target->id;
+    s_stub_stage = &stage;
+    target->client_active_id = 999u;   /* the window with the keyboard */
+
+    s_stub_client_desktop = source;
+    enact_desktop_client_send(source, client, target);
+
+    TAP_EQ_INT((int) target->client_active_id, 999,
+            "a client sent to the desktop shown leaves its active"
+            " client as it was");
+
+    s_stub_stage = NULL;
+    free(source);
+    free(target);
+    free(client);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(5);
+    TAP_PLAN(6);
 
     s_test_focusable_client_to_empty_desktop();
     s_test_focusable_client_overwrites_existing_active();
     s_test_non_focusable_client_leaves_active_id_alone();
+    s_test_client_sent_to_shown_desktop_keeps_active();
 
     return TAP_DONE();
 }

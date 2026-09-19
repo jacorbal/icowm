@@ -194,25 +194,20 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         return;
     }
 
-    /* Remembered here as 'target''s active client, the same memory
-     * 'stage_client_show_all' ('stage/actions/client.c') reads back
-     * whenever this desktop next becomes visible, so a client just sent
-     * here is what greets a user arriving later, exactly as if it had
-     * always been the thing they cared about on this desktop, rather
-     * than something they have to go hunt for.  Left unset for
-     * a genuinely unfocusable client (the same gate
-     * 'stage_client_show_all' itself re-checks on the read side
-     * regardless, gracefully falling through to
-     * 'client_focus_fallback''s guess if this one somehow no longer
-     * qualifies by the time it is actually read), so it never becomes
-     * the remembered target only to be silently skipped over later.
-     * Deliberately unconditional otherwise, overwriting whatever
-     * 'target' already remembered even when it was not empty.  A client
-     * someone just deliberately placed here is a reasonable thing to
-     * consider more relevant on arrival than whatever was last active
-     * before it showed up, matching how a freshly opened
-     * window already becomes a desktop's new active client. */
-    if (client_is_focusable(client)) {
+    /* Remembered as 'target''s active client only while 'target' is
+     * not the desktop shown: there it is no more than a record, and
+     * 'stage_client_show_all' ('stage/actions/client.c') works real
+     * focus out again from the focus order whenever 'target' is shown.
+     * On the desktop shown, the active client is the one holding the
+     * keyboard, and this move gives 'client' no focus, so naming it
+     * active there would have the frames, pagers and every shortcut
+     * acting on the active window point at 'client' while the keyboard
+     * stays on another window.  A caller that also wants 'client'
+     * focused, such as sending it along with a switch to 'target',
+     * focuses it through 'focus_apply' afterwards, which records it as
+     * active then.  Left unset for a genuinely unfocusable client */
+    if (client_is_focusable(client) &&
+            (stage == NULL || target->id != stage->desktop_cur)) {
         target->client_active_id = client->id;
         target->is_focus_dirty = true;
     }

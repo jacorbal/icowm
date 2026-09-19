@@ -285,6 +285,40 @@ void ccmd_client_ungrab_buttons(client_td *client)
 
 
 /**
+ * @brief Link-only stand-in for @a ccmd_client_is_on_screen
+ *
+ * Every client here counts as on screen.
+ *
+ * @param client Client to check
+ *
+ * @return Always @c true
+ *
+ * @note Complexity: @e O(1)
+ */
+bool ccmd_client_is_on_screen(const client_td *client)
+{
+    (void) client;
+    return true;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a ccmd_client_refocus_if_active
+ *
+ * @param client Client to refocus
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_refocus_calls;
+
+void ccmd_client_refocus_if_active(client_td *client)
+{
+    (void) client;
+    s_refocus_calls++;
+}
+
+
+/**
  * @brief Link-only stand-in for @a client_native_border_rebase
  *
  * Reached only by 'ccmd_client_fullscreen'/'_unfullscreen' once past
@@ -626,6 +660,7 @@ static client_td *s_make_client(uint32_t id)
 static void s_reset(void)
 {
     s_focus_calls = 0;
+    s_refocus_calls = 0;
     s_raise_calls = 0;
     s_restore_calls = 0;
     s_sync_states_calls = 0;
@@ -836,8 +871,9 @@ static void s_test_fullscreen_already_active_keeps_focus(void)
 
     ccmd_client_fullscreen(client);
 
-    TAP_EQ_INT(s_focus_calls, 1,
-            "the already-active client is given real input focus");
+    TAP_EQ_INT(s_refocus_calls, 1,
+            "real input focus is handed back through"
+            " ccmd_client_refocus_if_active");
 
     s_teardown();
 }
@@ -1016,8 +1052,9 @@ static void s_test_toggle_decorate_already_active_keeps_focus(void)
 
     ccmd_client_toggle_decorate(client);
 
-    TAP_EQ_INT(s_focus_calls, 1,
-            "the already-active client is given real input focus");
+    TAP_EQ_INT(s_refocus_calls, 1,
+            "real input focus is handed back through"
+            " ccmd_client_refocus_if_active");
 
     s_teardown();
 }

@@ -621,6 +621,23 @@ void ccmd_client_focus_publish(client_td *client)
 }
 
 
+/* Give the focus back to a client its desktop already counts as active,
+ * if it is on screen */
+void ccmd_client_refocus_if_active(client_td *client)
+{
+    const desktop_td *desktop;
+
+    if (client == NULL || !ccmd_client_is_on_screen(client)) {
+        return;
+    }
+
+    desktop = wm_get_client_desktop(client);
+    if (desktop != NULL && desktop->client_active_id == client->id) {
+        ccmd_client_focus(client);
+    }
+}
+
+
 /* Focus a client */
 void ccmd_client_focus(client_td *client)
 {
