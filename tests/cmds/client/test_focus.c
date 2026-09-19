@@ -78,6 +78,18 @@
  */
 static stage_td *s_stage_by_id;
 
+/**
+ * @brief Stand-in for @a ccmd_client_is_on_screen: every client here
+ *        is on screen
+ * @note Complexity: @e O(1)
+ */
+bool ccmd_client_is_on_screen(const client_td *client)
+{
+    (void) client;
+    return true;
+}
+
+
 stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
     (void) stage_id;

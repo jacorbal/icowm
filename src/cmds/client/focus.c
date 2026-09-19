@@ -175,6 +175,7 @@ static void s_ccmd_client_restore_one(client_td *client)
 {
     xcb_window_t target;
     xcb_atom_t icon_geom_atom;
+    bool is_on_screen;
 
     /* Restoring means two different things depending on where the
      * client is, and the iconified case has to be settled first.
@@ -210,14 +211,6 @@ static void s_ccmd_client_restore_one(client_td *client)
         client->icon_window = 0;
         client->is_icon_mapped = false;
     }
-    if (client->titlebar != 0) {
-        xcb_window_show(client->titlebar);
-    }
-    xcb_window_show(target);
-    if (target != client->window) {
-        xcb_window_show(client->window);
-    }
-
     client_unhide(client);
 
     /* Only the iconified bit is cleared: whatever maximization or full
@@ -234,6 +227,21 @@ static void s_ccmd_client_restore_one(client_td *client)
             icon_geom_atom);
 
     ccmd_client_sync_states(client);
+
+    /* Mapped only if its desktop is the one shown (or it is pinned):
+     * a client of another desktop, restored from a pager or over IPC,
+     * leaves the iconified state but stays unmapped until its desktop
+     * is shown, instead of appearing on this one */
+    is_on_screen = ccmd_client_is_on_screen(client);
+    if (is_on_screen) {
+        if (client->titlebar != 0) {
+            xcb_window_show(client->titlebar);
+        }
+        xcb_window_show(target);
+        if (target != client->window) {
+            xcb_window_show(client->window);
+        }
+    }
 
     /* Put the geometry every state bit still standing calls for back on
      * the window.  The bits themselves survived being iconified, so
@@ -270,8 +278,11 @@ static void s_ccmd_client_restore_one(client_td *client)
     /* A window arriving back from an icon becomes the one in use, so
      * that keyboard shortcuts and other window manager operations
      * target it immediately rather than whichever window was active
-     * while it was away */
-    ccmd_client_make_active(client);
+     * while it was away; one left unmapped on a desktop not shown has
+     * nothing on screen to take the keyboard */
+    if (is_on_screen) {
+        ccmd_client_make_active(client);
+    }
 
     wm_request_client_redraw(client);
 }

@@ -433,6 +433,24 @@ static void s_ccmd_client_unhide_one(client_td *client)
 {
     xcb_window_t target;
 
+    /* An iconified client is kept hidden for as long as it is an icon,
+     * and only restoring it undoes that: unhiding it here would let the
+     * render pass map its window while it is still iconified */
+    if (client_is_iconified(client)) {
+        return;
+    }
+
+    client_unhide(client);
+
+    /* No longer hidden, but on a desktop not shown: it stays unmapped
+     * until that desktop is shown, rather than appearing on this one */
+    if (!ccmd_client_is_on_screen(client)) {
+        ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
+        ccmd_client_sync_states(client);
+        wm_request_client_redraw(client);
+        return;
+    }
+
     target = ccmd_target_win(client);
 
     if (client->titlebar != 0) {
@@ -444,8 +462,6 @@ static void s_ccmd_client_unhide_one(client_td *client)
     if (target != client->window) {
         xcb_window_show(client->window);
     }
-
-    client_unhide(client);
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
     ccmd_client_sync_states(client);
@@ -548,6 +564,29 @@ void ccmd_client_hide(client_td *client)
     }
 
     ccmd_client_family_apply(top, s_ccmd_client_hide_visit, NULL);
+}
+
+
+/* Whether a client's window belongs on screen right now */
+bool ccmd_client_is_on_screen(const client_td *client)
+{
+    const stage_td *stage;
+    const desktop_td *desktop;
+
+    if (client == NULL || client_is_hidden(client) ||
+            client_is_iconified(client)) {
+        return false;
+    }
+
+    if (client_is_pinned(client)) {
+        return true;
+    }
+
+    stage = wm_get_stage_by_id(client->screen_id);
+    desktop = wm_get_client_desktop(client);
+
+    return (stage != NULL && desktop != NULL &&
+            desktop->id == stage->desktop_cur);
 }
 
 

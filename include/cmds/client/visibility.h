@@ -46,6 +46,25 @@ void ccmd_client_iconify(client_td *client);
 void ccmd_client_hide(client_td *client);
 
 /**
+ * @brief Whether a client's window belongs on screen right now
+ *
+ * It does when it is neither hidden nor iconified and it is on the
+ * desktop its stage shows, or pinned, which puts it on every one.
+ * A client leaving the hidden or iconified state is mapped, and given
+ * the focus, only if this holds; otherwise its window stays unmapped
+ * until showing its desktop maps it.
+ *
+ * @param client Client to check
+ *
+ * @return @c true if @p client's window should be mapped
+ *
+ * @note @c false for a @c NULL @p client, or one whose stage or
+ *       desktop cannot be found
+ * @note Complexity: @e O(1)
+ */
+bool ccmd_client_is_on_screen(const client_td *client);
+
+/**
  * @brief Show (unhide) the client
  *
  * @param client Window to unhide

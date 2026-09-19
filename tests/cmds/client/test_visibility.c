@@ -39,6 +39,7 @@
 
 /* Local includes */
 #include <client.h>
+#include <desktop.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
 #include <harness/tap.h>
@@ -257,6 +258,26 @@ stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
     (void) stage_id;
     return s_owner_stage;
+}
+
+
+/**
+ * @brief Stand-in for @a wm_get_client_desktop: the desktop the stage
+ *        stand-in shows, so every client here counts as on screen
+ *        unless a test sets @c s_is_client_desktop_elsewhere
+ * @note Complexity: @e O(1)
+ */
+static desktop_td s_client_desktop;
+static bool s_is_client_desktop_elsewhere;
+
+desktop_td *wm_get_client_desktop(const client_td *client)
+{
+    (void) client;
+    s_client_desktop.id = (s_owner_stage == NULL) ? 0u
+        : (s_is_client_desktop_elsewhere)
+            ? s_owner_stage->desktop_cur + 1u
+            : s_owner_stage->desktop_cur;
+    return &s_client_desktop;
 }
 
 
@@ -801,8 +822,11 @@ static void s_test_hide_cascades_to_family(void)
 static void s_test_unhide_plain_client_clears_state(void)
 {
     client_td *client;
+    stage_td stage;
 
     s_reset();
+    memset(&stage, 0, sizeof(stage));
+    s_owner_stage = &stage;
     client = s_make_client(40u);
     client_hide(client);
 
@@ -816,6 +840,34 @@ static void s_test_unhide_plain_client_clears_state(void)
             "the client is made active once");
     TAP_EQ_INT(s_redraw_calls, 1, "a redraw is requested once");
 
+    s_owner_stage = NULL;
+    s_teardown();
+}
+
+
+/* Unhiding a client whose desktop is not the one shown clears the
+ * hidden flag but neither maps it nor gives it the focus: it appears
+ * once its desktop is shown, not on this one */
+static void s_test_unhide_client_of_desktop_not_shown(void)
+{
+    client_td *client;
+    stage_td stage;
+
+    s_reset();
+    memset(&stage, 0, sizeof(stage));
+    s_owner_stage = &stage;
+    s_is_client_desktop_elsewhere = true;
+    client = s_make_client(41u);
+    client_hide(client);
+
+    ccmd_client_unhide(client);
+
+    TAP_OK(!client_is_hidden(client) && s_make_active_calls == 0,
+            "a client of a desktop not shown is unhidden without being"
+            " made active");
+
+    s_is_client_desktop_elsewhere = false;
+    s_owner_stage = NULL;
     s_teardown();
 }
 
@@ -877,7 +929,7 @@ static void s_test_unhide_cascades_to_family(void)
 
 int main(void)
 {
-    TAP_PLAN(42);
+    TAP_PLAN(43);
 
     s_test_null_client_is_a_no_op();
     s_test_unmap_decorated_null_client_is_a_no_op();
@@ -894,6 +946,7 @@ int main(void)
     s_test_hide_plain_client_sets_state();
     s_test_hide_cascades_to_family();
     s_test_unhide_plain_client_clears_state();
+    s_test_unhide_client_of_desktop_not_shown();
     s_test_unhide_not_hidden_top_is_a_no_op_itself();
     s_test_unhide_cascades_to_family();
 
