@@ -438,6 +438,13 @@ void stage_client_hide_all(stage_td *stage, uint32_t desktop_id)
 }
 
 
+/* Map a single client the way showing its whole desktop would */
+void stage_client_show_one(stage_td *stage, client_td *client)
+{
+    s_client_show_visit(client, stage);
+}
+
+
 /* Map all visible (non-hidden, non-iconified) clients on the specified
  * desktop */
 void stage_client_show_all(stage_td *stage, uint32_t desktop_id)

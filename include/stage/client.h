@@ -67,6 +67,21 @@ void stage_client_hide_all(stage_td *stage, uint32_t desktop_id);
 void stage_client_show_all(stage_td *stage, uint32_t desktop_id);
 
 /**
+ * @brief Map a single client the way showing its whole desktop would
+ *
+ * For a client that arrives on the desktop already shown, which the
+ * next @a stage_client_show_all would otherwise be the first to map.
+ * Leaves focus and the rest of the desktop alone.
+ *
+ * @param stage  Stage the client is on
+ * @param client Client to map
+ *
+ * @note A no-op for a hidden or iconified client
+ * @note Complexity: @e O(1)
+ */
+void stage_client_show_one(stage_td *stage, client_td *client);
+
+/**
  * @brief Move all pinned clients from every other desktop to @p to_id
  *
  * Iterates all desktops on the stage and relocates any client that

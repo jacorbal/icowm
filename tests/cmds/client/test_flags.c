@@ -265,6 +265,50 @@ stage_td *wm_get_stage_by_id(uint32_t stage_id)
 }
 
 
+/** Stand-ins for what pinning a client of a desktop not shown uses to
+ *  bring it onto the one that is, recording only how often it ran */
+static int s_pinned_transfer_calls;
+static int s_show_one_calls;
+static int s_enforce_layers_calls;
+static desktop_td s_current_desktop;
+
+desktop_td *stage_desktop_get(const stage_td *stage, uint32_t desktop_id)
+{
+    (void) stage;
+    (void) desktop_id;
+    return &s_current_desktop;
+}
+
+client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
+        client_td *top, size_t *count_out)
+{
+    (void) desktop;
+    (void) top;
+    *count_out = 0u;
+    return NULL;
+}
+
+void stage_client_pinned_transfer_all(stage_td *stage, uint32_t to_id)
+{
+    (void) stage;
+    (void) to_id;
+    s_pinned_transfer_calls++;
+}
+
+void stage_client_show_one(stage_td *stage, client_td *client)
+{
+    (void) stage;
+    (void) client;
+    s_show_one_calls++;
+}
+
+void ccmd_desktop_enforce_layers(desktop_td *desktop)
+{
+    (void) desktop;
+    s_enforce_layers_calls++;
+}
+
+
 /**
  * @brief Test-controlled stand-in for @a stage_viewport_has_room
  *
@@ -360,6 +404,10 @@ static client_td *s_make_client(uint32_t id)
 
 static void s_reset(void)
 {
+    s_pinned_transfer_calls = 0;
+    s_show_one_calls = 0;
+    s_enforce_layers_calls = 0;
+    memset(&s_current_desktop, 0, sizeof(s_current_desktop));
     s_sync_states_calls = 0;
     s_publish_calls = 0;
     s_publish_last_desktop = 0u;
@@ -434,6 +482,48 @@ static void s_test_pin_sets_flag_and_side_effects(void)
             "and it names the client's own desktop");
     TAP_EQ_INT(s_redraw_calls, 1, "a redraw is requested once");
 
+    s_teardown();
+}
+
+
+/* Pinning a client that lives on a desktop not shown brings it onto
+ * the one shown and maps it there at once; one already on the desktop
+ * shown is left where it is */
+static void s_test_pin_brings_client_from_desktop_not_shown(void)
+{
+    client_td *client;
+    stage_td stage;
+    desktop_td home;
+
+    s_reset();
+    memset(&stage, 0, sizeof(stage));
+    memset(&home, 0, sizeof(home));
+    stage.desktop_cur = 0u;
+    stage.desktop_count = 4u;
+    home.id = 1u;
+    s_stub_stage = &stage;
+    s_owner_desktop = &home;
+    client = s_make_client(2u);
+
+    ccmd_client_pin(client);
+    TAP_OK(s_pinned_transfer_calls == 1 && s_show_one_calls == 1 &&
+            s_enforce_layers_calls == 1,
+            "a client pinned from a desktop not shown is moved to the"
+            " one shown and mapped there at once");
+
+    s_reset();
+    memset(&home, 0, sizeof(home));
+    home.id = 0u;
+    s_stub_stage = &stage;
+    s_owner_desktop = &home;
+    client = s_make_client(3u);
+
+    ccmd_client_pin(client);
+    TAP_OK(s_pinned_transfer_calls == 0 && s_show_one_calls == 0,
+            "a client pinned on the desktop shown is left where it is");
+
+    s_stub_stage = NULL;
+    s_owner_desktop = NULL;
     s_teardown();
 }
 
@@ -974,10 +1064,11 @@ static void s_test_unurge_clears_flag_and_broadcasts(void)
 
 int main(void)
 {
-    TAP_PLAN(66);
+    TAP_PLAN(68);
 
     s_test_null_client_is_a_no_op();
     s_test_pin_sets_flag_and_side_effects();
+    s_test_pin_brings_client_from_desktop_not_shown();
     s_test_pin_already_pinned_is_idempotent();
     s_test_pin_cascades_to_family();
     s_test_unpin_clears_flag_and_side_effects();

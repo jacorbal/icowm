@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>     /* NULL */
+#include <stdlib.h>     /* free */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -39,6 +40,8 @@
 #include <policy/placement/window.h>
 
 /* Stage includes */
+#include <stage/client.h>
+#include <stage/desktop.h>
 #include <stage/viewport.h>
 
 /* Utils includes */
@@ -59,6 +62,7 @@
 #include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
 #include <cmds/client/focus.h>
+#include <cmds/client/layer.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
@@ -83,6 +87,56 @@ static void s_ccmd_client_pin_one(client_td *client)
     ccmd_publish_wm_desktop(client, client->desktop_id);
 
     wm_request_client_redraw(client);
+}
+
+
+/**
+ * @brief Map a just-pinned family on the desktop shown, if it lives on
+ *        another one
+ *
+ * A pinned client always sits on its stage's current desktop: every
+ * switch moves them all there (@a stage_client_pinned_transfer_all)
+ * before mapping it.  Pinning one that lives on a desktop not shown,
+ * from a pager or over IPC, would otherwise leave it there, unmapped,
+ * until the next switch.  Moves it and its family the same way a switch
+ * would, and maps them on the spot.
+ *
+ * @param top Top of the transient family just pinned
+ *
+ * @note A no-op when @p top already lives on the desktop shown
+ * @note Complexity: @e O(d * n), where @e d is the number of desktops
+ *       and @e n the number of clients on each
+ */
+static void s_ccmd_client_pin_bring(client_td *top)
+{
+    stage_td *stage = wm_get_stage_by_id(top->screen_id);
+    const desktop_td *home = wm_get_client_desktop(top);
+    desktop_td *current;
+    client_td **family;
+    size_t count = 0;
+
+    if (stage == NULL || home == NULL || home->id == stage->desktop_cur) {
+        return;
+    }
+
+    current = stage_desktop_get(stage, stage->desktop_cur);
+    if (current == NULL) {
+        return;
+    }
+
+    family = ccmd_client_transient_family_snapshot(home, top, &count);
+
+    stage_client_pinned_transfer_all(stage, stage->desktop_cur);
+
+    stage_client_show_one(stage, top);
+    for (size_t i = 0; i < count; ++i) {
+        stage_client_show_one(stage, family[i]);
+    }
+    free(family);
+
+    ccmd_desktop_enforce_layers(current);
+    wm_outdate_desktop(current);
+    wm_outdate_stage(stage);
 }
 
 
@@ -261,6 +315,8 @@ void ccmd_client_pin(client_td *client)
     }
 
     ccmd_client_family_apply(top, s_ccmd_client_pin_visit, NULL);
+
+    s_ccmd_client_pin_bring(top);
 }
 
 
