@@ -485,6 +485,18 @@ void client_decoration_layout_sync(client_td *client)
 
 
 /**
+ * @brief Stand-in for @a ccmd_client_is_on_screen: every client here is
+ *        on screen
+ * @note Complexity: @e O(1)
+ */
+bool ccmd_client_is_on_screen(const client_td *client)
+{
+    (void) client;
+    return true;
+}
+
+
+/**
  * @brief Recording stand-in for @a focus_apply
  *
  * @note Complexity: @e O(1)
@@ -1512,6 +1524,35 @@ static void s_test_focus_applies_when_focusable(void)
 }
 
 
+/* At map time, a rule's focus is only recorded, to be decided once the
+ * window is mapped: focus_apply is not called then, and a rule saying
+ * false is kept, so it can stand in for 'focus-new' */
+static void s_test_focus_deferred_at_map(void)
+{
+    stage_td *stage = &s_stage;
+    desktop_td *desktop = &s_desktop;
+    struct rules_apply_s apply;
+
+    s_reset();
+    s_client.has_rule_focus = false;
+    s_client.is_rule_focus = true;
+    memset(&apply, 0, sizeof(apply));
+    apply.has_focus = true;
+    apply.is_focused = false;
+    s_add_rule(RULES_WHEN_BOTH, apply);
+
+    (void) rules_apply(s_fake_wm, &s_client, &stage, &desktop,
+            RULES_TRIGGER_MAP);
+
+    TAP_OK(s_call_focus_apply == 0 && s_client.has_rule_focus &&
+            !s_client.is_rule_focus,
+            "at map, a rule's focus=false is recorded for after mapping"
+            " and focus_apply is not called");
+
+    s_client.has_rule_focus = false;
+}
+
+
 /* has_focus true on a client without CLIENT_FLAG_FOCUSABLE never
  * calls focus_apply */
 static void s_test_focus_skips_unfocusable_client(void)
@@ -1623,7 +1664,7 @@ static void s_test_successful_apply_broadcasts_and_returns_true(void)
 
 int main(void)
 {
-    TAP_PLAN(71);
+    TAP_PLAN(72);
 
     s_test_null_wm_returns_false();
     s_test_null_client_returns_false();
@@ -1658,6 +1699,7 @@ int main(void)
     s_test_maximized_client_skips_geometry();
     s_test_maximized_horz_client_skips_geometry();
     s_test_focus_applies_when_focusable();
+    s_test_focus_deferred_at_map();
     s_test_focus_skips_unfocusable_client();
     s_test_two_rules_merge_disjoint_fields();
     s_test_later_rule_overrides_earlier_same_field();

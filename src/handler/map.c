@@ -194,6 +194,8 @@ static void s_map_finish(const wm_td *wm, stage_td *stage,
 {
     cJSON *fields;
     bool want_iconic;
+    bool is_on_screen;
+    bool want_focus;
     bool want_fullscreen;
     bool want_maximized_horz;
     bool want_maximized_vert;
@@ -212,18 +214,24 @@ static void s_map_finish(const wm_td *wm, stage_td *stage,
     if (want_iconic) {
         ccmd_client_iconify(client);
     } else {
-        if (client->titlebar != 0) {
-            xcb_map_window(xcb_connection_get(), client->titlebar);
-        }
-
-        if (client->frame != 0) {
-            xcb_map_window(xcb_connection_get(), client->frame);
-            xcb_map_window(xcb_connection_get(), client->window);
-        } else {
-            xcb_map_window(xcb_connection_get(), client->window);
-        }
-
         client_unhide(client);
+
+        /* A rule may have put the window on a desktop not shown: it is
+         * then left unmapped, like every other client there, until
+         * that desktop is shown, and not focused either */
+        is_on_screen = ccmd_client_is_on_screen(client);
+        if (is_on_screen) {
+            if (client->titlebar != 0) {
+                xcb_map_window(xcb_connection_get(), client->titlebar);
+            }
+
+            if (client->frame != 0) {
+                xcb_map_window(xcb_connection_get(), client->frame);
+                xcb_map_window(xcb_connection_get(), client->window);
+            } else {
+                xcb_map_window(xcb_connection_get(), client->window);
+            }
+        }
 
         /* A client mapping while everything is closing is almost always
          * an application asking whether to save.  Its parent was
@@ -235,8 +243,11 @@ static void s_map_finish(const wm_td *wm, stage_td *stage,
             wm_shutdown_gather_client(client);
         }
 
-        if (wm_config(wm)->base.windows.focus.focus_new &&
-                client_is_focusable(client)) {
+        /* A rule's 'apply.focus' decides in place of 'focus-new' */
+        want_focus = (client->has_rule_focus)
+            ? client->is_rule_focus
+            : wm_config(wm)->base.windows.focus.focus_new;
+        if (want_focus && is_on_screen && client_is_focusable(client)) {
             focus_apply(wm_stages(wm), stage, desktop, client, true,
                     wm_config(wm));
         }

@@ -414,6 +414,11 @@ struct client_s {
                                     time; applied after mapping, for the
                                     same reason as @c has_rule_iconified */
     bool is_rule_hidden;       /**< Value that rule asked for */
+    bool has_rule_focus;       /**< A rule gave @c apply.focus at map
+                                    time; decided after mapping, in place
+                                    of @c windows.focus.focus-new, for the
+                                    same reason as @c has_rule_iconified */
+    bool is_rule_focus;        /**< Value that rule asked for */
 
     bool was_icon_selected;         /**< Whether the icon window was
                                          drawn with selected styling

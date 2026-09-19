@@ -446,6 +446,10 @@ static void s_rules_apply_flags(client_td *client,
 static void s_rules_defer_state_to_map(client_td *client,
         const struct rules_apply_s *apply)
 {
+    if (apply->has_focus) {
+        client->has_rule_focus = true;
+        client->is_rule_focus = apply->is_focused;
+    }
     if (apply->has_iconified) {
         client->has_rule_iconified = true;
         client->is_rule_iconified = apply->is_iconified;
@@ -783,8 +787,14 @@ bool rules_apply(const wm_td *wm, client_td *client,
         s_rules_apply_state(client, &merged);
     }
     s_rules_apply_geometry(*stage_io, client, &merged);
-    s_rules_apply_focus(wm, client, *stage_io, *desktop_io, &merged,
-            config);
+
+    /* At map time the window is not mapped yet, so focus is decided
+     * once it is, in place of 'windows.focus.focus-new'
+     * ('s_rules_defer_state_to_map' above keeps the rule's say) */
+    if (trigger != RULES_TRIGGER_MAP) {
+        s_rules_apply_focus(wm, client, *stage_io, *desktop_io, &merged,
+                config);
+    }
 
     changed = s_rules_notify_change(client, *desktop_io, *stage_io,
             &merged);

@@ -375,6 +375,18 @@ void ccmd_client_iconify(client_td *client)
 }
 
 
+/**
+ * @brief Stand-in for @a ccmd_client_is_on_screen: every client here is
+ *        on screen
+ * @note Complexity: @e O(1)
+ */
+bool ccmd_client_is_on_screen(const client_td *client)
+{
+    (void) client;
+    return true;
+}
+
+
 /** Link-only stand-in for focus_apply; never reached, see
  *  ccmd_client_iconify's comment above */
 void focus_apply(list_td *stages, stage_td *stage,
