@@ -114,6 +114,7 @@ static void s_ccmd_client_pin_bring(client_td *top)
     desktop_td *current;
     client_td **family;
     size_t count = 0;
+    xcb_window_t active_id;
 
     if (stage == NULL || home == NULL || home->id == stage->desktop_cur) {
         return;
@@ -126,7 +127,13 @@ static void s_ccmd_client_pin_bring(client_td *top)
 
     family = ccmd_client_transient_family_snapshot(home, top, &count);
 
+    /* The transfer is the one a desktop switch runs, where the active
+     * client of the desktop left follows to the one arriving at; here
+     * nothing is switched and the keyboard stays where it is, so the
+     * desktop shown keeps its own active client */
+    active_id = current->client_active_id;
     stage_client_pinned_transfer_all(stage, stage->desktop_cur);
+    current->client_active_id = active_id;
 
     stage_client_show_one(stage, top);
     for (size_t i = 0; i < count; ++i) {

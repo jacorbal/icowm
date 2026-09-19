@@ -63,6 +63,7 @@
 
 /* Local includes */
 #include <enact.h>
+#include <enact/client.h>
 #include <enact/desktop.h>
 #include <enact/internal.h>
 
@@ -397,6 +398,20 @@ void enact_desktop_client_send(const desktop_td *desktop,
     top = ccmd_client_transient_top_parent(client);
     if (top == NULL) {
         return;
+    }
+
+    /* A client pinned to every desktop that is sent to one of them
+     * leaves the rest, as EWMH's '_NET_WM_DESKTOP' has it: a window on
+     * one specific desktop is no longer on all of them.  Unpinned
+     * first, its whole family with it, so the move below takes it off
+     * the desktop shown like any other client; one locked against
+     * changes keeps its pin and stays where it is, since moving it
+     * while still pinned would only take it out of sight */
+    if (client_is_pinned(top)) {
+        enact_client_unpin(top);
+        if (client_is_pinned(top)) {
+            return;
+        }
     }
 
     top_desktop = wm_get_client_desktop(top);

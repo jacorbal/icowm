@@ -74,6 +74,20 @@ static desktop_td *s_stub_client_desktop = NULL;
 static stage_td *s_stub_stage = NULL;
 
 
+/** Stand-in for enact_client_unpin (enact/client.c): clears the pin
+ *  flag, as the real one does for a client not locked, and counts the
+ *  calls */
+static int s_unpin_calls;
+
+void enact_client_unpin(client_td *client)
+{
+    s_unpin_calls++;
+    if (!client_is_locked(client)) {
+        client->properties.flags &= (uint16_t) ~CLIENT_FLAG_PIN;
+    }
+}
+
+
 /** Recording stand-in for stage_client_show_one (stage/actions/
  *  client.c): counts the clients mapped on arrival at the desktop
  *  shown */
@@ -554,14 +568,41 @@ static void s_test_client_sent_to_shown_desktop_keeps_active(void)
 }
 
 
+/* A pinned client sent to a desktop is unpinned first and then moved,
+ * as EWMH's '_NET_WM_DESKTOP' has it: a window on one desktop is no
+ * longer on all of them */
+static void s_test_pinned_client_is_unpinned_and_moved(void)
+{
+    desktop_td *source = s_make_desktop(0u);
+    desktop_td *target = s_make_desktop(1u);
+    client_td *client = s_make_client(100u, true);
+
+    client->properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
+    s_unpin_calls = 0;
+
+    s_stub_client_desktop = source;
+    enact_desktop_client_send(source, client, target);
+
+    TAP_OK(s_unpin_calls == 1 && !client_is_pinned(client) &&
+            client->desktop_id == target->id,
+            "a pinned client sent to a desktop is unpinned and moved"
+            " there");
+
+    free(source);
+    free(target);
+    free(client);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(7);
+    TAP_PLAN(8);
 
     s_test_focusable_client_to_empty_desktop();
     s_test_focusable_client_overwrites_existing_active();
     s_test_non_focusable_client_leaves_active_id_alone();
     s_test_client_sent_to_shown_desktop_keeps_active();
+    s_test_pinned_client_is_unpinned_and_moved();
 
     return TAP_DONE();
 }

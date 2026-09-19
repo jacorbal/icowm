@@ -293,6 +293,7 @@ void stage_client_pinned_transfer_all(stage_td *stage, uint32_t to_id)
     (void) stage;
     (void) to_id;
     s_pinned_transfer_calls++;
+    s_current_desktop.client_active_id = 0x77u;  /* as a switch would */
 }
 
 void stage_client_show_one(stage_td *stage, client_td *client)
@@ -505,11 +506,14 @@ static void s_test_pin_brings_client_from_desktop_not_shown(void)
     s_owner_desktop = &home;
     client = s_make_client(2u);
 
+    s_current_desktop.client_active_id = 0x55u;
     ccmd_client_pin(client);
     TAP_OK(s_pinned_transfer_calls == 1 && s_show_one_calls == 1 &&
             s_enforce_layers_calls == 1,
             "a client pinned from a desktop not shown is moved to the"
             " one shown and mapped there at once");
+    TAP_EQ_INT((int) s_current_desktop.client_active_id, 0x55,
+            "...and the desktop shown keeps its own active client");
 
     s_reset();
     memset(&home, 0, sizeof(home));
@@ -1064,7 +1068,7 @@ static void s_test_unurge_clears_flag_and_broadcasts(void)
 
 int main(void)
 {
-    TAP_PLAN(68);
+    TAP_PLAN(69);
 
     s_test_null_client_is_a_no_op();
     s_test_pin_sets_flag_and_side_effects();
