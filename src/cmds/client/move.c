@@ -142,6 +142,16 @@ void ccmd_client_apply_geometry(client_td *client,
         client->layout.requested_pos.y = y;
         client->layout.has_requested_pos = true;
     }
+    if (target == ((client->frame != 0) ? client->frame : client->window)) {
+        if (mask & (uint16_t) XCB_CONFIG_WINDOW_WIDTH) {
+            client->layout.requested_dim.w = w;
+            client->layout.has_requested_dim = true;
+        }
+        if (mask & (uint16_t) XCB_CONFIG_WINDOW_HEIGHT) {
+            client->layout.requested_dim.h = h;
+            client->layout.has_requested_dim = true;
+        }
+    }
 
     /* Recorded too, so the render pass compares its own width against
      * the one the window really has rather than an older one, and

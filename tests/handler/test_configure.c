@@ -984,6 +984,60 @@ static void s_test_notify_stale_position_refused(void)
 }
 
 
+/* The same for the size: two resizes sent back to back (unshading and
+ * then going full screen) give two echoes, and the first, arriving
+ * after the second request, must not shrink the stored size back */
+static void s_test_notify_stale_size_refused(void)
+{
+    client_td client;
+    stage_td stage;
+    desktop_td desktop;
+    xcb_configure_notify_event_t event;
+    list_td stages;
+    xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
+
+    s_test_reset_state();
+    memset(&stages, 0, sizeof(stages));
+    memset(&stage, 0, sizeof(stage));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_decorated_client(&client);
+    s_lookup_result = &client;
+    s_lookup_stage_out = &stage;
+    s_lookup_desktop_out = NULL;     /* no theme needed here */
+
+    client.layout.geometry.cur.pos.x = 0;
+    client.layout.geometry.cur.pos.y = 0;
+    client.layout.geometry.cur.dim.w = 1920u;
+    client.layout.geometry.cur.dim.h = 1080u;
+    client.layout.requested_dim.w = 1920u;
+    client.layout.requested_dim.h = 1080u;
+    client.layout.has_requested_dim = true;
+
+    memset(&event, 0, sizeof(event));
+    event.response_type = XCB_CONFIGURE_NOTIFY;
+    event.event = client.frame;
+    event.window = client.frame;
+    event.width = 496u;     /* the unshade before, echoed late */
+    event.height = 350u;
+
+    handler_configure_notify(connection, &stages, &event);
+
+    TAP_OK(client.layout.geometry.cur.dim.w == 1920u &&
+            client.layout.geometry.cur.dim.h == 1080u,
+            "a stale size echo never shrinks the stored size back");
+
+    client.layout.requested_dim.w = 496u;
+    client.layout.requested_dim.h = 350u;
+    client.layout.geometry.cur.dim.w = 800u;
+    client.layout.geometry.cur.dim.h = 600u;
+    handler_configure_notify(connection, &stages, &event);
+
+    TAP_OK(client.layout.geometry.cur.dim.w == 496u &&
+            client.layout.geometry.cur.dim.h == 350u,
+            "while a size the stored one does not match is taken");
+}
+
+
 /* A path that moves the window by writing the stored geometry and
  * configuring the server itself, without recording what it asked for,
  * leaves the two disagreeing; the refusal must not engage there, or
@@ -1147,7 +1201,7 @@ static void s_test_notify_inner_window_already_correct(void)
 
 int main(void)
 {
-    TAP_PLAN(52);
+    TAP_PLAN(54);
 
     s_test_request_null_event();
     s_test_request_systray_enforced();
@@ -1168,6 +1222,7 @@ int main(void)
     s_test_notify_structure_size_changed();
     s_test_notify_structure_move_only();
     s_test_notify_stale_position_refused();
+    s_test_notify_stale_size_refused();
     s_test_notify_unrequested_position_taken();
     s_test_notify_unrecorded_move_still_taken();
     s_test_notify_inner_window_snapped_back();

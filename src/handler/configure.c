@@ -879,6 +879,8 @@ void handler_configure_notify(xcb_connection_t *connection,
             bool size_changed;
             bool in_sync;
             bool is_stale_echo;
+            bool is_stale_dim;
+            bool pos_changed;
             bool is_focused = (desktop != NULL) &&
                 (desktop->client_active_id == client->id);
 
@@ -934,6 +936,9 @@ void handler_configure_notify(xcb_connection_t *connection,
                     (uint32_t) event->width ||
                 client->layout.geometry.cur.dim.h !=
                     (uint32_t) event->height;
+            pos_changed =
+                client->layout.geometry.cur.pos.x != (int32_t) event->x ||
+                client->layout.geometry.cur.pos.y != (int32_t) event->y;
 
             /* Every configure the manager issues comes back as an echo,
              * and during a burst, a viewport pan drag above all, the
@@ -974,8 +979,23 @@ void handler_configure_notify(xcb_connection_t *connection,
             } else {
                 geom_changed = size_changed;
             }
-            client->layout.geometry.cur.dim.w = event->width;
-            client->layout.geometry.cur.dim.h = event->height;
+
+            /* The same for the size: an echo of an earlier size while
+             * the one stored is still the last one requested is left
+             * alone, rather than undoing that later request */
+            is_stale_dim = client->layout.has_requested_dim &&
+                client->layout.geometry.cur.dim.w ==
+                    client->layout.requested_dim.w &&
+                client->layout.geometry.cur.dim.h ==
+                    client->layout.requested_dim.h &&
+                size_changed;
+            if (is_stale_dim) {
+                size_changed = false;
+                geom_changed = pos_changed && !is_stale_echo;
+            } else {
+                client->layout.geometry.cur.dim.w = event->width;
+                client->layout.geometry.cur.dim.h = event->height;
+            }
 
             /* Trigger a re-render only when the frame geometry actually
              * changed.  Guarding with 'geom_changed' prevents the

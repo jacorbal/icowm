@@ -29,9 +29,9 @@
             "resistance": 20
         },
         "focus": {
+            "group-fallback": false,
             "delay-ms": 250,
             "focus-new": true,
-            "group-fallback": false,
             "raise": false,
             "policy": "click"
         },

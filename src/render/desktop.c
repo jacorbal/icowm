@@ -175,6 +175,8 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
     client->layout.requested_pos.x = client->layout.geometry.cur.pos.x;
     client->layout.requested_pos.y = client->layout.geometry.cur.pos.y;
     client->layout.has_requested_pos = true;
+    client->layout.requested_dim = client->layout.geometry.cur.dim;
+    client->layout.has_requested_dim = true;
 
     xcb_window_place(target,
             client->layout.geometry.cur.pos.x,

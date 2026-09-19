@@ -68,7 +68,25 @@ struct client_layout_s {
      * not placed yet still takes the position the server reports.
      */
     struct position_s requested_pos;
+
+    /**
+     * @brief Size of the client's top-level window (its frame, or its
+     *        own window when it has none) last requested by the
+     *        manager
+     *
+     * The same guard as @p requested_pos, for the size: two requests
+     * sent back to back, unshading and then going full screen, say,
+     * give two echoes, and the first one arriving after the second
+     * request would otherwise shrink @p geometry.cur back to the size
+     * the second request already replaced, which the next render pass
+     * would then apply for real.
+     *
+     * @note @p has_requested_dim starts false, so a client the manager
+     *       has not sized yet still takes the size the server reports
+     */
+    struct dimensions_s requested_dim;
     bool has_requested_pos;
+    bool has_requested_dim;
 
     /**
      * @brief Inner-window geometry the render pass last placed

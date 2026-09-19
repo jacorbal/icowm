@@ -254,6 +254,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
          * reports for stale echoes of it and throw them away, leaving
          * what is stored here disagreeing with what is on screen. */
         client->layout.has_requested_pos = false;
+        client->layout.has_requested_dim = false;
     } else {
         ccmd_client_apply_geometry(client, client->window,
                 (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
@@ -360,6 +361,7 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
          * server reports next describes that new arrangement rather
          * than any request made before it */
         client->layout.has_requested_pos = false;
+        client->layout.has_requested_dim = false;
         client->layout.frame_extents.left = bw;
         client->layout.frame_extents.right = bw;
         client->layout.frame_extents.top = bw + th;
