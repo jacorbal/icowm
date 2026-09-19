@@ -834,6 +834,34 @@ static void s_test_focus_null_is_a_no_op(void)
 }
 
 
+/* ccmd_client_focus on a shaded Locally Active client: its frame takes
+ * the focus, since its content is unmapped, and no 'WM_TAKE_FOCUS' is
+ * sent, since the client could only answer it by focusing that
+ * unmapped content */
+static void s_test_focus_shaded_client_focuses_frame(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(62u);
+    client->frame = 0x9900u;
+    client->hints_icccm.hints.accepts_input = true;
+    client->hints_icccm.protocols.has_take_focus = true;
+    client->properties.flags |= (uint16_t) CLIENT_FLAG_DECORATED;
+    client->properties.flags |= (uint16_t) CLIENT_FLAG_SHADED;
+
+    ccmd_client_focus(client);
+
+    TAP_OK(s_set_input_focus_calls == 1 &&
+            s_set_input_focus_last_focus == 0x9900u,
+            "a shaded client's frame takes the focus");
+    TAP_EQ_INT(s_send_event_calls, 0,
+            "...and no WM_TAKE_FOCUS is sent to its unmapped content");
+
+    s_teardown();
+}
+
+
 /* ccmd_client_refocus_if_active: the active client of its desktop gets
  * real input focus back, any other client is left alone */
 static void s_test_refocus_if_active(void)
@@ -1576,7 +1604,7 @@ static void
 
 int main(void)
 {
-    TAP_PLAN(89);
+    TAP_PLAN(91);
 
     s_test_close_null_is_a_no_op();
     s_test_close_sends_delete_message_when_supported();
@@ -1611,6 +1639,7 @@ int main(void)
     s_test_client_focus_fallback_group_off_is_mru_only();
     s_test_client_focus_fallback_hidden_desktop();
     s_test_refocus_if_active();
+    s_test_focus_shaded_client_focuses_frame();
     s_test_client_focus_fallback_skips_group_pass_without_leader();
     s_test_client_focus_fallback_unfocuses_exclude_when_none_found();
     s_test_client_focus_fallback_relinquishes_with_no_exclude();

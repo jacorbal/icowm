@@ -644,6 +644,7 @@ void ccmd_client_focus(client_td *client)
     const uint32_t focus_time = (client_last_user_time() != 0u)
         ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
     xcb_ewmh_connection_t *const ewmh = xcb_ewmh_connection_get();
+    bool is_frame_focused;
 
     if (client == NULL) {
         return;
@@ -679,43 +680,35 @@ void ccmd_client_focus(client_td *client)
      * they originally asked for by name. */
     client = ccmd_client_focus_target(client);
 
-    /* ICCCM §4.1.7: 'SetInputFocus' is called only for a client whose
-     * input model actually wants it, meaning one whose 'WM_HINTS' input
-     * field is true and that does not register 'WM_TAKE_FOCUS'.  That
-     * is the Passive model, and it is the only one where the window
-     * manager sets the focus itself.
+    /* ICCCM §4.1.7: 'SetInputFocus' is called for a client whose
+     * 'WM_HINTS' input field is true, and 'WM_TAKE_FOCUS' is sent
+     * further down to one that registers it.  A Passive client gets the
+     * first alone, a Globally Active one the second alone, and
+     * a Locally Active one both, the same as Openbox's 'client_focus'
+     * does: the client's own 'SetInputFocus' in answer carries the same
+     * timestamp, which X still accepts, since it only discards a focus
+     * change older than the last one.
      *
-     * A client registering 'WM_TAKE_FOCUS' sets its focus, on receiving
-     * the message sent further down, whatever its input field says:
-     * with the field false that is the Globally Active model and with
-     * it true the Locally Active one, and §4.1.7 describes both as the
-     * client doing the setting.  Doing both, as this once did for
-     * a Locally Active client, is not merely redundant but actively
-     * breaks it: the timestamp is spent here first, and X ignores
-     * a 'SetInputFocus' whose time is not later than the last focus
-     * change, so the client's call with that same timestamp is
-     * discarded.  The frame took the focus and lit its titlebar while
-     * the application's focus stayed wherever it had been, which is
-     * what cycling with a key binding looked like.
-     *
-     * Target 'client->window' itself, except while shaded.  Content is
-     * unmapped then (that is the entire point of shading), and ICCCM
-     * §4.1.7/X11 both require a 'SetInputFocus' target to be viewable,
-     * so a shaded client's frame (still mapped, just visually collapsed
-     * to its titlebar) stands in for it instead.  Without this,
+     * A shaded client is the exception.  Its content is unmapped (that
+     * is the entire point of shading), and X requires a 'SetInputFocus'
+     * target to be viewable, so its frame (still mapped, just visually
+     * collapsed to its titlebar) takes the focus instead, whatever the
+     * input model, and no 'WM_TAKE_FOCUS' is sent: the client could
+     * only answer it by focusing a window that cannot take
+     * it.  Unshading gives the focus back to the content through
+     * 'ccmd_client_refocus_if_active'.  Without the frame standing in,
      * a shaded client could never legitimately hold real input focus at
      * all: 's_client_focus_fallback_valid' (this same file) and
-     * 'stage_client_show_all' ('stage/actions/client.c') both
-     * relied on simply excluding a shaded client from ever being
-     * offered here, over actually making this call safe for one, which
-     * left nothing to give a desktop's keyboard focus anywhere valid
-     * once its only client was shaded and the desktop was left and
-     * returned to. */
-    if (client->hints_icccm.hints.accepts_input) {
-        xcb_window_t focus_win = (client_is_shaded(client) &&
-                client->frame != 0) ? client->frame : client->window;
+     * 'stage_client_show_all' ('stage/actions/client.c') both relied on
+     * simply excluding a shaded client from ever being offered here,
+     * which left nothing to give a desktop's keyboard focus anywhere
+     * valid once its only client was shaded and the desktop was left
+     * and returned to. */
+    is_frame_focused = (client_is_shaded(client) && client->frame != 0);
+    if (is_frame_focused || client->hints_icccm.hints.accepts_input) {
         xcb_set_input_focus(xcb_connection_get(), XCB_INPUT_FOCUS_PARENT,
-                            focus_win, focus_time);
+                (is_frame_focused) ? client->frame : client->window,
+                focus_time);
     }
 
     /* ICCCM §4.2.7: send 'WM_TAKE_FOCUS' 'ClientMessage' when the
@@ -734,7 +727,7 @@ void ccmd_client_focus(client_td *client)
      * the outside like a titlebar that lights up while the keyboard
      * goes elsewhere. */
     if (client->hints_icccm.protocols.has_take_focus &&
-            ewmh != NULL) {
+            !is_frame_focused && ewmh != NULL) {
         xcb_client_message_event_t ev;
         memset(&ev, 0, sizeof(ev));
         ev.response_type = XCB_CLIENT_MESSAGE;
