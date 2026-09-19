@@ -73,6 +73,19 @@ static desktop_td *s_stub_client_desktop = NULL;
  *  reason */
 static stage_td *s_stub_stage = NULL;
 
+
+/** Recording stand-in for stage_client_show_one (stage/actions/
+ *  client.c): counts the clients mapped on arrival at the desktop
+ *  shown */
+static int s_show_one_calls;
+
+void stage_client_show_one(stage_td *stage, client_td *client)
+{
+    (void) stage;
+    (void) client;
+    s_show_one_calls++;
+}
+
 stage_td *wm_get_stage_by_id(uint32_t stage_id)
 {
     (void) stage_id;
@@ -530,6 +543,9 @@ static void s_test_client_sent_to_shown_desktop_keeps_active(void)
     TAP_EQ_INT((int) target->client_active_id, 999,
             "a client sent to the desktop shown leaves its active"
             " client as it was");
+    TAP_EQ_INT(s_show_one_calls, 1,
+            "...and is mapped there the way showing that desktop would"
+            " map it");
 
     s_stub_stage = NULL;
     free(source);
@@ -540,7 +556,7 @@ static void s_test_client_sent_to_shown_desktop_keeps_active(void)
 
 int main(void)
 {
-    TAP_PLAN(6);
+    TAP_PLAN(7);
 
     s_test_focusable_client_to_empty_desktop();
     s_test_focusable_client_overwrites_existing_active();

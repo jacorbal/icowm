@@ -58,6 +58,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <stage.h>
+#include <stage/client.h>
 #include <wm.h>
 
 /* Local includes */
@@ -210,6 +211,15 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             (stage == NULL || target->id != stage->desktop_cur)) {
         target->client_active_id = client->id;
         target->is_focus_dirty = true;
+    }
+
+    /* Arriving on the desktop shown, 'client' is mapped there the way
+     * showing that desktop would map it, rather than left to whatever
+     * a later render pass maps: that pass maps only the window it
+     * styles, which for a full-screen client is not the frame it keeps,
+     * so one whose frame was unmapped while away would stay unseen */
+    if (stage != NULL && target->id == stage->desktop_cur) {
+        stage_client_show_one(stage, client);
     }
 
     /* Published here, once, for every caller of this whole desktop-
