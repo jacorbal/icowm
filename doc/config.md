@@ -2560,8 +2560,8 @@ matching rule for each property are applied.
 | `apply.position`         | object or `"center"` | *unset* | Where to place the window; see below. |
 | `apply.position.x`       | integer              | *unset* | X position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the stage's otherwise. |
 | `apply.position.y`       | integer              | *unset* | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the stage's otherwise. |
-| `apply.size.width`       | integer              | *unset* | Window width in pixels; must be greater than `0`. |
-| `apply.size.height`      | integer              | *unset* | Window height in pixels; must be greater than `0`. |
+| `apply.size.width`       | integer              | *unset* | Width of the whole window in pixels, its border and title bar included; must be greater than `0`. |
+| `apply.size.height`      | integer              | *unset* | Height of the whole window in pixels, its border and title bar included; must be greater than `0`. |
 
 Position and size are applied independently.  Specifying only `position`
 moves the window without resizing it; specifying only `size` resizes it
