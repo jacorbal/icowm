@@ -22,7 +22,7 @@
 /* System includes */
 #include <stdint.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 

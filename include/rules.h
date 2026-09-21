@@ -27,7 +27,7 @@
 /* System includes */
 #include <stdbool.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 
@@ -76,7 +76,6 @@ rules_td *rules_init(void);
  */
 void rules_destroy(rules_td *rules);
 
-
 /**
  * @brief Load window matching rules from a JSON configuration file
  *
@@ -86,7 +85,7 @@ void rules_destroy(rules_td *rules);
  * A missing or malformed file is silently treated as an empty rule set
  * so the window manager can start without one.
  *
- * @param rules Rules table to populate, previously returned
+ * @param rules             Rules table to populate, previously returned
  *                          by @a rules_init
  * @param config_dir_prefix Path to the configuration directory, or
  *                          @c NULL to use the XDG default
@@ -110,15 +109,15 @@ int rules_load(rules_td *rules, const char *config_dir_prefix);
  * applied: desktop assignment, monitor assignment, stacking layer,
  * geometry, flags, and focus.
  *
- * @param wm       Pointer to the window manager singleton instance
- * @param client   Client to evaluate rules against
- * @param stage_io In/out pointer to the stage that currently owns
- *                   @p client; updated if a rule moves the client to a
- *                   desktop on a different stage
+ * @param wm         Pointer to the window manager singleton instance
+ * @param client     Client to evaluate rules against
+ * @param stage_io   In/out pointer to the stage that currently owns
+ *                   @p client; updated if a rule moves the client to
+ *                   a desktop on a different stage
  * @param desktop_io In/out pointer to the desktop that currently owns
  *                   @p client; updated when a rule assigns a new
  *                   desktop
- * @param trigger Event that caused this evaluation
+ * @param trigger    Event that caused this evaluation
  *
  * @return Whether any rule matched and produced a visible change
  * @retval true  At least one rule matched and at least one property was

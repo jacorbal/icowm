@@ -28,9 +28,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
-
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 

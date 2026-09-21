@@ -17,9 +17,11 @@
 #define CMDS_SCMD_H
 
 
+/* Type includes */
+#include <types/direction.h>
+
 /* Project includes */
 #include <stage.h>
-#include <types/direction.h>
 
 
 /* Public interface */
@@ -122,14 +124,15 @@ void scmd_stage_viewport_drag_exclude(client_td *client);
  * @brief Pan the current desktop's viewport one screen north, clamped
  *        at the top of the pannable area
  *
- * A no-op whenever the current desktop's configured 'viewport' is
- * only one screen tall, or the viewport already sits at its northmost
- * origin: unlike @a scmd_stage_desktop_switch_north, this never
- * wraps around and never changes which desktop is current, only where
- * within it the screen is looking.
+ * Unlike @a scmd_stage_desktop_switch_north, this never wraps
+ * around and never changes which desktop is current, only where within
+ * it the screen is looking.
  *
  * @param stage Pointer to the stage
  *
+ * @note A no-op whenever the current desktop's configured viewport is
+ *       only one screen tall, or the viewport already sits at its
+ *       northmost origin
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the current desktop
  */
@@ -366,14 +369,15 @@ bool scmd_stage_viewport_desktop_page(const stage_td *stage,
  * @brief Pan the current desktop's viewport, if needed, so a client
  *        not currently visible ends up centered on screen
  *
- * A no-op, leaving the viewport exactly where it already was, when
- * @p client is already on the page being shown: this only ever moves
- * the viewport to bring an otherwise-invisible client into view,
- * never nudges one already on screen just to perfect its centering.
+ * This only ever moves the viewport to bring an otherwise-invisible
+ * client into view, never nudges one already on screen just to perfect
+ * its centering.
  *
  * @param stage  Stage to pan
  * @param client Client to center the viewport on if not visible
  *
+ * @note A no-op, leaving the viewport exactly where it already was,
+ *       when @p client is already on the page being shown
  * @note A no-op on a sticky client, which is on screen from every
  *       origin
  * @note A no-op on a client belonging to any desktop other than the

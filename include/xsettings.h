@@ -25,7 +25,7 @@
 #define XSETTINGS_H
 
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 
@@ -47,13 +47,12 @@
 /**
  * @brief Acquire the XSETTINGS selection and publish the settings
  *
- * A no-op when @c wm->config->theme.xsettings.is_enabled is @c false,
- * when @p wm has no managed stages yet, or when another settings
- * manager already owns the @c _XSETTINGS_Sn selection on the first
- * stage's screen.
- *
  * @param wm Window manager state
  *
+ * @note A no-op when @c wm->config->theme.xsettings.is_enabled is
+ *       @c false, when @p wm has no managed stages yet
+ * @note Also, a no-op when another settings manager already owns the
+ *       @c _XSETTINGS_Sn selection on the first stage's screen
  * @note Complexity: @e O(1)
  */
 void xsettings_init(const wm_td *wm);

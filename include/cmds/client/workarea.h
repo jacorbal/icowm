@@ -21,7 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 

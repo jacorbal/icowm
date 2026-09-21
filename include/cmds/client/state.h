@@ -24,7 +24,7 @@
 #define CMDS_CCMD_STATE_H
 
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 

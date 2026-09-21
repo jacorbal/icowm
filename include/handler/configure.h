@@ -27,6 +27,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Types includes */
+#include <types/handles.h>
+
 
 /* Public interface */
 /**

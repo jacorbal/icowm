@@ -91,7 +91,7 @@ void session_destroy(session_td *session);
  * of command strings.  A missing or malformed file is silently treated
  * as an empty hook set.
  *
- * @param session Session table to populate, previously
+ * @param session           Session table to populate, previously
  *                          returned by @a session_init
  * @param config_dir_prefix Path to the configuration directory, or
  *                          @c NULL to use the XDG default
@@ -116,7 +116,7 @@ int session_load(session_td *session, const char *config_dir_prefix);
  * @param session Session table that holds the command lists; if
  *                @c NULL the function returns immediately each child
  *                before @c execvp (may be null)
- * @param hook Lifecycle event whose commands are to be run
+ * @param hook    Lifecycle event whose commands are to be run
  *
  * @note Spawned processes are tracked so @a session_reap_children can
  *       log their exit status

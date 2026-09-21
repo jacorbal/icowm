@@ -17,7 +17,7 @@
 #define CMDS_CCMD_META_H
 
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 

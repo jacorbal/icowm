@@ -54,10 +54,12 @@
 /* Util includes */
 #include <utils/safe/safeflg.h>
 
+/* Render includes */
+#include <render/wmicon.h>
+
 /* Project includes */
 #include <action.h>
 #include <config.h>
-#include <render/wmicon.h>
 
 /* Local includes */
 #include <client/layout.h>

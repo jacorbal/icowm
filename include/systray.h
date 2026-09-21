@@ -170,30 +170,28 @@ const struct strut_partial_s
     *systray_get_reserved_strut(const stage_td *stage);
 
 /**
- * @brief Return the tray's current on-screen rectangle on
- *        @p stage
+ * @brief Return the tray's current on-screen rectangle on @p stage
  *
  * A synchronous @a xcb_get_geometry round trip, unlike every other
- * accessor in this header.  Nothing about the tray's current
- * position and size is cached anywhere else in this module (only its
- * configured @p height is; the rest follows from wherever
- * @a systray_layout_reflow last placed the window itself), so this is
- * the only way to answer "where the bloody hell is the tray sitting
- * right now?" precisely.
+ * accessor in this header.  Nothing about the tray's current position
+ * and size is cached anywhere else in this module (only its configured
+ * @p height is; the rest follows from wherever @a systray_layout_reflow
+ * last placed the window itself), so this is the only way to answer
+ * "where the bloody hell is the tray sitting right now?" precisely.
  *
  * Meant for infrequent, one-off checks (e.g., an icon settling into its
  * final dropped position after a drag), not anything called on every
  * frame of a render or drag loop.
  *
  * @param stage    Stage to query the tray's rectangle on
- * @param out_tray Receives the tray's current rectangle,
- *                root-relative (same coordinate space every top-level
- *                window this project creates, icon windows included,
- *                already shares)
+ * @param out_tray Receives the tray's current rectangle, root-relative
+ *                 (same coordinate space every top-level window this
+ *                 project creates, icon windows included, already
+ *                 shares)
  *
- * @return @c true and @p out_tray filled in when @p stage is the
- *         one the tray is docked on and it is currently showing
- *         there; @c false otherwise, with @p out_tray left untouched
+ * @return @c true and @p out_tray filled in when @p stage is the one
+ *         the tray is docked on and it is currently showing there; @c
+ *         false otherwise, with @p out_tray left untouched
  *
  * @note Complexity: @e O(1), plus one synchronous round trip to the
  *       X server
@@ -239,9 +237,9 @@ void systray_reload(const wm_td *wm);
  * Valid layer values are:
  *
  * - @c below (default): always behind normal windows
- * - @c above: above normal windows, but covered by a fullscreen
- *   window, the same way a taskbar or panel gets covered by a
- *   fullscreen window in most desktop environments
+ * - @c above: above normal windows, but covered by a fullscreen window,
+ *   the same way a taskbar or panel gets covered by a fullscreen window
+ *   in most desktop environments
  * - @c overlay: above absolutely everything, including fullscreen
  *   windows
  *
@@ -260,14 +258,14 @@ void systray_restack(void);
  * Unmaps the tray window while empty or while the selection is not
  * currently owned (e.g., disabled by configuration, or another tray
  * manager is active), so it never shows on screen in either case;
- * otherwise sizes and moves it to the configured corner of the
- * stage and arranges icons in a single horizontal row inside it.
+ * otherwise sizes and moves it to the configured corner of the stage
+ * and arranges icons in a single horizontal row inside it.
  *
  * Redraws only from whatever text and icon state is already cached;
- * never recomputes the clock or re-polls the battery itself, so
- * calling this alone (e.g., in response to an @c Expose event
- * revealing a previously covered region) is always cheap regardless
- * of how often it happens.
+ * never recomputes the clock or re-polls the battery itself, so calling
+ * this alone (e.g., in response to an @c Expose event revealing
+ * a previously covered region) is always cheap regardless of how often
+ * it happens.
  *
  * @note Complexity: @e O(n), where @e n is the number of docked icons
  */

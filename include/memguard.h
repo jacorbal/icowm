@@ -36,7 +36,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 

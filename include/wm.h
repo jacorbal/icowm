@@ -29,8 +29,10 @@
 /* ADT includes */
 #include <adt/list.h>   /* Singly linked list */
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <stage.h>
 
 
@@ -72,8 +74,8 @@ typedef struct wm_s wm_td;
 
 
 /* Field accessors ('wm/instance.c'); every wm/ sub-module and every
- * external caller reaches wm_td's fields only through these,
- * never through direct member access */
+ * external caller reaches wm_td's fields only through these, never
+ * through direct member access */
 /**
  * @brief XCB connection handle
  *
@@ -228,8 +230,7 @@ bool wm_is_running(const wm_td *wm);
  *
  * @param wm Window manager instance
  *
- * @return The ceiling in mebibytes, or @c 0 when the mode is not
- *         active
+ * @return The ceiling in mebibytes, or @c 0 when the mode is not active
  *
  * @note Complexity: @e O(1)
  */
@@ -239,9 +240,9 @@ uint32_t wm_restricted_memory_mib(const wm_td *wm);
  * @brief Return the @c _NET_SUPPORTING_WM_CHECK window
  *
  * Also the same window @a wm_startup_acquire_selection
- * (@c wm/startup/selection.c) makes the owner of every managed
- * screen's @c WM_Sn manager selection; see that function's
- * comment for why the two share one window.
+ * (@c wm/startup/selection.c) makes the owner of every managed screen's
+ * @c WM_Sn manager selection; see that function's comment for why the
+ * two share one window.
  *
  * @param wm Window manager instance
  *
@@ -278,7 +279,7 @@ void wm_set_keysyms(wm_td *wm, xcb_key_symbols_t *keysyms);
  * @param wm         Window manager instance
  * @param available  Whether the XRandR extension was found
  * @param base_event The base event code; meaningless if @p available
- *                    is @c false
+ *                   is @c false
  *
  * @note Complexity: @e O(1)
  */
@@ -290,7 +291,7 @@ void wm_set_randr(wm_td *wm, bool available, uint8_t base_event);
  * @param wm         Window manager instance
  * @param available  Whether the XSync extension was found
  * @param base_event The base event code; meaningless if @p available
- *                    is @c false
+ *                   is @c false
  *
  * @note Complexity: @e O(1)
  */
@@ -306,8 +307,8 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  * windows array and initializes the current desktop index and running
  * state.
  *
- * When @p restricted_memory_mib is non-zero, restricted-memory mode
- * is active.  Available system memory is checked before doing anything
+ * When @p restricted_memory_mib is non-zero, restricted-memory mode is
+ * active.  Available system memory is checked before doing anything
  * else, refusing to start at all if it is already below that many
  * mebibytes; icon pixmaps and modern font rendering are forced off
  * regardless of what the theme itself says; and each screen's desktop
@@ -317,26 +318,26 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  * hooks, screen count) loads exactly as it would without
  * @p restricted_memory_mib at all.
  *
- * Before taking @c SubstructureRedirect on any root window, this
- * checks whether another window manager already owns that screen's
- * own @c WM_Sn manager selection (ICCCM §2.8), refusing to start
- * against it unless @p replace_requested is @c true, in which case it
- * waits (bounded) for the previous owner to relinquish control before
- * proceeding; see @a wm_startup_acquire_selection
- * (@c wm/startup/selection.c) for the full mechanics.
+ * Before taking @c SubstructureRedirect on any root window, this checks
+ * whether another window manager already owns that screen's @c WM_Sn
+ * manager selection (ICCCM §2.8), refusing to start against it unless
+ * @p replace_requested is @c true, in which case it waits (bounded) for
+ * the previous owner to relinquish control before proceeding; see
+ * @a wm_startup_acquire_selection (@c wm/startup/selection.c) for the
+ * full mechanics.
  *
- * @param display_name Name of the display, or @c NULL for
+ * @param display_name          Name of the display, or @c NULL for
  *                              default
- * @param config_dir_prefix Configuration directory, or @c NULL to
+ * @param config_dir_prefix     Configuration directory, or @c NULL to
  *                              use the default value
  * @param restricted_memory_mib Restricted-memory mode's
  *                              available-memory ceiling in mebibytes,
  *                              or @c 0 to leave the mode off
- * @param ipc_disabled When @c true, the IPC control socket is
+ * @param ipc_disabled          When @c true, the IPC control socket is
  *                              never brought up at all; every other
  *                              part of IcoWM runs exactly the same
  *                              either way
- * @param replace_requested When @c true, take over an
+ * @param replace_requested     When @c true, take over an
  *                              already-running window manager's
  *                              @c WM_Sn ownership instead of refusing
  *                              to start against it (@c -r)
@@ -374,8 +375,7 @@ int wm_start(const char *restrict display_name,
 
 /**
  * @brief Warn through a message dialog if any JSON file loaded since
- *        the last call to @c json_syntax_errors_reset failed to
- *        parse
+ *        the last call to @c json_syntax_errors_reset failed to parse
  *
  * A JSON file simply not existing is an ordinary, silent reason to fall
  * back to defaults, and produces no entry there at all, only a file
@@ -391,8 +391,7 @@ int wm_start(const char *restrict display_name,
  * @note A no-op if @a json_syntax_errors_count is @c 0 
  * @note Also a no-op if the singleton window manager instance is not
  *       running, or has no stage to show the dialog on
- * @note Complexity: @e O(n), where @e n is the number of files
- *       recorded
+ * @note Complexity: @e O(n), where @e n is the number of files recorded
  *
  * @see @a json_syntax_errors_reset, also @c utils/config/json.h
  */
@@ -430,21 +429,20 @@ int wm_stop(void);
 int wm_request_stop(void);
 
 /**
- * @brief Request a coordinated stop of the window manager, giving
- *        every managed client a chance to close itself first
+ * @brief Request a coordinated stop of the window manager, giving every
+ *        managed client a chance to close itself first
  *
- * Unlike @a wm_request_stop, which stops the main loop right away,
- * this asks every managed client to close (ICCCM @c WM_DELETE_WINDOW
- * where supported) and only actually stops once every one of them has
- * closed on its own or a configured timeout elapses, whichever comes
- * first.
+ * Unlike @a wm_request_stop, which stops the main loop right away, this
+ * asks every managed client to close (ICCCM @c WM_DELETE_WINDOW where
+ * supported) and only actually stops once every one of them has closed
+ * on its own or a configured timeout elapses, whichever comes first.
  *
  * Meant for the normal quit action; the emergency exit shortcut
  * deliberately calls @a wm_request_stop directly instead, bypassing
  * this entirely.
  *
- * @note Complexity: @e O(n), where @e n is the total number of
- *       managed clients across every stage and desktop
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients across every stage and desktop
  *
  * @see @c wm/shutdown.h for the full design on asking managed clients
  *      when stopping the window manager
@@ -460,8 +458,8 @@ void wm_request_graceful_stop(void);
  * meant to survive this: @a wm_stop's own teardown already hands each
  * one back to bare X rather than closing it (@a wm_client_unmanage_all,
  * @c wm/client.c), and it is @c main itself that, once that teardown
- * finishes, re-executes this very binary instead of letting the
- * process end.  The freshly re-exec'd instance's own startup scan
+ * finishes, re-executes this very binary instead of letting the process
+ * end.  The freshly re-exec'd instance's own startup scan
  * (@a cctl_adopt_scan, @c cctl/adopt.h) then picks every one of those
  * clients back up on its own, the same way it would any window left
  * open by a crashed prior instance.
@@ -472,23 +470,22 @@ void wm_request_graceful_stop(void);
  *
  * @note Complexity: @e O(1)
  *
- * @see @a wm_restart_requested, consulted by @c main.c once
- *      @a wm_stop returns, to tell a restart apart from an ordinary
- *      exit
+ * @see @a wm_restart_requested, consulted by @c main.c once @a wm_stop
+ *      returns, to tell a restart apart from an ordinary exit
  */
 int wm_request_restart(void);
 
 /**
- * @brief Whether the most recent stop was a restart request rather
- *        than an ordinary exit
+ * @brief Whether the most recent stop was a restart request rather than
+ *        an ordinary exit
  *
  * @return @c true if @a wm_request_restart, not @a wm_request_stop or
  *         @a wm_request_graceful_stop, was the one that ended the main
  *         loop
  *
- * @note Safe to call after @a wm_stop has already destroyed the
- *       window manager singleton; the flag it reports lives on its
- *       own, independent of it
+ * @note Safe to call after @a wm_stop has already destroyed the window
+ *       manager singleton; the flag it reports lives on its own,
+ *       independent of it
  * @note Complexity: @e O(1)
  */
 bool wm_restart_requested(void);
@@ -503,10 +500,10 @@ bool wm_restart_requested(void);
  * @retval  1 Failed to perform the operation
  *
  * @note Reloads @p config->randr from @c randr.json but does not call
- *       @a stage_action_randr_apply_profiles; an edited profile
- *       takes effect at the next call to that function (startup, or
- *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
- *       not from this reload alone
+ *       @a stage_action_randr_apply_profiles; an edited profile takes
+ *       effect at the next call to that function (startup, or the
+ *       matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE), not
+ *       from this reload alone
  * @note Complexity: @e O(n), where @e n is the number of parameters
  *       read back from the configuration file
  */
@@ -546,24 +543,23 @@ desktop_td *wm_get_client_desktop(const client_td *client);
 /**
  * @brief Return the managed stage with the given identifier
  *
- * Scans all stages handled by the singleton window manager instance
- * and returns the one whose @p id matches @p stage_id.
+ * Scans all stages handled by the singleton window manager instance and
+ * returns the one whose @p id matches @p stage_id.
  *
  * @param stage_id Stage identifier
  *
- * @return Pointer to the matching @c stage_td, or @c NULL when no
- *         stage matches or the window manager is not initialized
+ * @return Pointer to the matching @c stage_td, or @c NULL when no stage
+ *         matches or the window manager is not initialized
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 stage_td *wm_get_stage_by_id(uint32_t stage_id);
 
 /**
  * @brief Query whether the XSync extension is available on this server
  *
- * Used by @a client_init to decide whether to create a per-client
- * sync counter/alarm for @c _NET_WM_SYNC_REQUEST, and by
+ * Used by @a client_init to decide whether to create a per-client sync
+ * counter/alarm for @c _NET_WM_SYNC_REQUEST, and by
  * @a ccmd_client_resize to decide whether to throttle interactive
  * resize on that client's acknowledgement.
  *
@@ -598,20 +594,20 @@ list_td *wm_get_stages(void);
  * @brief Find which managed stage a given desktop belongs to
  *
  * @c desktop_td itself keeps no back-pointer to its owning
- * @c stage_td (each stage's @p desktops list points one way
- * only, stage to desktop); this is the reverse lookup, used by
+ * @c stage_td (each stage's @p desktops list points one way only, stage
+ * to desktop); this is the reverse lookup, used by
  * @a desktop_action_recompute_urgent (@c desktop/dclient.c) to find the
- * stage a desktop's cross-desktop urgency notification popup
- * needs to center on and compare @p desktop_cur against, without that
- * function's signature having to grow a @c stage_td parameter
- * every one of its own several unrelated callers would then also have
- * to obtain and pass through.
+ * stage a desktop's cross-desktop urgency notification popup needs to
+ * center on and compare @p desktop_cur against, without that function's
+ * signature having to grow a @c stage_td parameter every one of its own
+ * several unrelated callers would then also have to obtain and pass
+ * through.
  *
  * @param desktop Desktop to find the owning stage of
  *
- * @return The stage @p desktop belongs to, or @c NULL when
- *         @p desktop is @c NULL, no managed stage contains it, or
- *         the window manager is not initialized
+ * @return The stage @p desktop belongs to, or @c NULL when @p desktop
+ *         is @c NULL, no managed stage contains it, or the window
+ *         manager is not initialized
  *
  * @note Complexity: @e O(s * d), where @e s is the number of managed
  *       stages and @e d the number of desktops per stage
@@ -639,14 +635,14 @@ stage_td *wm_get_desktop_stage(const desktop_td *desktop);
 config_td *wm_get_config(void);
 
 /**
- * @brief Return the key symbols table of the singleton window
- *        manager instance
+ * @brief Return the key symbols table of the singleton window manager
+ *        instance
  *
  * For a module needing @c xcb_key_symbols_t to resolve or re-resolve
  * a key binding (@a keyboard_load, @c input/kbd/bind.c, is the first
  * such caller outside @c wm.c itself) without already holding one of
- * its, the same reasoning @a wm_get_config already documents for
- * itself above.
+ * its, the same reasoning @a wm_get_config already documents for itself
+ * above.
  *
  * @return The active key symbols table, or @c NULL when the window
  *         manager is not initialized or has not yet resolved one
@@ -663,8 +659,8 @@ xcb_key_symbols_t *wm_get_keysyms(void);
  *
  * @param client Client whose owner context should be redrawn
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages and desktops
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
+ *       and desktops
  */
 void wm_request_client_redraw(client_td *client);
 
@@ -672,17 +668,17 @@ void wm_request_client_redraw(client_td *client);
  * @brief Mark the client owner desktop and stage as outdated, without
  *        asking for a decoration repaint
  *
- * Meant for a client's own quiet, intermediate steps (a live move's
- * own per-step position update, say), where the frame's screen
- * position needs applying but nothing about how the frame border and
- * titlebar look has actually changed; @a wm_request_client_redraw
- * already asks for one, so any other reason a client becomes
- * outdated still gets its repaint.
+ * Meant for a client's own quiet, intermediate steps (a live move's own
+ * per-step position update, say), where the frame's screen position
+ * needs applying but nothing about how the frame border and titlebar
+ * look has actually changed; @a wm_request_client_redraw already asks
+ * for one, so any other reason a client becomes outdated still gets its
+ * repaint.
  *
  * @param client Client whose owner context should be redrawn
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages and desktops
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
+ *       and desktops
  */
 void wm_request_client_reposition(client_td *client);
 

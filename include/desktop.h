@@ -39,7 +39,7 @@
 #include <adt/cdlist.h> /* Doubly linked circular list */
 #include <adt/ohtbl.h>  /* Open-addressed hash table (closed hashing) */
 
-/* Types includes */
+/* Type includes */
 #include <types/handles.h>
 
 /* Default initial values */

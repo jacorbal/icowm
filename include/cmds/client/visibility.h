@@ -19,10 +19,13 @@
 #define CMDS_CCMD_VISIBILITY_H
 
 
+/* System includes */
+#include <stdbool.h>
+
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 
 

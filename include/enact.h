@@ -42,8 +42,6 @@
 #include <types/handles.h>
 
 
-/* 'action_wm_e' */
-
 /**
  * @brief Request that the window manager stop and exit
  *

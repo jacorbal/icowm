@@ -206,8 +206,8 @@ struct stage_s {
  *
  * @return Pointer to new stage, or @c NULL otherwise
  *
- * @note The caller takes ownership of the returned stage and
- *       releases it with @a stage_destroy
+ * @note The caller takes ownership of the returned stage and releases
+ *       it with @a stage_destroy
  * @note Complexity: @e O(d + n), where @e d is @p desktop_count and
  *       @e n is the number of monitors @a stage_monitor_refresh_all
  *       discovers

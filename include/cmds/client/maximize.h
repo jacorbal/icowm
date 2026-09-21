@@ -17,7 +17,10 @@
 #define CMDS_CCMD_MAXIMIZE_H
 
 
-/* Project includes */
+/* System includes */
+#include <stdbool.h>
+
+/* Type includes */
 #include <types/handles.h>
 
 

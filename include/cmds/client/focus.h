@@ -19,7 +19,7 @@
 #define CMDS_CCMD_FOCUS_H
 
 
-/* Types includes */
+/* Type includes */
 #include <types/handles.h>
 
 /* Project includes */
