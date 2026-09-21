@@ -1,6 +1,6 @@
 # Makefile (for GNU Make / 'gmake')
 #
-# Project: IcoWM ('icowm'), Iconifying Window Manager
+# Project: IcoWM ('icowm'), Iconifying Window Manager for X11
 # Author: J. A. Corbal (<jacorbal@gmail.com>)
 
 # Copyright (c) 2026, J. A. Corbal
@@ -12,7 +12,7 @@
 ## Project metadata
 PROJECT_NAME_PROG = icowm
 PROJECT_NAME_SHORT = "IcoWM"
-PROJECT_NAME_LONG = "Iconifying Window Manager"
+PROJECT_NAME_LONG = "Iconifying Window Manager for X11"
 PROJECT_VERSION = "1.0.1"
 PROJECT_VERSION_CODENAME = "'ovelya"
 LICENSE = "ISC License"

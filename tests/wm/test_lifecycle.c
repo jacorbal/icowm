@@ -75,6 +75,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <menu/dialog/message.h>
+#include <policy/stacking.h>
 #include <rules.h>
 #include <session.h>
 #include <stage.h>
@@ -160,6 +161,49 @@ void desktop_mark_outdated(desktop_td *desktop)
     if (desktop != NULL) {
         desktop->is_outdated = true;
     }
+}
+
+
+/** Stand-in for stacking_walk (policy/stacking.c): hands every
+ *  desktop's single test client, when one is set, to the visitor, so
+ *  wm_request_full_redraw's per-client repaint can be observed */
+static client_td *s_walk_client;
+
+void stacking_walk(const desktop_td *desktop,
+        stacking_visitor_fn visit, void *data)
+{
+    (void) desktop;
+    if (s_walk_client != NULL) {
+        visit(s_walk_client, data);
+    }
+}
+
+
+/** Stand-ins for the XCB calls wm_request_full_redraw's per-client
+ *  repaint makes: counts the exposing clears */
+static int s_clear_area_calls;
+
+xcb_connection_t *xcb_connection_get(void)
+{
+    return (xcb_connection_t *) 0x1;
+}
+
+xcb_void_cookie_t xcb_clear_area(xcb_connection_t *c, uint8_t exposures,
+        xcb_window_t window, int16_t x, int16_t y, uint16_t width,
+        uint16_t height)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) c;
+    (void) window;
+    (void) x;
+    (void) y;
+    (void) width;
+    (void) height;
+    if (exposures) {
+        s_clear_area_calls++;
+    }
+    return cookie;
 }
 
 
@@ -1203,9 +1247,54 @@ static void s_test_request_full_redraw_marks_everything(void)
 }
 
 
+/* wm_request_full_redraw also makes every client repaint for real:
+ * its frame and titlebar paint caches are forgotten, and its window is
+ * cleared with exposures so the application redraws its content */
+static void s_test_request_full_redraw_repaints_clients(void)
+{
+    wm_td local_wm = s_make_wm();
+    stage_td stage;
+    desktop_td desktop;
+    desktop_td *desktops[1];
+    client_td client;
+    list_td *stages;
+
+    memset(&stage, 0, sizeof(stage));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&client, 0, sizeof(client));
+    client.window = 0x500u;
+    client.layout.has_frame_bg = true;
+    client.layout.titlebar_paint.has_titlebar_paint = true;
+
+    stages = list_init(NULL);
+    list_ins_next(stages, NULL, &stage);
+    local_wm.stages = stages;
+    wm = &local_wm;
+
+    s_stub_reset();
+    desktops[0] = &desktop;
+    s_walk_desktops = desktops;
+    s_walk_desktop_count = 1u;
+    s_walk_client = &client;
+    s_clear_area_calls = 0;
+
+    wm_request_full_redraw();
+
+    TAP_OK(!client.layout.has_frame_bg &&
+            !client.layout.titlebar_paint.has_titlebar_paint,
+            "wm_request_full_redraw forgets every client's paint caches");
+    TAP_EQ_INT(s_clear_area_calls, 1,
+            "...and clears its window with exposures so it redraws");
+
+    s_walk_client = NULL;
+    wm = NULL;
+    list_destroy(stages);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(48);
+    TAP_PLAN(50);
 
     s_test_null_singleton_guards();
     s_test_request_stop_flips_running_flag();
@@ -1221,6 +1310,7 @@ int main(void)
     s_test_request_client_reposition_skips_decoration();
     s_test_request_client_reposition_keeps_pending_repaint();
     s_test_request_full_redraw_marks_everything();
+    s_test_request_full_redraw_repaints_clients();
 
     return TAP_DONE();
 }

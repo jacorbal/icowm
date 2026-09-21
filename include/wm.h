@@ -687,13 +687,17 @@ void wm_request_client_redraw(client_td *client);
 void wm_request_client_reposition(client_td *client);
 
 /**
- * @brief Mark all stages and desktops as outdated
+ * @brief Redraw every window, decorations and content alike
  *
- * Requests a full redraw on demand by setting the outdated flags across
- * every managed stage and desktop.
+ * Marks every managed stage, desktop and client as outdated, forgets
+ * the paint caches the render pass skips repainting by, so every frame
+ * and titlebar is painted again for real, and clears every client's
+ * window with exposures, so every application redraws its content.
+ * Meant for the user's own "Redraw all windows" request, not the normal
+ * flow.
  *
- * @note Complexity: @e O(n * m), where @e n is the number of stages
- *       and @e m is the number of desktops per stage
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients across all stages and desktops
  */
 void wm_request_full_redraw(void);
 

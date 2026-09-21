@@ -48,6 +48,7 @@
 
 /* Policy includes */
 #include <policy/focus.h>
+#include <policy/stacking.h>
 
 /* Input includes */
 #include <input/mouse/cursor.h>
@@ -119,18 +120,49 @@ static void s_desktop_match_visit(desktop_td *desktop, void *data)
 
 
 /**
- * @brief Mark one desktop as needing a redraw
+ * @brief Make one client repaint everything on its next render pass
+ *
+ * The render pass repaints a frame or a titlebar only when something it
+ * draws from has changed, and its caches say nothing has; forgetting
+ * them makes it paint both for real.  The client's own window is
+ * cleared with exposures, so the application gets an @c Expose and
+ * redraws its content too.
+ *
+ * @param client Client reached by the walk
+ * @param data   Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_repaint_visit(client_td *client, void *data)
+{
+    (void) data;
+
+    if (client == NULL) {
+        return;
+    }
+
+    client->layout.has_frame_bg = false;
+    client->layout.titlebar_paint.has_titlebar_paint = false;
+    xcb_clear_area(xcb_connection_get(), 1, client->window, 0, 0, 0, 0);
+}
+
+
+/**
+ * @brief Mark one desktop, and every client on it, as needing a full
+ *        repaint
  *
  * @param desktop Desktop reached by the walk
  * @param data    Unused
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
  */
 static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
 {
     (void) data;
 
     desktop_mark_outdated(desktop);
+    stacking_walk(desktop, s_client_repaint_visit, NULL);
 }
 
 
