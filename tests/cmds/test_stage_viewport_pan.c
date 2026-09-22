@@ -374,6 +374,91 @@ static client_td *s_make_client(int32_t x, int32_t y, bool sticky)
 }
 
 
+/* A fullscreen client covers the physical screen, so neither axis of
+ * its current position follows the canvas, while its saved position,
+ * which is where restoring it puts it back on that canvas, does */
+static void s_test_pan_east_keeps_fullscreen_in_place(void)
+{
+    config_td config;
+    stage_td *stage;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *full = s_make_client(10, 20, false);
+    client_td *clients[1];
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    stage = s_make_stage(&config, 0u);
+    full->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
+
+    clients[0] = full;
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_client_desktop = desktop;
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_stage_viewport_pan_east(stage);
+
+    TAP_EQ_INT(full->layout.geometry.cur.pos.x, 10,
+            "a fullscreen client keeps covering the screen it was"
+            " sized to");
+    TAP_EQ_INT(full->layout.geometry.old.pos.x, -790,
+            "...while its saved position follows the canvas, so"
+            " restoring it lands where the pan left that canvas");
+    TAP_EQ_INT(s_call_target_win, 0,
+            "...and its real window is never reconfigured");
+
+    free(full);
+    free(desktop);
+    free(stage);
+}
+
+
+/* A client maximized on one axis only is anchored to the screen on
+ * that axis and to the canvas on the other */
+static void s_test_pan_east_keeps_maximized_axis_in_place(void)
+{
+    config_td config;
+    stage_td *stage;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *horz = s_make_client(10, 20, false);
+    client_td *clients[1];
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 2u;
+    stage = s_make_stage(&config, 0u);
+    horz->properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+
+    clients[0] = horz;
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_client_desktop = desktop;
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_stage_viewport_pan_east(stage);
+
+    TAP_EQ_INT(horz->layout.geometry.cur.pos.x, 10,
+            "a horizontally maximized client keeps the width it was"
+            " fitted to the work area with");
+    TAP_EQ_INT(horz->layout.geometry.cur.pos.y, 20,
+            "...and an east pan moves nothing vertically anyway");
+    TAP_EQ_INT(horz->layout.geometry.old.pos.x, -790,
+            "...while its saved position still follows the canvas");
+    TAP_EQ_INT(s_call_target_win, 1,
+            "...and its real window is reconfigured, since one axis of"
+            " it did move");
+
+    free(horz);
+    free(desktop);
+    free(stage);
+}
+
+
 /* A pinned client, on every desktop and so panned by whichever one is
  * being looked at, is left where it is, the same as a sticky one */
 static void s_test_pan_east_skips_pinned_client(void)
@@ -1782,7 +1867,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(106);
+    TAP_PLAN(113);
 
     s_test_pan_null_stage();
     s_test_pan_no_desktop_is_noop();
@@ -1790,6 +1875,8 @@ int main(void)
     s_test_pan_id_past_max_screens_falls_back_to_1x1();
     s_test_pan_east_moves_and_translates_clients();
     s_test_pan_east_skips_pinned_client();
+    s_test_pan_east_keeps_fullscreen_in_place();
+    s_test_pan_east_keeps_maximized_axis_in_place();
     s_test_pan_east_notifies_scratchpad_of_real_pan();
     s_test_pan_east_skips_drag_excluded_client();
     s_test_pan_east_also_translates_mapped_icon();

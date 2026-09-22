@@ -270,16 +270,28 @@ static void s_viewport_translate_icon(client_td *client,
  * Its place belongs to the screen, like a sticky client's, not to the
  * canvas of whichever desktop it is currently sitting on.
  *
- * Every other client, maximized or fullscreen included, moves by the
- * same delta as the desktop's own viewport origin: both @c cur and
- * @c old halves of its saved geometry shift together, so a later
- * unmaximize or unshade restores it to where this pan left it rather
- * than to where it sat before.  Reaches the real window directly
- * through @a ccmd_client_apply_geometry rather than
- * @a ccmd_client_move, since that higher-level wrapper refuses to touch
- * a maximized or fullscreen client at all.  Finally hands off to
- * @a s_viewport_translate_icon, which decides on its own whether this
- * client's icon should pan along too.
+ * Every other client moves by the same delta as the desktop's own
+ * viewport origin, but only on the axes it is actually anchored to the
+ * canvas by.  A fullscreen client covers the physical screen, and
+ * a maximized one is sized against the screen's work area, which the
+ * struts of panels that do not pan define, so neither one follows the
+ * canvas on the axes it fills: a fullscreen client on neither, one
+ * maximized horizontally on the horizontal axis, one maximized
+ * vertically on the vertical.  Panning them would leave a fullscreen
+ * client short of the screen while its @c _NET_WM_STATE_FULLSCREEN
+ * still claimed otherwise, and a maximized one off the work area it
+ * was fitted to.
+ *
+ * The @c old half of the saved geometry shifts on both axes
+ * regardless, since it holds where the client sat on the canvas before
+ * it was maximized or made fullscreen, and that is where restoring it
+ * puts it back; left unshifted, it would come back short of every pan
+ * that happened meanwhile.  Reaches the real window directly through
+ * @a ccmd_client_apply_geometry rather than @a ccmd_client_move, since
+ * that higher-level wrapper refuses to touch a maximized or fullscreen
+ * client at all.  Finally hands off to @a s_viewport_translate_icon,
+ * which decides on its own whether this client's icon should pan along
+ * too.
  *
  * @param client Client the walk is currently visiting; never null
  * @param data   The @c struct position_s pixel delta to add to
@@ -291,16 +303,32 @@ static void s_viewport_translate_visit(client_td *client, void *data)
 {
     const struct position_s *delta = (const struct position_s *) data;
     xcb_window_t target;
+    bool is_screen_anchored_x;
+    bool is_screen_anchored_y;
 
     if (client_is_sticky(client) || client_is_pinned(client) ||
             client == s_viewport_pan_excluded_client) {
         return;
     }
 
-    client->layout.geometry.cur.pos.x += delta->x;
-    client->layout.geometry.cur.pos.y += delta->y;
+    is_screen_anchored_x = client_is_fullscreen(client) ||
+        client_is_maximized_horz(client);
+    is_screen_anchored_y = client_is_fullscreen(client) ||
+        client_is_maximized_vert(client);
+
+    if (!is_screen_anchored_x) {
+        client->layout.geometry.cur.pos.x += delta->x;
+    }
+    if (!is_screen_anchored_y) {
+        client->layout.geometry.cur.pos.y += delta->y;
+    }
     client->layout.geometry.old.pos.x += delta->x;
     client->layout.geometry.old.pos.y += delta->y;
+
+    if (is_screen_anchored_x && is_screen_anchored_y) {
+        s_viewport_translate_icon(client, delta);
+        return;
+    }
 
     target = ccmd_target_win(client);
     ccmd_client_apply_geometry(client, target,
