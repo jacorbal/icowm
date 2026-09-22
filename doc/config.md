@@ -1597,10 +1597,10 @@ desktop moves underneath it.
 
 #### `viewport.mesh`
 
-Panning translates every client anchored to the canvas at once, which on
-a sparse desktop can look like nothing happened.  The mesh gives the eye
-a fixed set of marks that travel with the clients, so the movement is
-visible even with no window near the pointer.  It applies equally to keyboard
+Panning translates every non-sticky client at once, which on a sparse
+desktop can look like nothing happened.  The mesh gives the eye a fixed
+set of marks that travel with the clients, so the movement is visible
+even with no window near the pointer.  It applies equally to keyboard
 panning and to a mouse drag on the desktop background.
 
 It is an aid to perception only.  It deliberately carries no information
@@ -2045,20 +2045,17 @@ is this manager's concept.
 #### `keyboard.viewport.pan`
 
 Pans the current desktop's viewport by `viewport.pan-step` (§2.15)
-pixels in the given direction, translating the clients anchored to the
-canvas the opposite way so their on-screen position stays put relative
-to the desktop's virtual canvas; unlike `keyboard.cycle.desktop` above,
-the active desktop never changes, only where within it the physical
-screen is looking.
+pixels in the given direction, translating every non-sticky client the
+opposite way so their on-screen position stays put relative to the
+desktop's virtual canvas; unlike `keyboard.cycle.desktop` above, the
+active desktop never changes, only where within it the physical screen
+is looking.
 
-What the pan does not move is whatever is anchored to the screen rather
-than to the canvas: a sticky window, a pinned one, which is on every
-desktop and would otherwise be moved by whichever one happened to be
-shown, a fullscreen window, which covers the screen by definition, and
-the axis a maximized window fills, since its size comes from the
-screen's work area.  A window maximized on one axis only still pans on
-the other.  Restoring any of them puts it back where it was on the
-canvas, pans included.
+A fullscreen window is the one exception: it covers the physical screen
+by definition, so a pan leaves it where it is rather than leaving it
+short of that screen.  Its saved position still travels with the canvas,
+so leaving fullscreen puts it back where it was there, pans included.
+
 
 | Key     | Default binding        | Action |
 |---------|------------------------|--------|
