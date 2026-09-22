@@ -180,11 +180,11 @@ installed alongside this page.
 .It Ic get_version
 Reports the wire protocol version
 .It Ic list_desktops
-Lists every desktop on every managed surface
+Lists every desktop on every managed stage
 .It Ic list_clients
 Lists every managed client, with geometry and state flags
 .It Ic get_focused
-Reports the active client of every managed surface
+Reports the active client of every managed stage
 .El
 .Ss Closing and focusing a client
 .Bl -tag -width Ds
@@ -317,49 +317,49 @@ Hides the client's titlebar and border
 .It Ic toggle_decorate_client Ar client_id
 Toggles `decorate_client`/`undecorate_client`
 .El
-.Ss Desktops and surfaces
+.Ss Desktops and stages
 .Bl -tag -width Ds
-.It Ic set_background_desktop Ar desktop_id Oo Ar surface_id Oc Ar color
+.It Ic set_background_desktop Ar desktop_id Oo Ar stage_id Oc Ar color
 Sets that desktop's solid background color
-.It Ic show_desktop Ar desktop_id Oo Ar surface_id Oc Ar show
+.It Ic show_desktop Ar desktop_id Oo Ar stage_id Oc Ar show
 Shows or hides every client on that desktop at once
 .It Ic send_client_to_desktop Ar client_id Ar target_desktop_id
-Moves the client to another desktop on the same surface
+Moves the client to another desktop on the same stage
 .It Ic send_client_to_front Ar client_id
 Raises the client to the front of its desktop's window stack
 .It Ic send_client_to_back Ar client_id
 Sends the client to the back of its desktop's window stack
-.It Ic iconify_all Oo Ar desktop_id Oc Oo Ar surface_id Oc
+.It Ic iconify_all Oo Ar desktop_id Oc Oo Ar stage_id Oc
 Iconifies every client on that desktop at once
-.It Ic deiconify_all Oo Ar desktop_id Oc Oo Ar surface_id Oc
+.It Ic deiconify_all Oo Ar desktop_id Oc Oo Ar stage_id Oc
 Restores every iconified client on that desktop at once
-.It Ic rearrange_desktop Oo Ar desktop_id Oc Oo Ar surface_id Oc
+.It Ic rearrange_desktop Oo Ar desktop_id Oc Oo Ar stage_id Oc
 Re-applies the configured placement policy on that desktop
-.It Ic goto_desktop Ar desktop_id Oo Ar surface_id Oc
-Switches the resolved surface to that desktop
-.It Ic goto_desktop_north Oo Ar surface_id Oc
-Switches the resolved surface to the desktop north of its current one
-.It Ic goto_desktop_south Oo Ar surface_id Oc
+.It Ic goto_desktop Ar desktop_id Oo Ar stage_id Oc
+Switches the resolved stage to that desktop
+.It Ic goto_desktop_north Oo Ar stage_id Oc
+Switches the resolved stage to the desktop north of its current one
+.It Ic goto_desktop_south Oo Ar stage_id Oc
 The same, toward the desktop south of the current one
-.It Ic goto_desktop_east Oo Ar surface_id Oc
+.It Ic goto_desktop_east Oo Ar stage_id Oc
 The same, toward the desktop east of the current one
-.It Ic goto_desktop_west Oo Ar surface_id Oc
+.It Ic goto_desktop_west Oo Ar stage_id Oc
 The same, toward the desktop west of the current one
-.It Ic add_desktop Oo Ar surface_id Oc
-Adds a new desktop after the resolved surface's last one, growing its
+.It Ic add_desktop Oo Ar stage_id Oc
+Adds a new desktop after the resolved stage's last one, growing its
 configured grid layout by a row or column first if it does not already
 have a gap cell for it
-.It Ic remove_desktop Oo Ar surface_id Oc
-Removes the resolved surface's last desktop, moving any client still
+.It Ic remove_desktop Oo Ar stage_id Oc
+Removes the resolved stage's last desktop, moving any client still
 on it to the one before it, switching the current view there too if it
 was the one removed
-.It Ic toggle_strutless_maximize Oo Ar surface_id Oc
+.It Ic toggle_strutless_maximize Oo Ar stage_id Oc
 Toggles whether panel and tray struts are set aside when computing
-that surface's work areas
+that stage's work areas
 .El
 .Ss The window manager itself
 .Bl -tag -width Ds
-.It Ic toggle_scratchpad Oo Ar desktop_id Oc Oo Ar surface_id Oc
+.It Ic toggle_scratchpad Oo Ar desktop_id Oc Oo Ar stage_id Oc
 Launches the scratchpad, or shows/hides it if already running
 .It Ic reload_config
 Reloads every configuration file
@@ -379,20 +379,20 @@ Each arrives as one JSON line naming the event in its
 .Ic event
 field, alongside the fields given here.
 .Bl -tag -width Ds
-.It Ic client_mapped Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_mapped Ar client_id , Ar desktop_id , Ar stage_id
 A client was just mapped onto that desktop
-.It Ic client_closed Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_closed Ar client_id , Ar desktop_id , Ar stage_id
 A client was just destroyed
-.It Ic desktop_switched Ar surface_id , Ar desktop_id
-That surface's current desktop just changed to
+.It Ic desktop_switched Ar stage_id , Ar desktop_id
+That stage's current desktop just changed to
 .Ic desktop_id
-.It Ic client_focused Ar surface_id , Ar client_id
-That client just became the active one on its surface
-.It Ic client_urgency_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_focused Ar stage_id , Ar client_id
+That client just became the active one on its stage
+.It Ic client_urgency_set Ar client_id , Ar desktop_id , Ar stage_id
 That client's urgency hint was just set
-.It Ic client_urgency_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_urgency_cleared Ar client_id , Ar desktop_id , , Ar stage_id
 That client's urgency hint was just cleared
-.It Ic client_moved Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_moved Ar client_id , Ar desktop_id , Ar stage_id
 That client's position just changed (see the
 .Ic list_clients
 command for its current
@@ -400,7 +400,7 @@ command for its current
 /
 .Ic y
 )
-.It Ic client_resized Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_resized Ar client_id , Ar desktop_id , Ar stage_id
 That client's size just changed (see the
 .Ic list_clients
 command for its current
@@ -408,69 +408,69 @@ command for its current
 /
 .Ic h
 )
-.It Ic client_rule_applied Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_rule_applied Ar client_id , Ar desktop_id , Ar stage_id
 A loaded rule just changed one or more of that client's properties
-.It Ic client_pin_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_pin_set Ar client_id , Ar desktop_id , Ar stage_id
 That client was just pinned (visible on every desktop)
-.It Ic client_pin_cleared Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_pin_cleared Ar client_id , Ar desktop_id , Ar stage_id
 That client was just unpinned
-.It Ic client_fullscreen_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_fullscreen_set Ar client_id , Ar desktop_id , Ar stage_id
 That client just entered full screen
-.It Ic client_fullscreen_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_fullscreen_cleared Ar client_id , Ar desktop_id , , Ar stage_id
 That client just left full screen
-.It Ic client_shade_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_shade_set Ar client_id , Ar desktop_id , Ar stage_id
 That client was just shaded (rolled up into its titlebar)
-.It Ic client_shade_cleared Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_shade_cleared Ar client_id , Ar desktop_id , Ar stage_id
 That client was just unshaded
-.It Ic client_hide_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_hide_set Ar client_id , Ar desktop_id , Ar stage_id
 That client was just hidden
-.It Ic client_hide_cleared Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_hide_cleared Ar client_id , Ar desktop_id , Ar stage_id
 That client was just unhidden
-.It Ic client_decoration_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_decoration_set Ar client_id , Ar desktop_id , Ar stage_id
 That client's titlebar and border were just shown
-.It Ic client_decoration_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_decoration_cleared Ar client_id , Ar desktop_id , , Ar stage_id
 That client's titlebar and border were just hidden
-.It Ic client_iconify_set Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_iconify_set Ar client_id , Ar desktop_id , , Ar stage_id
 That client was just iconified
-.It Ic client_iconify_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_iconify_cleared Ar client_id , Ar desktop_id , , Ar stage_id
 That client was just restored from being iconified
-.It Ic client_layer_changed Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_layer_changed Ar client_id , Ar desktop_id , Ar stage_id
 That client's stacking layer just changed (see
 .Ic list_clients
 for its current layer)
-.It Ic client_desktop_changed Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_desktop_changed Ar client_id , Ar desktop_id , Ar stage_id
 That client just moved to a different desktop (here,
 .Ic desktop_id
 is the new one)
-.It Ic client_renamed Ar client_id , Ar desktop_id , Ar surface_id , Ar name
+.It Ic client_renamed Ar client_id , Ar desktop_id , Ar stage_id , Ar name
 That client's displayed title was just overridden
-.It Ic client_reclassed Ar client_id , Ar desktop_id , Ar surface_id , Ar class_name , Ar instance_name
+.It Ic client_reclassed Ar client_id , Ar desktop_id , Ar stage_id , Ar class_name , Ar instance_name
 That client's
 .Ic WM_CLASS
 was just overridden
-.It Ic client_reroled Ar client_id , Ar desktop_id , Ar surface_id , Ar role
+.It Ic client_reroled Ar client_id , Ar desktop_id , Ar stage_id , Ar role
 That client's window role was just overridden
-.It Ic client_icon_changed Ar client_id , Ar desktop_id , Ar surface_id , Ar icon_name
+.It Ic client_icon_changed Ar client_id , Ar desktop_id , Ar stage_id , Ar icon_name
 That client's displayed icon was just overridden
-.It Ic desktop_background_changed Ar desktop_id , Ar surface_id
+.It Ic desktop_background_changed Ar desktop_id , Ar stage_id
 That desktop's solid background color was just set
-.It Ic desktop_shown Ar desktop_id , Ar surface_id
+.It Ic desktop_shown Ar desktop_id , Ar stage_id
 Every client on that desktop was just shown at once
-.It Ic desktop_hidden Ar desktop_id , Ar surface_id
+.It Ic desktop_hidden Ar desktop_id , Ar stage_id
 Every client on that desktop was just hidden at once
-.It Ic client_stacking_changed Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_stacking_changed Ar client_id , Ar desktop_id , , Ar stage_id
 That client's position within its layer's stacking order just changed
-.It Ic client_maximize_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_maximize_set Ar client_id , Ar desktop_id , Ar stage_id
 That client was just maximized on an axis it was not before
-.It Ic client_maximize_cleared Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_maximize_cleared Ar client_id , Ar desktop_id , Ar stage_id
 That client just stopped being maximized on an axis it was before
-.It Ic desktop_added Ar desktop_id , Ar surface_id
+.It Ic desktop_added Ar desktop_id , Ar stage_id
 A desktop was just added to that stage
-.It Ic desktop_removed Ar desktop_id , Ar surface_id
+.It Ic desktop_removed Ar desktop_id , Ar stage_id
 That desktop was just removed from that stage
 .It Ic scratchpad_shown Ar client_id
 The scratchpad was just shown
-.It Ic scratchpad_hidden Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic scratchpad_hidden Ar client_id , Ar desktop_id , Ar stage_id
 The scratchpad was just hidden
 .It Ic config_reloaded
 Every configuration file was just reloaded; carries no fields.
@@ -579,7 +579,7 @@ $ icowm-msg goto_desktop desktop_id=1
 {"ok":true}
 
 $ icowm-msg goto_desktop desktop_id=99
-{"ok":false,"error":"no such desktop on that surface"}
+{"ok":false,"error":"no such desktop on that stage"}
 .Ed
 .Pp
 Move a client, giving its identifier either way round:
@@ -606,7 +606,7 @@ reports:
 .Bd -literal -offset indent
 $ icowm-msg -w client_mapped
 {"ok":true}
-{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"client_mapped"}
+{"client_id":23068673,"desktop_id":0,"stage_id":0,"event":"client_mapped"}
 icowm-msg: connection closed with no response
 $ echo $?
 2

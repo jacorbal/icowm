@@ -108,11 +108,11 @@ window it belongs to.
 .Bl -tag -width Ds
 .It Ic apply.desktop Pq integer
 Send the window to this desktop.
-A desktop that does not exist on the window's surface falls back to
+A desktop that does not exist on the window's stage falls back to
 desktop 0.
 .It Ic apply.monitor Pq integer
 Place it on this monitor.
-A monitor that does not exist on the window's surface falls back to
+A monitor that does not exist on the window's stage falls back to
 monitor 0.
 .It Ic apply.layer Pq string
 Put it in this stacking layer, one of
@@ -219,7 +219,7 @@ to have already been given.
 When
 .Ic monitor
 is set as well, every position here becomes relative to that monitor's
-own top left corner rather than to the whole surface, and
+own top left corner rather than to the whole stage, and
 .Ql center
 targets that monitor.
 A rule naming a
