@@ -431,19 +431,28 @@ with a bare `{"ok": true}` on success.
 | `deiconify_client`             | Restores the client if it was iconified |
 | `hide_client`                  | Hides the client without iconifying it |
 | `unhide_client`                | Undoes `hide_client` |
+| `toggle_iconify_client`        | Toggles between `iconify_client` and `deiconify_client` |
+| `toggle_hide_client`           | Toggles between `hide_client` and `unhide_client` |
 | `pin_client`                   | Makes the client visible on every desktop of its stage |
 | `unpin_client`                 | Undoes `pin_client` |
 | `toggle_pin_client`            | Toggles between `pin_client` and `unpin_client` |
 | `urge_client`                  | Marks the client urgent (see the urgency-blinking behavior in its theme documentation) |
 | `unurge_client`                | Undoes `urge_client` |
+| `toggle_urge_client`           | Toggles between `urge_client` and `unurge_client` |
 | `center_client`                | Centers the client on its current screen |
 | `move_client_to_monitor_north` | Moves the client to the monitor north of its current one, keeping its position relative to that monitor's top-left corner.  Resolved by real physical position, never wraps; a no-op with one monitor or none, or when none lies to the north |
 | `move_client_to_monitor_south` | The same, toward the monitor south of the current one |
 | `move_client_to_monitor_east`  | The same, toward the monitor east of the current one |
 | `move_client_to_monitor_west`  | The same, toward the monitor west of the current one |
-| `maximize_client_horz`         | Maximizes the client horizontally only |
-| `maximize_client_vert`         | Maximizes the client vertically only |
-| `maximize_client`              | Maximizes the client both horizontally and vertically |
+| `maximize_client_horz`         | Maximizes the client horizontally only; a client already maximized that way is left as it is |
+| `maximize_client_vert`         | Maximizes the client vertically only; a client already maximized that way is left as it is |
+| `maximize_client`              | Maximizes the client both horizontally and vertically; a client already maximized both ways is left as it is |
+| `unmaximize_client_horz`       | Restores the client's width, if it is maximized horizontally |
+| `unmaximize_client_vert`       | Restores the client's height, if it is maximized vertically |
+| `unmaximize_client`            | Restores the client from being maximized on either axis |
+| `toggle_maximize_client_horz`  | Toggles between `maximize_client_horz` and `unmaximize_client_horz` |
+| `toggle_maximize_client_vert`  | Toggles between `maximize_client_vert` and `unmaximize_client_vert` |
+| `toggle_maximize_client`       | Toggles between `maximize_client` and `unmaximize_client` |
 | `raise_client`                 | Raises the client to the front of its current layer |
 | `lower_client`                 | Lowers the client to the back of its current layer |
 | `set_layer_above_client`       | Moves the client to the "always on top" layer |
@@ -456,7 +465,9 @@ with a bare `{"ok": true}` on success.
 | `fullscreen_client`            | Makes the client fill its screen, without any decoration |
 | `unfullscreen_client`          | Undoes `fullscreen_client` |
 | `toggle_fullscreen_client`     | Toggles between `fullscreen_client` and `unfullscreen_client` |
-| `toggle_decorate_client`       | Shows or hides the client's titlebar and border |
+| `decorate_client`              | Shows the client's titlebar and border |
+| `undecorate_client`            | Hides the client's titlebar and border |
+| `toggle_decorate_client`       | Toggles between `decorate_client` and `undecorate_client` |
 | `send_client_to_front`         | Raises the client to the front of its desktop's window stack, independent of its layer |
 | `send_client_to_back`          | Sends the client to the back of its desktop's window stack, independent of its layer |
 
@@ -621,6 +632,12 @@ Every event type:
 | `desktop_background_changed` | `desktop_id`, `stage_id`: that desktop's solid background color was just set |
 | `desktop_shown`              | `desktop_id`, `stage_id`: every client on that desktop was just shown at once |
 | `desktop_hidden`             | `desktop_id`, `stage_id`: every client on that desktop was just hidden at once |
+| `client_maximize_set`        | `client_id`, `desktop_id`, `stage_id`: that client was just maximized on an axis it was not before |
+| `client_maximize_cleared`    | `client_id`, `desktop_id`, `stage_id`: that client just stopped being maximized on an axis it was before |
+| `desktop_added`              | `desktop_id`, `stage_id`: a desktop was just added to that stage |
+| `desktop_removed`            | `desktop_id`, `stage_id`: that desktop was just removed from that stage |
+| `scratchpad_shown`           | `client_id`: the scratchpad was just shown |
+| `scratchpad_hidden`          | `client_id`, `desktop_id`, `stage_id`: the scratchpad was just hidden |
 | `config_reloaded`            | *none*: every configuration file was just reloaded |
 | `client_stacking_changed`           | `client_id`, `desktop_id`, `stage_id`: that client's position within its layer's stacking order just changed |
 

@@ -577,7 +577,7 @@ static void s_reset(void)
 
     s_client.id = 1u;
     s_client.window = 100u;
-    s_client.properties.flags = (uint16_t) CLIENT_FLAG_FOCUSABLE;
+    s_client.properties.flags = (uint32_t) CLIENT_FLAG_FOCUSABLE;
     s_client.layout.geometry.cur.dim.w = 300u;
     s_client.layout.geometry.cur.dim.h = 200u;
 
@@ -1037,7 +1037,7 @@ static void s_test_shaded_applies_when_eligible(void)
     struct rules_apply_s apply;
 
     s_reset();
-    s_client.properties.flags |= (uint16_t) CLIENT_FLAG_DECORATED;
+    s_client.properties.flags |= (uint32_t) CLIENT_FLAG_DECORATED;
     memset(&apply, 0, sizeof(apply));
     apply.has_shaded = true;
     apply.is_shaded = true;
@@ -1061,7 +1061,7 @@ static void s_test_shaded_loses_to_fullscreen(void)
     struct rules_apply_s apply;
 
     s_reset();
-    s_client.properties.flags |= (uint16_t) CLIENT_FLAG_DECORATED;
+    s_client.properties.flags |= (uint32_t) CLIENT_FLAG_DECORATED;
     memset(&apply, 0, sizeof(apply));
     apply.has_shaded = true;
     apply.is_shaded = true;
@@ -1111,7 +1111,7 @@ static void s_test_shaded_loses_to_iconified(void)
     struct rules_apply_s apply;
 
     s_reset();
-    s_client.properties.flags |= (uint16_t) CLIENT_FLAG_DECORATED;
+    s_client.properties.flags |= (uint32_t) CLIENT_FLAG_DECORATED;
     memset(&apply, 0, sizeof(apply));
     apply.has_shaded = true;
     apply.is_shaded = true;

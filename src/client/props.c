@@ -422,9 +422,9 @@ void client_props_refresh_normal_hints(client_td *client)
             client->hints_icccm.size.max.h ==
                 client->hints_icccm.size.min.h) {
         client->properties.flags &=
-            (uint16_t) ~(uint16_t) CLIENT_FLAG_RESIZABLE;
+            (uint32_t) ~(uint32_t) CLIENT_FLAG_RESIZABLE;
     } else {
-        client->properties.flags |= (uint16_t) CLIENT_FLAG_RESIZABLE;
+        client->properties.flags |= (uint32_t) CLIENT_FLAG_RESIZABLE;
     }
 
     /* Always wins over 'windows.gravity' in 'config.json' ('client.h',

@@ -1065,7 +1065,7 @@ static void s_test_active_window_hidden_moves_desktop(void)
     memset(&cur_desktop, 0, sizeof(cur_desktop));
     s_test_build_wm(&wm, &ewmh, stages, &config);
     s_test_build_client(&client, 0x500);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_HIDDEN;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_HIDDEN;
     desktop.id = 1;
     cur_desktop.id = 0;
     stage.desktop_cur = 0;
@@ -1204,7 +1204,7 @@ static void s_test_active_window_hidden_unhides(void)
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, stages, &config);
     s_test_build_client(&client, 0x500);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_HIDDEN;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_HIDDEN;
     client.properties.state = 0u;
     desktop.id = 0;
     stage.desktop_cur = 0;
@@ -1250,7 +1250,7 @@ static void s_test_active_window_shaded_unshades(void)
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_wm(&wm, &ewmh, stages, &config);
     s_test_build_client(&client, 0x500);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_SHADED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_SHADED;
     client.properties.state = 0u;
     desktop.id = 0;
     stage.desktop_cur = 0;
@@ -1608,7 +1608,7 @@ static void s_test_wm_ping_pong_updates_client(void)
     s_test_build_client(&client, 0xb00);
     client.hints_ewmh.ping.is_waiting = true;
     client.hints_ewmh.ping.pending_ticks = 3u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_UNRESPONSIVE;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_UNRESPONSIVE;
     s_test_build_event(&event, 0x1, ewmh.WM_PROTOCOLS);
     event.data.data32[0] = (uint32_t) ewmh._NET_WM_PING;
     event.data.data32[1] = 12345u;
@@ -1627,7 +1627,7 @@ static void s_test_wm_ping_pong_updates_client(void)
     TAP_EQ_INT((int) client.hints_ewmh.ping.pending_ticks, 0,
             "a _NET_WM_PING pong resets the pending-ticks counter");
     TAP_OK(!(client.properties.flags &
-                (uint16_t) CLIENT_FLAG_UNRESPONSIVE),
+                (uint32_t) CLIENT_FLAG_UNRESPONSIVE),
             "a _NET_WM_PING pong marks the client responsive again");
     TAP_OK(client.is_outdated && stage.is_outdated &&
             desktop.is_outdated,

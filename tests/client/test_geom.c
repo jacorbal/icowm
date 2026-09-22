@@ -1043,7 +1043,7 @@ static void s_test_synthetic_configure_notify_border(void)
             " the 6 pixel border it has");
 
     client->frame = 0x501u;
-    client->properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client->properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     client->layout.frame_extents.left = 6;
     client->layout.frame_extents.right = 6;
     client->layout.frame_extents.top = 28;
@@ -1092,7 +1092,7 @@ static void s_test_native_border_rebase(void)
 
     client->last_border_width = 2u;
     client->frame = 0x601u;
-    client->properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client->properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     client_native_border_rebase(client, 6u);
 
     TAP_OK(client->layout.geometry.cur.pos.x == 304 &&

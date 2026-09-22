@@ -577,7 +577,7 @@ static void s_test_pinned_client_is_unpinned_and_moved(void)
     desktop_td *target = s_make_desktop(1u);
     client_td *client = s_make_client(100u, true);
 
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_PIN;
     s_unpin_calls = 0;
 
     s_stub_client_desktop = source;

@@ -283,7 +283,7 @@ static void s_test_build_decorated_client(client_td *client)
 {
     s_test_build_plain_client(client);
     client->frame = 0x200;
-    client->properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client->properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     client->layout.frame_extents.left = 4;
     client->layout.frame_extents.right = 4;
     client->layout.frame_extents.top = 24;

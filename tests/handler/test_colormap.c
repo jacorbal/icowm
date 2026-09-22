@@ -151,7 +151,7 @@ static void s_build_client(client_td *client, xcb_window_t id,
     client->id = id;
     client->window = id;
     client->properties.flags = (is_focused) ?
-        (uint16_t) CLIENT_FLAG_FOCUSED : (uint16_t) 0u;
+        (uint32_t) CLIENT_FLAG_FOCUSED : (uint16_t) 0u;
     client->colormap_windows.windows[0] = cmap_window;
     client->colormap_windows.colormap_ids[0] = (xcb_colormap_t) 0x1111u;
     client->colormap_windows.count = 1u;
@@ -302,7 +302,7 @@ int main(void)
 
     /* Same client, now focused: the update happens and
      * xcb_install_colormap is called with the new colormap id */
-    client.properties.flags = (uint16_t) CLIENT_FLAG_FOCUSED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_FOCUSED;
     s_install_calls = 0;
     handler_colormap_notify(NULL, stages, &event);
     TAP_EQ_INT(s_install_calls, 1,

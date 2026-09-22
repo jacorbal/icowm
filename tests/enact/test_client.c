@@ -239,7 +239,7 @@ void ccmd_client_hide(client_td *client)
 {
     s_calls.hide++;
     if (client != NULL) {
-        client->properties.flags |= (uint16_t) CLIENT_FLAG_HIDDEN;
+        client->properties.flags |= (uint32_t) CLIENT_FLAG_HIDDEN;
     }
 }
 
@@ -255,7 +255,7 @@ void ccmd_client_shade(client_td *client)
 {
     s_calls.shade++;
     if (client != NULL) {
-        client->properties.flags |= (uint16_t) CLIENT_FLAG_SHADED;
+        client->properties.flags |= (uint32_t) CLIENT_FLAG_SHADED;
     }
 }
 
@@ -271,7 +271,7 @@ void ccmd_client_toggle_shade(client_td *client)
 {
     s_calls.toggle_shade++;
     if (client != NULL) {
-        client->properties.flags ^= (uint16_t) CLIENT_FLAG_SHADED;
+        client->properties.flags ^= (uint32_t) CLIENT_FLAG_SHADED;
     }
 }
 
@@ -279,7 +279,7 @@ void ccmd_client_pin(client_td *client)
 {
     s_calls.pin++;
     if (client != NULL) {
-        client->properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
+        client->properties.flags |= (uint32_t) CLIENT_FLAG_PIN;
     }
 }
 
@@ -295,7 +295,7 @@ void ccmd_client_toggle_pin(client_td *client)
 {
     s_calls.toggle_pin++;
     if (client != NULL) {
-        client->properties.flags ^= (uint16_t) CLIENT_FLAG_PIN;
+        client->properties.flags ^= (uint32_t) CLIENT_FLAG_PIN;
     }
 }
 
@@ -384,7 +384,7 @@ void ccmd_client_toggle_decorate(client_td *client)
 {
     s_calls.toggle_decorate++;
     if (client != NULL) {
-        client->properties.flags ^= (uint16_t) CLIENT_FLAG_DECORATED;
+        client->properties.flags ^= (uint32_t) CLIENT_FLAG_DECORATED;
     }
 }
 

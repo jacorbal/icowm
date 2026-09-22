@@ -1254,7 +1254,7 @@ static void s_test_map_notify_decorated_client(void)
     s_test_reset_state();
     s_test_build_client(&client, 0x100);
     client.frame = 0x200;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;
@@ -1368,7 +1368,7 @@ static void s_test_gravity_notify_decorated_resync(void)
     s_test_reset_state();
     s_test_build_client(&client, 0x100);
     client.frame = 0x200;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     memset(&event, 0, sizeof(event));
     event.window = 0x100;
     s_lookup_find_client_result = &client;

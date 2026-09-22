@@ -503,7 +503,7 @@ static void s_test_sync_states_flag_hidden_publishes_hidden(void)
     s_reset();
     s_set_ewmh_present(true);
     memset(&client, 0, sizeof(client));
-    client.properties.flags = (uint16_t) CLIENT_FLAG_HIDDEN;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_HIDDEN;
 
     ccmd_client_sync_states(&client);
 
@@ -522,9 +522,9 @@ static void s_test_sync_states_pinned_urgent_shaded(void)
     s_reset();
     s_set_ewmh_present(true);
     memset(&client, 0, sizeof(client));
-    client.properties.flags = (uint16_t) CLIENT_FLAG_PIN |
-        (uint16_t) CLIENT_FLAG_URGENT |
-        (uint16_t) CLIENT_FLAG_SHADED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_PIN |
+        (uint32_t) CLIENT_FLAG_URGENT |
+        (uint32_t) CLIENT_FLAG_SHADED;
 
     ccmd_client_sync_states(&client);
 
@@ -581,7 +581,7 @@ static void s_test_sync_states_modal(void)
     s_reset();
     s_set_ewmh_present(true);
     memset(&client, 0, sizeof(client));
-    client.properties.flags = (uint16_t) CLIENT_FLAG_MODAL;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_MODAL;
 
     ccmd_client_sync_states(&client);
 
@@ -599,7 +599,7 @@ static void s_test_sync_states_focused_uses_intern_atom(void)
     s_reset();
     s_set_ewmh_present(true);
     memset(&client, 0, sizeof(client));
-    client.properties.flags = (uint16_t) CLIENT_FLAG_FOCUSED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_FOCUSED;
 
     ccmd_client_sync_states(&client);
 
@@ -620,8 +620,8 @@ static void s_test_sync_states_skip_taskbar_and_pager(void)
     s_reset();
     s_set_ewmh_present(true);
     memset(&client, 0, sizeof(client));
-    client.properties.flags = (uint16_t) CLIENT_FLAG_SKIP_TASKBAR |
-        (uint16_t) CLIENT_FLAG_SKIP_PAGER;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_SKIP_TASKBAR |
+        (uint32_t) CLIENT_FLAG_SKIP_PAGER;
 
     ccmd_client_sync_states(&client);
 
@@ -645,13 +645,13 @@ static void s_test_sync_states_everything_at_once(void)
         (uint16_t) CLIENT_STATE_FULLSCREEN |
         (uint16_t) CLIENT_STATE_ICONIFIED;
     client.properties.layer = (uint16_t) CLIENT_LAYER_ABOVE;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_PIN |
-        (uint16_t) CLIENT_FLAG_URGENT |
-        (uint16_t) CLIENT_FLAG_SHADED |
-        (uint16_t) CLIENT_FLAG_MODAL |
-        (uint16_t) CLIENT_FLAG_FOCUSED |
-        (uint16_t) CLIENT_FLAG_SKIP_TASKBAR |
-        (uint16_t) CLIENT_FLAG_SKIP_PAGER;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_PIN |
+        (uint32_t) CLIENT_FLAG_URGENT |
+        (uint32_t) CLIENT_FLAG_SHADED |
+        (uint32_t) CLIENT_FLAG_MODAL |
+        (uint32_t) CLIENT_FLAG_FOCUSED |
+        (uint32_t) CLIENT_FLAG_SKIP_TASKBAR |
+        (uint32_t) CLIENT_FLAG_SKIP_PAGER;
 
     ccmd_client_sync_states(&client);
 
@@ -837,7 +837,7 @@ static void s_test_publish_wm_desktop_pinned_client_publishes_all(void)
     s_set_ewmh_present(true);
     memset(&client, 0, sizeof(client));
     client.window = (xcb_window_t) 8u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_PIN;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_PIN;
 
     ccmd_publish_wm_desktop(&client, 4u);
 

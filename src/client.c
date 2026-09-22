@@ -623,9 +623,9 @@ static void s_client_read_window_type(xcb_connection_t *connection,
                  * which says only what the type means, but both are
                  * what every desktop does with one. */
                 client->properties.flags |=
-                    (uint16_t) CLIENT_FLAG_SKIP_TASKBAR;
+                    (uint32_t) CLIENT_FLAG_SKIP_TASKBAR;
                 client->properties.flags &=
-                    (uint16_t) ~(uint16_t) CLIENT_FLAG_FOCUSABLE;
+                    (uint32_t) ~(uint32_t) CLIENT_FLAG_FOCUSABLE;
                 break;
             }
 

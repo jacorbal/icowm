@@ -1609,7 +1609,7 @@ static void s_test_sync_pinned_client_publishes_all_desktops(void)
     s_set_walk_desktops(desktops, 1);
     memset(&client, 0, sizeof(client));
     client.window = (xcb_window_t) 55u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_PIN;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_PIN;
     clients[0] = &client;
     s_set_stack_clients(clients, 1);
     memset(&wm_instance, 0, sizeof(wm_instance));

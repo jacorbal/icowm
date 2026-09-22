@@ -271,7 +271,7 @@ static void s_test_sticky_client_relabels_toggle(void)
     memset(&client, 0, sizeof(client));
     s_viewport_columns = 2u;
     s_viewport_rows = 2u;
-    client.properties.flags |= (uint16_t) CLIENT_FLAG_STICKY;
+    client.properties.flags |= (uint32_t) CLIENT_FLAG_STICKY;
 
     n = ctxmenu_submenu_page_build(&stage, &desktop, &client, &e,
             &state);

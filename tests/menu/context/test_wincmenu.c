@@ -478,8 +478,8 @@ static client_td *s_make_client(void)
     client->id = (xcb_window_t) 1;
     client->window = (xcb_window_t) 1;
     client->screen_id = 0u;
-    client->properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE |
-        (uint16_t) CLIENT_FLAG_DECORATED;
+    client->properties.flags = (uint32_t) CLIENT_FLAG_RESIZABLE |
+        (uint32_t) CLIENT_FLAG_DECORATED;
     client->properties.layer = (uint16_t) CLIENT_LAYER_NORMAL;
     s_owned_clients[s_owned_clients_used] = client;
     s_owned_clients_used++;
@@ -552,7 +552,7 @@ static void s_test_show_guards(void)
             pos, NULL);
     TAP_NULL(s_captured_state, "a null config shows nothing");
 
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_LOCKED;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_LOCKED;
     wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
     TAP_NULL(s_captured_state, "a locked client shows nothing");
@@ -714,7 +714,7 @@ static void s_test_show_pinned_relabels_pin_toggle(void)
     stage.monitor_count = 1u;
 
     client = s_make_client();
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_PIN;
 
     wincmenu_show((xcb_connection_t *) 1, &stage, &desktop_a, client,
             pos, &config);
@@ -904,7 +904,7 @@ static void s_test_show_sticky_client_page_rows_all_disabled(void)
     s_viewport_columns = 2u;
     s_viewport_rows = 2u;
     client = s_make_client();
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_STICKY;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_STICKY;
 
     wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);
@@ -1076,7 +1076,7 @@ static void s_test_show_modal_client_blocks_fullscreen(void)
     stage.desktop_count = 1u;
     stage.monitor_count = 1u;
     client = s_make_client();
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_MODAL;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_MODAL;
 
     wincmenu_show((xcb_connection_t *) 1, &stage, &desktop, client,
             pos, &config);

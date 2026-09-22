@@ -1068,7 +1068,7 @@ static void s_test_render_full_visits_every_stacked_client(void)
     s_desktop_fixture_init(&fx, 3u, 4u);
     s_client_fixture_init(&client_a, &fx.config, 0x201u);
     s_client_fixture_init(&client_b, &fx.config, 0x202u);
-    client_a.properties.flags = (uint16_t) CLIENT_FLAG_HIDDEN;
+    client_a.properties.flags = (uint32_t) CLIENT_FLAG_HIDDEN;
     client_b.properties.flags = 0u;
     /* Without is_outdated set, desktop_render_one_client takes
      * neither the geometry-apply nor the focus-only-refresh path at
@@ -1108,7 +1108,7 @@ static void s_test_render_full_clears_only_when_content_moves(void)
     s_desktop_fixture_init(&fx, 4u, 6u);
     s_client_fixture_init(&client, &fx.config, 0x401u);
     client.frame = 0x9001u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     client.layout.geometry.cur.dim.w = 400u;
     client.layout.geometry.cur.dim.h = 300u;
     client.layout.frame_extents.left = 2;
@@ -1152,7 +1152,7 @@ static void s_test_render_full_iconified_hidden_client_draws_icon(
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 4u, 5u);
     s_client_fixture_init(&client, &fx.config, 0x301u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_HIDDEN;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_HIDDEN;
     client.properties.state = (uint16_t) CLIENT_STATE_ICONIFIED;
     s_stacking_walk_clients[0] = &client;
     s_stacking_walk_client_count = 1u;
@@ -1182,7 +1182,7 @@ static void s_test_render_one_client_urgency_blink_flips_focus(void)
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x401u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_URGENT;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_URGENT;
     fx.desktop.client_active_id = client.id;
     s_urgency_blink_is_on_result = true;
 
@@ -1206,7 +1206,7 @@ static void s_test_render_one_client_urgent_not_blinking_keeps_focus(
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x402u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_URGENT;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_URGENT;
     fx.desktop.client_active_id = client.id;
     s_urgency_blink_is_on_result = false;
 
@@ -1296,7 +1296,7 @@ static void s_test_render_one_client_border_width_framed_is_zero(
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x406u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     client.frame = 0x600u;
     client.last_border_width = 3u;
 
@@ -1321,7 +1321,7 @@ static void s_test_render_one_client_border_width_plain_uses_theme(
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x407u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_RESIZABLE;
     client.last_border_width = UINT32_MAX;
     fx.config.theme.window.active.border.width = 7u;
     fx.config.theme.window.inactive.border.width = 2u;
@@ -1349,7 +1349,7 @@ static void s_test_render_one_client_border_width_keeps_content(void)
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x409u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_RESIZABLE;
     client.layout.geometry.cur.pos.x = 300;
     client.layout.geometry.cur.pos.y = 250;
     client.last_border_width = 6u;
@@ -1513,7 +1513,7 @@ static void s_test_render_one_client_focus_dirty_refreshes_decoration(
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x40eu);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     client.frame = 0x620u;
     client.is_outdated = false;
     fx.desktop.is_focus_dirty = true;
@@ -1535,7 +1535,7 @@ static void s_test_render_one_client_neither_dirty_nor_outdated_noop(
     s_reset_fixture();
     s_desktop_fixture_init(&fx, 0u, 0u);
     s_client_fixture_init(&client, &fx.config, 0x40fu);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     client.frame = 0x630u;
     client.is_outdated = false;
     fx.desktop.is_focus_dirty = false;

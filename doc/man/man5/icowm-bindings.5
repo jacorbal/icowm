@@ -247,9 +247,14 @@ viewport is panned, with no bearing on which desktop it lives on.
 .Ic pan
 moves by
 .Ic viewport.pan-step
-pixels in the given direction, translating every non-sticky client the
-opposite way so its on-screen position stays put relative to the
-desktop's virtual canvas:
+pixels in the given direction, translating the clients anchored to the
+canvas the opposite way so their on-screen position stays put relative
+to the desktop's virtual canvas.
+A sticky window, a pinned one, a fullscreen one and the axis a
+maximized window fills are anchored to the screen instead and stay
+where they are; restoring a maximized or fullscreen window puts it back
+where it was on the canvas, pans included.
+.Pp
 .Bl -tag -width Ds -compact
 .It Ic north Pq Ql modc+mod4+mods+Up
 .It Ic south Pq Ql modc+mod4+mods+Down

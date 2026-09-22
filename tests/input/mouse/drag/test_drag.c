@@ -1229,7 +1229,7 @@ static void s_test_update_move_dispatches_to_outline_path(void)
 
     s_reset();
     s_make_client(&client);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     s_drag.is_active = true;
     s_drag.client = &client;
     s_drag.operation = CLIENT_OPERATION_MOVING;
@@ -1695,7 +1695,7 @@ static void s_test_cancel_restores_offscreened_client(void)
 
     s_reset();
     s_make_client(&client);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     s_drag.is_active = true;
     s_drag.client = &client;
     s_drag.operation = CLIENT_OPERATION_MOVING;

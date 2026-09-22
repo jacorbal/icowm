@@ -259,7 +259,7 @@ static void s_test_pinned_client_relabels_toggle(void)
     s_desktops[1] = &desktop_b;
     s_desktop_count = 2;
     stage.desktop_count = 2u;
-    client.properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
+    client.properties.flags |= (uint32_t) CLIENT_FLAG_PIN;
 
     n = ctxmenu_submenu_desktop_build(&stage, &desktop_a, &client,
             &e, &state);

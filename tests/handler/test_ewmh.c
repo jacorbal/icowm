@@ -923,7 +923,7 @@ static void s_test_wm_state_two_atoms(void)
     memset(&stage, 0, sizeof(stage));
     memset(&desktop, 0, sizeof(desktop));
     s_test_build_client(&client, 0x100);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_RESIZABLE;
     s_test_build_event(&event, 0x100, (xcb_atom_t) 999);
     event.data.data32[0] = (uint32_t) WM_STATE_ACTION_ADD;
     event.data.data32[1] = ewmh._NET_WM_STATE_MAXIMIZED_HORZ;
@@ -1497,7 +1497,7 @@ static void s_test_moveresize_window_resize_syncs_decoration(void)
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
     client.frame = 0x200;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[0] =
         (uint32_t) (WM_MOVERESIZE_FLAG_WIDTH | WM_MOVERESIZE_FLAG_HEIGHT);
@@ -2145,7 +2145,7 @@ static void s_test_wm_moveresize_resize_starts_directed_drag(void)
     stage.screen = &screen;
     s_test_build_wm(&wm, &ewmh, &config);
     s_test_build_client(&client, 0x100);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_RESIZABLE;
     s_test_build_event(&event, 0x100, (xcb_atom_t) 1);
     event.data.data32[2] = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT;
 

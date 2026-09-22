@@ -328,7 +328,7 @@ static void s_test_pinned_and_process_rows(void)
     s_make_stage(&stage);
     memset(&config, 0, sizeof(config));
     s_make_client(&client);
-    client.properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
+    client.properties.flags |= (uint32_t) CLIENT_FLAG_PIN;
     s_reset();
 
     dialog_inspect_show(s_fake_connection, &stage, &config, &client);

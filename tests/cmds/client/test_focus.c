@@ -589,7 +589,7 @@ static client_td *s_make_client(uint32_t id)
 
     client->id = (xcb_window_t) id;
     client->window = (xcb_window_t) id;
-    client->properties.flags = (uint16_t) CLIENT_FLAG_FOCUSABLE;
+    client->properties.flags = (uint32_t) CLIENT_FLAG_FOCUSABLE;
     s_owned_clients[s_owned_clients_used] = client;
     s_owned_clients_used++;
 
@@ -603,7 +603,7 @@ static client_td *s_make_client(uint32_t id)
 static long s_focused_bit(const client_td *client)
 {
     return (long) (client->properties.flags &
-            (uint16_t) CLIENT_FLAG_FOCUSED);
+            (uint32_t) CLIENT_FLAG_FOCUSED);
 }
 
 
@@ -847,8 +847,8 @@ static void s_test_focus_shaded_client_focuses_frame(void)
     client->frame = 0x9900u;
     client->hints_icccm.hints.accepts_input = true;
     client->hints_icccm.protocols.has_take_focus = true;
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_DECORATED;
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_SHADED;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_DECORATED;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_SHADED;
 
     ccmd_client_focus(client);
 
@@ -986,7 +986,7 @@ static void s_test_focus_shaded_client_targets_frame(void)
     s_reset();
     client = s_make_client(13u);
     client->frame = 900u;
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_SHADED;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_SHADED;
     client->hints_icccm.hints.accepts_input = true;
 
     ccmd_client_focus(client);
@@ -1012,7 +1012,7 @@ static void s_test_focus_decorated_framed_client_resyncs_theme(void)
     s_reset();
     decorated = s_make_client(14u);
     decorated->frame = 901u;
-    decorated->properties.flags |= (uint16_t) CLIENT_FLAG_DECORATED;
+    decorated->properties.flags |= (uint32_t) CLIENT_FLAG_DECORATED;
 
     ccmd_client_focus(decorated);
 
@@ -1047,12 +1047,12 @@ static void s_test_focus_clears_urgency(void)
 
     s_reset();
     client = s_make_client(16u);
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_URGENT;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_URGENT;
 
     ccmd_client_focus(client);
 
     TAP_EQ_INT((long) (client->properties.flags &
-            (uint16_t) CLIENT_FLAG_URGENT),
+            (uint32_t) CLIENT_FLAG_URGENT),
             0,
             "a client receiving real focus has its urgency hint"
             " cleared");
@@ -1138,7 +1138,7 @@ static void s_test_unfocus_relinquishes_focus(void)
 
     s_reset();
     client = s_make_client(20u);
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_FOCUSED;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_FOCUSED;
 
     ccmd_client_unfocus(client);
 
@@ -1168,7 +1168,7 @@ static void s_test_unfocus_with_no_connection_skips_wire_update(void)
     s_reset();
     s_connection = NULL;
     client = s_make_client(21u);
-    client->properties.flags |= (uint16_t) CLIENT_FLAG_FOCUSED;
+    client->properties.flags |= (uint32_t) CLIENT_FLAG_FOCUSED;
 
     ccmd_client_unfocus(client);
 
@@ -1558,7 +1558,7 @@ static void
     memset(&desktop, 0, sizeof(desktop));
     memset(&stage, 0, sizeof(stage));
     exclude = s_make_client(44u);
-    exclude->properties.flags |= (uint16_t) CLIENT_FLAG_FOCUSED;
+    exclude->properties.flags |= (uint32_t) CLIENT_FLAG_FOCUSED;
     s_focus_order_best_result = NULL;
 
     client_focus_fallback(&desktop, &stage, exclude);

@@ -222,7 +222,7 @@ int main(void)
 
     /* The client stops being urgent: the next tick clears the
      * blink state entirely */
-    client.properties.flags &= ~(uint16_t) CLIENT_FLAG_URGENT;
+    client.properties.flags &= ~(uint32_t) CLIENT_FLAG_URGENT;
     urgency_blink_tick(stages, &config);
     TAP_OK(!urgency_blink_is_on(),
             "once nothing is urgent anymore, the blink turns off");

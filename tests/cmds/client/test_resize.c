@@ -297,7 +297,7 @@ static int s_unshade_count;
 void ccmd_client_unshade(client_td *client)
 {
     if (client != NULL) {
-        client->properties.flags &= ~(uint16_t) CLIENT_FLAG_SHADED;
+        client->properties.flags &= ~(uint32_t) CLIENT_FLAG_SHADED;
     }
     s_unshade_count++;
 }
@@ -419,11 +419,11 @@ static void s_test_resize_shaded_unshaded_first(void)
 
     s_reset();
     memset(&client, 0, sizeof(client));
-    client.properties.flags |= (uint16_t) CLIENT_FLAG_SHADED;
+    client.properties.flags |= (uint32_t) CLIENT_FLAG_SHADED;
 
     ccmd_client_resize(&client, geom);
 
-    TAP_OK(!(client.properties.flags & (uint16_t) CLIENT_FLAG_SHADED),
+    TAP_OK(!(client.properties.flags & (uint32_t) CLIENT_FLAG_SHADED),
             "a shaded client is unshaded before being resized");
     TAP_EQ_INT(s_unshade_count, 1,
             "ccmd_client_unshade is called exactly once");

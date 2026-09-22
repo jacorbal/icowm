@@ -178,14 +178,14 @@ static void s_reset(void)
     ohtbl_insert(s_desktop0->clients, s_plain_client);
 
     s_locked_client = s_make_client(11u, (char *) "locked");
-    s_locked_client->properties.flags |= (uint16_t) CLIENT_FLAG_LOCKED;
+    s_locked_client->properties.flags |= (uint32_t) CLIENT_FLAG_LOCKED;
     ohtbl_insert(s_desktop0->clients, s_locked_client);
 
     s_flagged_client = s_make_client(55u, (char *) "flagged");
     s_flagged_client->properties.state |=
         (uint16_t) CLIENT_STATE_ICONIFIED;
-    s_flagged_client->properties.flags |= (uint16_t) CLIENT_FLAG_URGENT;
-    s_flagged_client->properties.flags |= (uint16_t) CLIENT_FLAG_PIN;
+    s_flagged_client->properties.flags |= (uint32_t) CLIENT_FLAG_URGENT;
+    s_flagged_client->properties.flags |= (uint32_t) CLIENT_FLAG_PIN;
     ohtbl_insert(s_desktop1->clients, s_flagged_client);
 
     list_ins_next(&s_stages_list, NULL, s_stage);

@@ -866,7 +866,7 @@ static void s_test_repaint_frame_clears_only_on_color_change(void)
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
     client.frame = 0x900u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     theme.window.active.border.color = 0x0000ffu;
     theme.window.inactive.border.color = 0x808080u;
 
@@ -900,7 +900,7 @@ static void s_test_repaint_frame_decoration_guard_clauses(void)
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
     client.frame = 0x900u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
 
     render_client_decoration_repaint_frame(NULL, &client, true, &theme);
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
@@ -940,7 +940,7 @@ static void s_test_repaint_frame_decoration_active_style(void)
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
     client.frame = 0x901u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     theme.window.active.border.color = 0xabcdefu;
     theme.window.active.opacity = 90u;
 
@@ -968,7 +968,7 @@ static void s_test_repaint_frame_decoration_opacity_override(void)
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
     client.frame = 0x902u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     theme.window.inactive.opacity = 50u;
     client.opacity_override.is_set_inactive = true;
     client.opacity_override.inactive = 20u;
@@ -993,7 +993,7 @@ static void s_test_repaint_frame_decoration_falls_back_without_override(
     memset(&theme, 0, sizeof(theme));
     memset(&client, 0, sizeof(client));
     client.frame = 0x903u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.properties.flags = (uint32_t) CLIENT_FLAG_DECORATED;
     theme.window.inactive.opacity = 65u;
     client.opacity_override.is_set_inactive = false;
 
