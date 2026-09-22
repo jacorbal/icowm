@@ -64,6 +64,31 @@ static void s_broadcast_desktop_switched(const stage_td *stage)
 
 
 /**
+ * @brief Tell IPC subscribers a stage gained or lost a desktop
+ *
+ * @param stage      Stage whose desktop list changed
+ * @param type       @c IPC_EVENT_DESKTOP_ADDED or
+ *                   @c IPC_EVENT_DESKTOP_REMOVED
+ * @param desktop_id Desktop added or removed
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_broadcast_desktop_counted(const stage_td *stage,
+        uint64_t type, uint32_t desktop_id)
+{
+    cJSON *const fields = cJSON_CreateObject();
+
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "stage_id",
+                (double) stage->id);
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) desktop_id);
+    }
+    ipc_broadcast_event(type, fields);
+}
+
+
+/**
  * @brief Refresh keyboard grabs after any stage's desktop count
  *        changes
  *
@@ -147,7 +172,8 @@ void enact_stage_desktop_add(stage_td *stage)
 {
     if (stage_action_desktop_add(stage) == 0) {
         s_refresh_keyboard_grabs();
-        s_broadcast_desktop_switched(stage);
+        s_broadcast_desktop_counted(stage, IPC_EVENT_DESKTOP_ADDED,
+                stage->desktop_count - 1u);
     }
 }
 
@@ -155,9 +181,22 @@ void enact_stage_desktop_add(stage_td *stage)
 /* Remove the stage's last desktop */
 void enact_stage_desktop_remove(stage_td *stage)
 {
+    uint32_t removed_id;
+    uint32_t cur_before;
+
+    if (stage == NULL) {
+        return;
+    }
+
+    removed_id = stage->desktop_count - 1u;
+    cur_before = stage->desktop_cur;
     if (stage_action_desktop_remove(stage) == 0) {
         s_refresh_keyboard_grabs();
-        s_broadcast_desktop_switched(stage);
+        s_broadcast_desktop_counted(stage, IPC_EVENT_DESKTOP_REMOVED,
+                removed_id);
+        if (stage->desktop_cur != cur_before) {
+            s_broadcast_desktop_switched(stage);
+        }
     }
 }
 

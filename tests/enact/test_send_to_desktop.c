@@ -200,7 +200,7 @@ int xcb_flush(xcb_connection_t *c)
 
 /** Link-only stand-in for enact_broadcast_client_event
  *  (enact/broadcast.c): this file never inspects IPC traffic */
-void enact_broadcast_client_event(client_td *client, uint32_t type)
+void enact_broadcast_client_event(client_td *client, uint64_t type)
 {
     (void) client;
     (void) type;
@@ -313,7 +313,7 @@ void hi_handle_net_showing_desktop(stage_td *stage, bool show)
 
 
 /** Link-only stand-in for ipc_broadcast_event (ipc.c) */
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     (void) type;
     (void) fields;

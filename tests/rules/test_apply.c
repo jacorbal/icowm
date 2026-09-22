@@ -522,7 +522,7 @@ void focus_apply(list_td *stages, stage_td *stage,
  *
  * @note Complexity: @e O(1)
  */
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     (void) fields;
     s_call_ipc_broadcast_event++;
@@ -733,7 +733,7 @@ static void s_test_empty_apply_block_changes_nothing(void)
     TAP_OK(!result, "a rule that matches but sets nothing changes"
             " nothing: false");
     TAP_EQ_INT(s_call_ipc_broadcast_event, 0,
-            "and never broadcasts IPC_EVENT_RULE_APPLIED");
+            "and never broadcasts IPC_EVENT_CLIENT_RULE_APPLIED");
 }
 
 
@@ -1636,7 +1636,7 @@ static void s_test_later_rule_overrides_earlier_same_field(void)
 
 
 /* A successful apply that changed at least one field broadcasts
- * IPC_EVENT_RULE_APPLIED and returns true */
+ * IPC_EVENT_CLIENT_RULE_APPLIED and returns true */
 static void s_test_successful_apply_broadcasts_and_returns_true(void)
 {
     stage_td *stage = &s_stage;
@@ -1657,8 +1657,9 @@ static void s_test_successful_apply_broadcasts_and_returns_true(void)
             " true");
     TAP_EQ_INT(s_call_ipc_broadcast_event, 1,
             "and broadcasts exactly one IPC event");
-    TAP_EQ_INT((long) s_last_ipc_event_type, (long) IPC_EVENT_RULE_APPLIED,
-            "the broadcast event type is IPC_EVENT_RULE_APPLIED");
+    TAP_EQ_INT((long) s_last_ipc_event_type,
+            (long) IPC_EVENT_CLIENT_RULE_APPLIED,
+            "the broadcast event type is IPC_EVENT_CLIENT_RULE_APPLIED");
 }
 
 

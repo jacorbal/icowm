@@ -104,6 +104,8 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "iconify_client",           ipc_action_iconify_client },
     { "hide_client",              ipc_action_hide_client },
     { "unhide_client",            ipc_action_unhide_client },
+    { "toggle_iconify_client",    ipc_action_toggle_iconify_client },
+    { "toggle_hide_client",       ipc_action_toggle_hide_client },
 
     /* Client pin/urgency flags: ipc/actions/client/flags.h */
     { "pin_client",               ipc_action_pin_client },
@@ -111,6 +113,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "toggle_pin_client",        ipc_action_toggle_pin_client },
     { "urge_client",              ipc_action_urge_client },
     { "unurge_client",            ipc_action_unurge_client },
+    { "toggle_urge_client",       ipc_action_toggle_urge_client },
 
     /* Client geometry: ipc/actions/client/geom.h */
     { "move_client",              ipc_action_move_client },
@@ -129,6 +132,14 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "maximize_client_horz",     ipc_action_maximize_client_horz },
     { "maximize_client_vert",     ipc_action_maximize_client_vert },
     { "maximize_client",          ipc_action_maximize_client },
+    { "unmaximize_client_horz",   ipc_action_unmaximize_client_horz },
+    { "unmaximize_client_vert",   ipc_action_unmaximize_client_vert },
+    { "unmaximize_client",        ipc_action_unmaximize_client },
+    { "toggle_maximize_client_horz",
+        ipc_action_toggle_maximize_client_horz },
+    { "toggle_maximize_client_vert",
+        ipc_action_toggle_maximize_client_vert },
+    { "toggle_maximize_client",   ipc_action_toggle_maximize_client },
 
     /* Client layering: ipc/actions/client/layer.h */
     { "raise_client",             ipc_action_raise_client },
@@ -142,7 +153,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "rename_client",            ipc_action_rename_client },
     { "reclass_client",           ipc_action_reclass_client },
     { "rerole_client",            ipc_action_rerole_client },
-    { "set_client_icon",          ipc_action_set_client_icon },
+    { "set_icon_client",          ipc_action_set_icon_client },
 
     /* Client state: ipc/actions/client/state.h */
     { "shade_client",             ipc_action_shade_client },
@@ -151,10 +162,12 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "fullscreen_client",        ipc_action_fullscreen_client },
     { "unfullscreen_client",      ipc_action_unfullscreen_client },
     { "toggle_fullscreen_client", ipc_action_toggle_fullscreen_client },
+    { "decorate_client",          ipc_action_decorate_client },
+    { "undecorate_client",        ipc_action_undecorate_client },
     { "toggle_decorate_client",   ipc_action_toggle_decorate_client },
 
     /* Desktop-scoped: ipc/actions/desktop.h */
-    { "set_desktop_background",   ipc_action_set_desktop_background },
+    { "set_background_desktop",   ipc_action_set_background_desktop },
     { "show_desktop",             ipc_action_show_desktop },
     { "send_client_to_desktop",   ipc_action_send_client_to_desktop },
     { "send_client_to_front",     ipc_action_send_client_to_front },
@@ -166,10 +179,10 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     /* Stage actions, which switch, add and remove desktops, live
      * in 'ipc/actions/stage.h' */
     { "goto_desktop",             ipc_action_goto_desktop },
-    { "goto_north_desktop",       ipc_action_goto_north_desktop },
-    { "goto_south_desktop",       ipc_action_goto_south_desktop },
-    { "goto_east_desktop",        ipc_action_goto_east_desktop },
-    { "goto_west_desktop",        ipc_action_goto_west_desktop },
+    { "goto_desktop_north",       ipc_action_goto_desktop_north },
+    { "goto_desktop_south",       ipc_action_goto_desktop_south },
+    { "goto_desktop_east",        ipc_action_goto_desktop_east },
+    { "goto_desktop_west",        ipc_action_goto_desktop_west },
     { "add_desktop",              ipc_action_add_desktop },
     { "remove_desktop",           ipc_action_remove_desktop },
     { "toggle_strutless_maximize",

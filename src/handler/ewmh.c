@@ -60,6 +60,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <enact/client.h>
 #include <policy/stacking.h>
 #include <handler/internal.h>
 #include <logger.h>
@@ -177,7 +178,7 @@ static void s_handle_wm_state_atom(client_td *client,
         want = s_wm_state_resolve_add(action,
                 client_is_maximized_horz(client));
         if (want != client_is_maximized_horz(client)) {
-            ccmd_client_maximize_horz(client);
+            enact_client_maximize_horz(client);
         }
         return;
     }
@@ -192,7 +193,7 @@ static void s_handle_wm_state_atom(client_td *client,
         want = s_wm_state_resolve_add(action,
                 client_is_maximized_vert(client));
         if (want != client_is_maximized_vert(client)) {
-            ccmd_client_maximize_vert(client);
+            enact_client_maximize_vert(client);
         }
         return;
     }

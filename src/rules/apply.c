@@ -72,7 +72,7 @@
  * @see @c ipc.h
  */
 static void s_rules_broadcast_client_event(client_td *client,
-        uint32_t type)
+        uint64_t type)
 {
     cJSON *fields;
 
@@ -195,7 +195,7 @@ static void s_rules_apply_layer(client_td *client,
  * through @a ccmd_client_apply_geometry, the same shared primitive
  * every other geometry-changing operation in this project already uses,
  * rather than building its values array by hand; flushed and broadcast
- * afterward (@c IPC_EVENT_WINDOW_MOVED and/or @c _RESIZED, matching
+ * afterward (@c IPC_EVENT_CLIENT_MOVED and/or @c _RESIZED, matching
  * whichever of position/size actually changed), the same as
  * @a enact_client_move/@c _resize do for every other trigger of the
  * same two events.
@@ -362,11 +362,11 @@ static void s_rules_apply_geometry(const stage_td *stage,
     }
 
     if (set_pos) {
-        s_rules_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
+        s_rules_broadcast_client_event(client, IPC_EVENT_CLIENT_MOVED);
     }
     if (set_size) {
         s_rules_broadcast_client_event(client,
-                IPC_EVENT_WINDOW_RESIZED);
+                IPC_EVENT_CLIENT_RESIZED);
     }
 }
 
@@ -623,7 +623,7 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
 
 
 /**
- * @brief Broadcast @c IPC_EVENT_RULE_APPLIED when a rule changed
+ * @brief Broadcast @c IPC_EVENT_CLIENT_RULE_APPLIED when a rule changed
  *        anything
  *
  * A rule that matched but left every @c has_* field in @p apply false
@@ -663,7 +663,7 @@ static bool s_rules_notify_change(const client_td *client,
             cJSON_AddNumberToObject(fields, "stage_id",
                     (double) stage->id);
         }
-        ipc_broadcast_event(IPC_EVENT_RULE_APPLIED, fields);
+        ipc_broadcast_event(IPC_EVENT_CLIENT_RULE_APPLIED, fields);
     }
 
     return changed;

@@ -80,7 +80,7 @@
  * @note Complexity: @e O(1)
  */
 static void s_broadcast_desktop_event(desktop_td *desktop,
-        uint32_t type)
+        uint64_t type)
 {
     cJSON *fields;
 
@@ -444,7 +444,7 @@ void enact_desktop_client_send_front(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_front(desktop, client);
-    enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
+    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_STACKING_CHANGED);
 }
 
 
@@ -457,7 +457,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_back(desktop, client);
-    enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
+    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_STACKING_CHANGED);
 }
 
 

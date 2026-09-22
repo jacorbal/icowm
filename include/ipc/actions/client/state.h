@@ -108,5 +108,26 @@ cJSON *ipc_action_toggle_fullscreen_client(const wm_td *wm,
 cJSON *ipc_action_toggle_decorate_client(const wm_td *wm,
         const cJSON *args);
 
+/**
+ * @brief @c decorate_client: show the client's own titlebar and border
+ *
+ * @param wm   Window manager instance
+ * @param args The request object; argument @c client_id
+ *
+ * @return The standard success or failure response
+ */
+cJSON *ipc_action_decorate_client(const wm_td *wm, const cJSON *args);
+
+/**
+ * @brief @c undecorate_client: hide the client's own titlebar and
+ *        border
+ *
+ * @param wm   Window manager instance
+ * @param args The request object; argument @c client_id
+ *
+ * @return The standard success or failure response
+ */
+cJSON *ipc_action_undecorate_client(const wm_td *wm, const cJSON *args);
+
 
 #endif  /* ! IPC_ACTIONS_CLIENT_STATE_H */

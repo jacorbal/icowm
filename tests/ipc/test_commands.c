@@ -160,7 +160,7 @@ cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_north_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_north(const wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;
@@ -168,7 +168,7 @@ cJSON *ipc_action_goto_north_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_south_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_south(const wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;
@@ -176,7 +176,7 @@ cJSON *ipc_action_goto_south_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_east_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_east(const wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;
@@ -184,7 +184,7 @@ cJSON *ipc_action_goto_east_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_west_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_west(const wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;
@@ -452,7 +452,7 @@ cJSON *ipc_action_send_client_to_front(const wm_td *wm,
 }
 
 
-cJSON *ipc_action_set_client_icon(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_icon_client(const wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;
@@ -460,7 +460,7 @@ cJSON *ipc_action_set_client_icon(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_set_desktop_background(const wm_td *wm,
+cJSON *ipc_action_set_background_desktop(const wm_td *wm,
         const cJSON *args)
 {
     (void) wm;
@@ -506,6 +506,105 @@ cJSON *ipc_action_shade_client(const wm_td *wm,
 
 
 cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_toggle_urge_client(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_unmaximize_client_horz(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_unmaximize_client_vert(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_unmaximize_client(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_toggle_maximize_client_horz(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_toggle_maximize_client_vert(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_toggle_maximize_client(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_decorate_client(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_undecorate_client(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_toggle_iconify_client(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
+cJSON *ipc_action_toggle_hide_client(const wm_td *wm,
+        const cJSON *args)
 {
     (void) wm;
     (void) args;

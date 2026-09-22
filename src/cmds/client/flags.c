@@ -526,7 +526,7 @@ void ccmd_client_urge(client_td *client)
         cJSON_AddNumberToObject(fields, "stage_id",
                 (double) client->screen_id);
     }
-    ipc_broadcast_event(IPC_EVENT_URGENCY_SET, fields);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_URGENCY_SET, fields);
 }
 
 
@@ -558,7 +558,7 @@ void ccmd_client_unurge(client_td *client)
         cJSON_AddNumberToObject(fields, "stage_id",
                 (double) client->screen_id);
     }
-    ipc_broadcast_event(IPC_EVENT_URGENCY_CLEARED, fields);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_URGENCY_CLEARED, fields);
 }
 
 

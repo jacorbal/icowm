@@ -449,7 +449,7 @@ static void s_test_rerole_client_missing_role(void)
 }
 
 
-/* set_client_icon resolves the client and calls
+/* set_icon_client resolves the client and calls
  * enact_client_set_icon with the exact icon_name given */
 static void s_test_set_client_icon_ok(void)
 {
@@ -460,15 +460,15 @@ static void s_test_set_client_icon_ok(void)
     cJSON_AddNumberToObject(args, "client_id", 9);
     cJSON_AddStringToObject(args, "icon_name", "terminal");
 
-    resp = ipc_action_set_client_icon(&s_wm, args);
+    resp = ipc_action_set_icon_client(&s_wm, args);
 
     TAP_EQ_INT(s_call_set_icon, 1,
-            "set_client_icon calls enact_client_set_icon once");
+            "set_icon_client calls enact_client_set_icon once");
     TAP_EQ_STR(s_last_icon_name, "terminal",
             "enact_client_set_icon received the given icon_name"
             " verbatim");
     TAP_OK(cJSON_IsTrue(cJSON_GetObjectItem(resp, "ok")),
-            "set_client_icon reports success");
+            "set_icon_client reports success");
 
     cJSON_Delete(resp);
     cJSON_Delete(args);
@@ -485,7 +485,7 @@ static void s_test_set_client_icon_missing_icon_name(void)
     s_build_wm();
     cJSON_AddNumberToObject(args, "client_id", 9);
 
-    resp = ipc_action_set_client_icon(&s_wm, args);
+    resp = ipc_action_set_icon_client(&s_wm, args);
 
     TAP_EQ_INT(s_call_set_icon, 0,
             "a missing 'icon_name' never calls enact_client_set_icon");

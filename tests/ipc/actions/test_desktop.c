@@ -330,7 +330,7 @@ static void s_reset(void)
 }
 
 
-/* ipc_action_set_desktop_background: a valid color and a resolvable
+/* ipc_action_set_background_desktop: a valid color and a resolvable
  * desktop set it, forwarding the exact color given */
 static void s_test_set_background_ok(void)
 {
@@ -342,7 +342,7 @@ static void s_test_set_background_ok(void)
     cJSON_AddNumberToObject(args, "desktop_id", 0);
     cJSON_AddNumberToObject(args, "color", 0xFF00FFu);
 
-    resp = ipc_action_set_desktop_background(s_wm, args);
+    resp = ipc_action_set_background_desktop(s_wm, args);
 
     ok_field = cJSON_GetObjectItem(resp, "ok");
     TAP_OK(ok_field != NULL && cJSON_IsTrue(ok_field),
@@ -357,7 +357,7 @@ static void s_test_set_background_ok(void)
 }
 
 
-/* ipc_action_set_desktop_background: a missing 'color' is an error,
+/* ipc_action_set_background_desktop: a missing 'color' is an error,
  * before any desktop is even resolved */
 static void s_test_set_background_missing_color_is_error(void)
 {
@@ -367,7 +367,7 @@ static void s_test_set_background_missing_color_is_error(void)
 
     s_reset();
 
-    resp = ipc_action_set_desktop_background(s_wm, args);
+    resp = ipc_action_set_background_desktop(s_wm, args);
 
     ok_field = cJSON_GetObjectItem(resp, "ok");
     TAP_OK(ok_field != NULL && !cJSON_IsTrue(ok_field),

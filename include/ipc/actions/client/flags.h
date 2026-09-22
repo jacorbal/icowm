@@ -85,5 +85,16 @@ cJSON *ipc_action_urge_client(const wm_td *wm, const cJSON *args);
  */
 cJSON *ipc_action_unurge_client(const wm_td *wm, const cJSON *args);
 
+/**
+ * @brief @c toggle_urge_client: set the client's urgency, or clear it
+ *        if it is already set
+ *
+ * @param wm   Window manager instance
+ * @param args The request object; argument @c client_id
+ *
+ * @return The standard success or failure response
+ */
+cJSON *ipc_action_toggle_urge_client(const wm_td *wm, const cJSON *args);
+
 
 #endif  /* ! IPC_ACTIONS_CLIENT_FLAGS_H */

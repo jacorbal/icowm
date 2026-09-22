@@ -111,11 +111,116 @@ static void s_move_monitor_west(const wm_td *wm, client_td *client,
 
 /**
  * @brief Maximize the client horizontally only, per
- *        @c ipc_client_action_fn's own contract
+ *        @c ipc_client_action_fn's own contract; already maximized that
+ *        way, it is left as it is
  *
  * @note Complexity: @e O(1)
  */
 static void s_maximize_horz(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (!client_is_maximized_horz(client)) {
+        enact_client_maximize_horz(client);
+    }
+}
+
+
+/**
+ * @brief Maximize the client vertically only, per
+ *        @c ipc_client_action_fn's own contract; already maximized that
+ *        way, it is left as it is
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_maximize_vert(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (!client_is_maximized_vert(client)) {
+        enact_client_maximize_vert(client);
+    }
+}
+
+
+/**
+ * @brief Maximize the client both ways, per @c ipc_client_action_fn's
+ *        own contract; already maximized both ways, it is left as it is
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_maximize(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (!client_is_maximized(client)) {
+        enact_client_maximize(client);
+    }
+}
+
+
+/**
+ * @brief Restore the client's width, per @c ipc_client_action_fn's own
+ *        contract, if it is maximized horizontally
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_unmaximize_horz(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (client_is_maximized_horz(client)) {
+        enact_client_maximize_horz(client);
+    }
+}
+
+
+/**
+ * @brief Restore the client's height, per @c ipc_client_action_fn's own
+ *        contract, if it is maximized vertically
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_unmaximize_vert(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (client_is_maximized_vert(client)) {
+        enact_client_maximize_vert(client);
+    }
+}
+
+
+/**
+ * @brief Restore the client from being maximized on either axis, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_unmaximize(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (client_is_maximized(client)) {
+        enact_client_maximize(client);
+        return;
+    }
+    if (client_is_maximized_horz(client)) {
+        enact_client_maximize_horz(client);
+    }
+    if (client_is_maximized_vert(client)) {
+        enact_client_maximize_vert(client);
+    }
+}
+
+
+/**
+ * @brief Maximize the client horizontally, or restore its width if it
+ *        already is, per @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_toggle_maximize_horz(const wm_td *wm, client_td *client,
         stage_td *stage, desktop_td *desktop)
 {
     (void) wm; (void) stage; (void) desktop;
@@ -124,12 +229,12 @@ static void s_maximize_horz(const wm_td *wm, client_td *client,
 
 
 /**
- * @brief Maximize the client vertically only, per
- *        @c ipc_client_action_fn's own contract
+ * @brief Maximize the client vertically, or restore its height if it
+ *        already is, per @c ipc_client_action_fn's own contract
  *
  * @note Complexity: @e O(1)
  */
-static void s_maximize_vert(const wm_td *wm, client_td *client,
+static void s_toggle_maximize_vert(const wm_td *wm, client_td *client,
         stage_td *stage, desktop_td *desktop)
 {
     (void) wm; (void) stage; (void) desktop;
@@ -138,12 +243,12 @@ static void s_maximize_vert(const wm_td *wm, client_td *client,
 
 
 /**
- * @brief Maximize the client both horizontally and vertically, per
- *        @c ipc_client_action_fn's own contract
+ * @brief Maximize the client both ways, or restore it if it already
+ *        is, per @c ipc_client_action_fn's own contract
  *
  * @note Complexity: @e O(1)
  */
-static void s_maximize(const wm_td *wm, client_td *client,
+static void s_toggle_maximize(const wm_td *wm, client_td *client,
         stage_td *stage, desktop_td *desktop)
 {
     (void) wm; (void) stage; (void) desktop;
@@ -210,6 +315,55 @@ cJSON *ipc_action_maximize_client_vert(const wm_td *wm,
 cJSON *ipc_action_maximize_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_maximize);
+}
+
+
+/* Restore the client's width, if it is maximized horizontally */
+cJSON *ipc_action_unmaximize_client_horz(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_unmaximize_horz);
+}
+
+
+/* Restore the client's height, if it is maximized vertically */
+cJSON *ipc_action_unmaximize_client_vert(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_unmaximize_vert);
+}
+
+
+/* Restore the client from being maximized on either axis */
+cJSON *ipc_action_unmaximize_client(const wm_td *wm, const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_unmaximize);
+}
+
+
+/* Maximize the client horizontally, or restore its width if it already
+ * is */
+cJSON *ipc_action_toggle_maximize_client_horz(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_toggle_maximize_horz);
+}
+
+
+/* Maximize the client vertically, or restore its height if it already
+ * is */
+cJSON *ipc_action_toggle_maximize_client_vert(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_toggle_maximize_vert);
+}
+
+
+/* Maximize the client both ways, or restore it if it already is */
+cJSON *ipc_action_toggle_maximize_client(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_toggle_maximize);
 }
 
 

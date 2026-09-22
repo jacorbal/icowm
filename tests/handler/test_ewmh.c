@@ -188,8 +188,8 @@ void ccmd_client_toggle_fullscreen(client_td *client)
 }
 
 
-/** Link-only stand-in for ccmd_client_maximize_horz */
-void ccmd_client_maximize_horz(client_td *client)
+/** Link-only stand-in for enact_client_maximize_horz */
+void enact_client_maximize_horz(client_td *client)
 {
     (void) client;
 
@@ -197,8 +197,8 @@ void ccmd_client_maximize_horz(client_td *client)
 }
 
 
-/** Link-only stand-in for ccmd_client_maximize_vert */
-void ccmd_client_maximize_vert(client_td *client)
+/** Link-only stand-in for enact_client_maximize_vert */
+void enact_client_maximize_vert(client_td *client)
 {
     (void) client;
 

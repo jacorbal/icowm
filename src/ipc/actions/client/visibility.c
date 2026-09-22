@@ -69,6 +69,42 @@ static void s_unhide(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Iconify the client, or restore it if it already is, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_toggle_iconify(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (client_is_iconified(client)) {
+        enact_client_restore(client);
+    } else {
+        enact_client_iconify(client);
+    }
+}
+
+
+/**
+ * @brief Hide the client, or show it if it already is hidden and not
+ *        iconified, per @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_toggle_hide(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (client_is_hidden(client) && !client_is_iconified(client)) {
+        enact_client_unhide(client);
+    } else {
+        enact_client_hide(client);
+    }
+}
+
+
 /* Iconify (minimize) the client */
 cJSON *ipc_action_iconify_client(const wm_td *wm, const cJSON *args)
 {
@@ -87,4 +123,19 @@ cJSON *ipc_action_hide_client(const wm_td *wm, const cJSON *args)
 cJSON *ipc_action_unhide_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_unhide);
+}
+
+
+/* Iconify the client, or restore it if it already is */
+cJSON *ipc_action_toggle_iconify_client(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_toggle_iconify);
+}
+
+
+/* Hide the client, or show it if it already is hidden */
+cJSON *ipc_action_toggle_hide_client(const wm_td *wm, const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_toggle_hide);
 }

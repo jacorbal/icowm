@@ -405,7 +405,7 @@ static int s_call_broadcast;
 static uint32_t s_last_broadcast_type;
 static cJSON *s_last_broadcast_fields;
 
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     s_call_broadcast++;
     s_last_broadcast_type = type;
@@ -613,7 +613,7 @@ static void s_test_broadcast_free_actions(void)
 
 
 /* enact_client_restore: calls ccmd_client_restore, then broadcasts
- * IPC_EVENT_CLIENT_DEICONIFIED */
+ * IPC_EVENT_CLIENT_ICONIFY_CLEARED */
 static void s_test_restore_broadcasts_deiconified(void)
 {
     s_reset();
@@ -621,8 +621,8 @@ static void s_test_restore_broadcasts_deiconified(void)
     TAP_EQ_INT(s_calls.restore, 1,
             "enact_client_restore calls ccmd_client_restore exactly once");
     TAP_EQ_INT((int) s_last_broadcast_type,
-            (int) IPC_EVENT_CLIENT_DEICONIFIED,
-            "the broadcast event type is IPC_EVENT_CLIENT_DEICONIFIED");
+            (int) IPC_EVENT_CLIENT_ICONIFY_CLEARED,
+            "the broadcast event type is IPC_EVENT_CLIENT_ICONIFY_CLEARED");
 }
 
 
@@ -636,27 +636,31 @@ static void s_test_call_then_fixed_broadcast_actions(void)
             { 3, 4 } });
     TAP_EQ_INT(s_calls.resize, 1, "enact_client_resize calls"
             " ccmd_client_resize exactly once");
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_WINDOW_RESIZED,
-            "resize broadcasts IPC_EVENT_WINDOW_RESIZED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_RESIZED,
+            "resize broadcasts IPC_EVENT_CLIENT_RESIZED");
 
     s_reset();
     enact_client_resize_force(&s_client, (struct geometry_s) { { 0, 0 },
             { 0, 0 } });
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_WINDOW_RESIZED,
-            "resize_force also broadcasts IPC_EVENT_WINDOW_RESIZED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_RESIZED,
+            "resize_force also broadcasts IPC_EVENT_CLIENT_RESIZED");
 
     s_reset();
     enact_client_move(&s_client, (struct position_s) { 5, 6 });
     TAP_EQ_INT(s_last_move_pos.x, 5,
             "the exact x position given is forwarded to"
             " ccmd_client_move");
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_WINDOW_MOVED,
-            "move broadcasts IPC_EVENT_WINDOW_MOVED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_MOVED,
+            "move broadcasts IPC_EVENT_CLIENT_MOVED");
 
     s_reset();
     enact_client_center(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_WINDOW_MOVED,
-            "center also broadcasts IPC_EVENT_WINDOW_MOVED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_MOVED,
+            "center also broadcasts IPC_EVENT_CLIENT_MOVED");
 
     s_reset();
     enact_client_move_monitor_north(&s_client);
@@ -670,20 +674,22 @@ static void s_test_call_then_fixed_broadcast_actions(void)
             "each of the four move_monitor directions calls its own"
             " ccmd_client_move_to_monitor_* exactly once");
     TAP_EQ_INT(s_call_broadcast, 4,
-            "each of the four also broadcasts IPC_EVENT_WINDOW_MOVED"
+            "each of the four also broadcasts IPC_EVENT_CLIENT_MOVED"
             " once");
 
     s_reset();
     enact_client_move_to_monitor(&s_client, 3u);
     TAP_EQ_INT((int) s_last_monitor_index, 3,
             "the exact monitor index given is forwarded");
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_WINDOW_MOVED,
-            "move_to_monitor also broadcasts IPC_EVENT_WINDOW_MOVED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_MOVED,
+            "move_to_monitor also broadcasts IPC_EVENT_CLIENT_MOVED");
 
     s_reset();
     enact_client_maximize(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_WINDOW_RESIZED,
-            "maximize broadcasts IPC_EVENT_WINDOW_RESIZED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_RESIZED,
+            "maximize broadcasts IPC_EVENT_CLIENT_RESIZED");
 
     s_reset();
     enact_client_maximize_horz(&s_client);
@@ -694,37 +700,44 @@ static void s_test_call_then_fixed_broadcast_actions(void)
 
     s_reset();
     enact_client_iconify(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_CLIENT_ICONIFIED,
-            "iconify broadcasts IPC_EVENT_CLIENT_ICONIFIED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_ICONIFY_SET,
+            "iconify broadcasts IPC_EVENT_CLIENT_ICONIFY_SET");
 
     s_reset();
     enact_client_hide(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_HIDE_SET,
-            "hide broadcasts IPC_EVENT_HIDE_SET");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_HIDE_SET,
+            "hide broadcasts IPC_EVENT_CLIENT_HIDE_SET");
     TAP_OK(client_is_hidden(&s_client) != 0,
             "hide leaves the client's own hidden flag set");
 
     enact_client_unhide(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_HIDE_CLEARED,
-            "unhide broadcasts IPC_EVENT_HIDE_CLEARED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_HIDE_CLEARED,
+            "unhide broadcasts IPC_EVENT_CLIENT_HIDE_CLEARED");
     TAP_OK(client_is_hidden(&s_client) == 0,
             "unhide clears the client's own hidden flag");
 
     s_reset();
     enact_client_shade(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_SHADE_SET,
-            "shade broadcasts IPC_EVENT_SHADE_SET");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_SHADE_SET,
+            "shade broadcasts IPC_EVENT_CLIENT_SHADE_SET");
     enact_client_unshade(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_SHADE_CLEARED,
-            "unshade broadcasts IPC_EVENT_SHADE_CLEARED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_SHADE_CLEARED,
+            "unshade broadcasts IPC_EVENT_CLIENT_SHADE_CLEARED");
 
     s_reset();
     enact_client_pin(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_PIN_SET,
-            "pin broadcasts IPC_EVENT_PIN_SET");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_PIN_SET,
+            "pin broadcasts IPC_EVENT_CLIENT_PIN_SET");
     enact_client_unpin(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_PIN_CLEARED,
-            "unpin broadcasts IPC_EVENT_PIN_CLEARED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_PIN_CLEARED,
+            "unpin broadcasts IPC_EVENT_CLIENT_PIN_CLEARED");
 
     /* Not to be confused with pin above; see CLIENT_FLAG_STICKY's
      * comment in client/state.h for the full distinction */
@@ -742,12 +755,13 @@ static void s_test_call_then_fixed_broadcast_actions(void)
 
     s_reset();
     enact_client_fullscreen(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_FULLSCREEN_SET,
-            "fullscreen broadcasts IPC_EVENT_FULLSCREEN_SET");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_FULLSCREEN_SET,
+            "fullscreen broadcasts IPC_EVENT_CLIENT_FULLSCREEN_SET");
     enact_client_unfullscreen(&s_client);
     TAP_EQ_INT((int) s_last_broadcast_type,
-            (int) IPC_EVENT_FULLSCREEN_CLEARED,
-            "unfullscreen broadcasts IPC_EVENT_FULLSCREEN_CLEARED");
+            (int) IPC_EVENT_CLIENT_FULLSCREEN_CLEARED,
+            "unfullscreen broadcasts IPC_EVENT_CLIENT_FULLSCREEN_CLEARED");
 
     s_reset();
     enact_client_layer_above(&s_client);
@@ -755,7 +769,7 @@ static void s_test_call_then_fixed_broadcast_actions(void)
     enact_client_layer_below(&s_client);
     enact_client_cycle_layer(&s_client);
     TAP_EQ_INT(s_call_broadcast, 4,
-            "all four layer actions broadcast IPC_EVENT_LAYER_CHANGED,"
+            "all four layer actions broadcast IPC_EVENT_CLIENT_LAYER_CHANGED,"
             " one each");
 }
 
@@ -767,21 +781,25 @@ static void s_test_toggle_actions_pick_event_by_resulting_state(void)
 {
     s_reset();
     enact_client_toggle_shade(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_SHADE_SET,
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_SHADE_SET,
             "toggling shade on an unshaded client broadcasts"
-            " IPC_EVENT_SHADE_SET");
+            " IPC_EVENT_CLIENT_SHADE_SET");
     enact_client_toggle_shade(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_SHADE_CLEARED,
-            "toggling shade again broadcasts IPC_EVENT_SHADE_CLEARED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_SHADE_CLEARED,
+            "toggling shade again broadcasts IPC_EVENT_CLIENT_SHADE_CLEARED");
 
     s_reset();
     enact_client_toggle_pin(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_PIN_SET,
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_PIN_SET,
             "toggling pin on an unpinned client broadcasts"
-            " IPC_EVENT_PIN_SET");
+            " IPC_EVENT_CLIENT_PIN_SET");
     enact_client_toggle_pin(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_PIN_CLEARED,
-            "toggling pin again broadcasts IPC_EVENT_PIN_CLEARED");
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_PIN_CLEARED,
+            "toggling pin again broadcasts IPC_EVENT_CLIENT_PIN_CLEARED");
 
     s_reset();
     enact_client_toggle_stick(&s_client);
@@ -792,26 +810,27 @@ static void s_test_toggle_actions_pick_event_by_resulting_state(void)
 
     s_reset();
     enact_client_toggle_fullscreen(&s_client);
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_FULLSCREEN_SET,
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_FULLSCREEN_SET,
             "toggling fullscreen on a windowed client broadcasts"
-            " IPC_EVENT_FULLSCREEN_SET");
+            " IPC_EVENT_CLIENT_FULLSCREEN_SET");
     enact_client_toggle_fullscreen(&s_client);
     TAP_EQ_INT((int) s_last_broadcast_type,
-            (int) IPC_EVENT_FULLSCREEN_CLEARED,
+            (int) IPC_EVENT_CLIENT_FULLSCREEN_CLEARED,
             "toggling fullscreen again broadcasts"
-            " IPC_EVENT_FULLSCREEN_CLEARED");
+            " IPC_EVENT_CLIENT_FULLSCREEN_CLEARED");
 
     s_reset();
     enact_client_toggle_decorate(&s_client);
     TAP_EQ_INT((int) s_last_broadcast_type,
-            (int) IPC_EVENT_DECORATION_SET,
+            (int) IPC_EVENT_CLIENT_DECORATION_SET,
             "toggling decoration on an undecorated client broadcasts"
-            " IPC_EVENT_DECORATION_SET");
+            " IPC_EVENT_CLIENT_DECORATION_SET");
     enact_client_toggle_decorate(&s_client);
     TAP_EQ_INT((int) s_last_broadcast_type,
-            (int) IPC_EVENT_DECORATION_CLEARED,
+            (int) IPC_EVENT_CLIENT_DECORATION_CLEARED,
             "toggling decoration again broadcasts"
-            " IPC_EVENT_DECORATION_CLEARED");
+            " IPC_EVENT_CLIENT_DECORATION_CLEARED");
 }
 
 
@@ -839,14 +858,16 @@ static void s_test_metadata_actions_carry_their_own_field(void)
     enact_client_rerole(&s_client, "browser");
     TAP_EQ_STR(s_last_rerole_role, "browser",
             "rerole forwards the exact role given");
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_CLIENT_REROLED,
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_REROLED,
             "rerole broadcasts IPC_EVENT_CLIENT_REROLED");
 
     s_reset();
     enact_client_rename(&s_client, "New Title");
     TAP_EQ_STR(s_last_rename_name, "New Title",
             "rename forwards the exact name given");
-    TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_CLIENT_RENAMED,
+    TAP_EQ_INT((int) s_last_broadcast_type,
+            (int) IPC_EVENT_CLIENT_RENAMED,
             "rename broadcasts IPC_EVENT_CLIENT_RENAMED");
 
     s_reset();

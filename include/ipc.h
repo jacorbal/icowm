@@ -37,15 +37,18 @@
 /**
  * @brief Every event a client can @c subscribe to over the socket
  *
- * Plain @c #define constants of type @c uint32_t rather than a regular
- * C @c enum: @c IPC_EVENT_STACKING_CHANGED's value
- * (@c 1u @c << @c 31, i.e., 2147483648) exceeds @c INT_MAX, and ISO C
- * requires every enumerator's value to be representable as an @c int,
- * i.e., an @c enum simply cannot host it under strict @c -std=c99
- * @c -pedantic compilation, regardless of the expression used to
- * compute it.  Every function taking such a value takes a plain
- * @c uint32_t rather than an @c (enum ipc_event_type_e), for the same
- * reason.
+ * Plain @c #define constants of type @c uint64_t rather than a regular
+ * C @c enum: most of their values exceed @c INT_MAX, and ISO C requires
+ * every enumerator's value to be representable as an @c int, i.e., an
+ * @c enum simply cannot host them under strict @c -std=c99 @c -pedantic
+ * compilation, regardless of the expression used to compute them.
+ * Every function taking such a value takes a plain @c uint64_t rather
+ * than an @c (enum ipc_event_type_e), for the same reason.
+ *
+ * Every name follows one scheme: the subject first (@c client_,
+ * @c desktop_, @c scratchpad_, @c config_), then what happened to it,
+ * @c _set and @c _cleared for a state it gains or loses, and
+ * @c _changed for a value that changes.
  *
  * @see @a ipc_broadcast_event
  *
@@ -54,106 +57,121 @@
  * @{
  */
 /** A client was mapped */
-#define IPC_EVENT_WINDOW_MAPPED ((uint32_t) 1u << 0)
+#define IPC_EVENT_CLIENT_MAPPED ((uint64_t) 1u << 0)
 
 /** A client was destroyed */
-#define IPC_EVENT_WINDOW_CLOSED ((uint32_t) 1u << 1)
+#define IPC_EVENT_CLIENT_CLOSED ((uint64_t) 1u << 1)
 
 /**
- * @brief A stage's current desktop changed, its desktop list grew
- *        or shrank, or its strutless-maximization mode was toggled
- *
- * The three share one bit because no free bit remained for a separate
- * event once all thirty-two of this mask were spoken for.
+ * @brief A stage's current desktop changed, or its
+ *        strutless-maximization mode was toggled
  */
-#define IPC_EVENT_DESKTOP_SWITCHED ((uint32_t) 1u << 2)
+#define IPC_EVENT_DESKTOP_SWITCHED ((uint64_t) 1u << 2)
 
 /** A desktop's active client changed */
-#define IPC_EVENT_FOCUS_CHANGED ((uint32_t) 1u << 3)
+#define IPC_EVENT_CLIENT_FOCUSED ((uint64_t) 1u << 3)
 
 /** A client's urgency hint was set */
-#define IPC_EVENT_URGENCY_SET ((uint32_t) 1u << 4)
+#define IPC_EVENT_CLIENT_URGENCY_SET ((uint64_t) 1u << 4)
 
 /** A client's urgency hint was cleared */
-#define IPC_EVENT_URGENCY_CLEARED ((uint32_t) 1u << 5)
+#define IPC_EVENT_CLIENT_URGENCY_CLEARED ((uint64_t) 1u << 5)
 
 /** A client's position changed */
-#define IPC_EVENT_WINDOW_MOVED ((uint32_t) 1u << 6)
+#define IPC_EVENT_CLIENT_MOVED ((uint64_t) 1u << 6)
 
 /** A client's size changed */
-#define IPC_EVENT_WINDOW_RESIZED ((uint32_t) 1u << 7)
+#define IPC_EVENT_CLIENT_RESIZED ((uint64_t) 1u << 7)
 
 /** A rule changed one of a client's properties */
-#define IPC_EVENT_RULE_APPLIED ((uint32_t) 1u << 8)
+#define IPC_EVENT_CLIENT_RULE_APPLIED ((uint64_t) 1u << 8)
 
 /** A client was pinned */
-#define IPC_EVENT_PIN_SET ((uint32_t) 1u << 9)
+#define IPC_EVENT_CLIENT_PIN_SET ((uint64_t) 1u << 9)
 
 /** A client was unpinned */
-#define IPC_EVENT_PIN_CLEARED ((uint32_t) 1u << 10)
+#define IPC_EVENT_CLIENT_PIN_CLEARED ((uint64_t) 1u << 10)
 
 /** A client entered fullscreen */
-#define IPC_EVENT_FULLSCREEN_SET ((uint32_t) 1u << 11)
+#define IPC_EVENT_CLIENT_FULLSCREEN_SET ((uint64_t) 1u << 11)
 
 /** A client left fullscreen */
-#define IPC_EVENT_FULLSCREEN_CLEARED ((uint32_t) 1u << 12)
+#define IPC_EVENT_CLIENT_FULLSCREEN_CLEARED ((uint64_t) 1u << 12)
 
 /** A client was shaded */
-#define IPC_EVENT_SHADE_SET ((uint32_t) 1u << 13)
+#define IPC_EVENT_CLIENT_SHADE_SET ((uint64_t) 1u << 13)
 
 /** A client was unshaded */
-#define IPC_EVENT_SHADE_CLEARED ((uint32_t) 1u << 14)
+#define IPC_EVENT_CLIENT_SHADE_CLEARED ((uint64_t) 1u << 14)
 
 /** A client was hidden */
-#define IPC_EVENT_HIDE_SET ((uint32_t) 1u << 15)
+#define IPC_EVENT_CLIENT_HIDE_SET ((uint64_t) 1u << 15)
 
 /** A client was unhidden */
-#define IPC_EVENT_HIDE_CLEARED ((uint32_t) 1u << 16)
+#define IPC_EVENT_CLIENT_HIDE_CLEARED ((uint64_t) 1u << 16)
 
 /** A client's decoration was shown */
-#define IPC_EVENT_DECORATION_SET ((uint32_t) 1u << 17)
+#define IPC_EVENT_CLIENT_DECORATION_SET ((uint64_t) 1u << 17)
 
 /** A client's decoration was hidden */
-#define IPC_EVENT_DECORATION_CLEARED ((uint32_t) 1u << 18)
+#define IPC_EVENT_CLIENT_DECORATION_CLEARED ((uint64_t) 1u << 18)
 
 /** A client was iconified */
-#define IPC_EVENT_CLIENT_ICONIFIED ((uint32_t) 1u << 19)
+#define IPC_EVENT_CLIENT_ICONIFY_SET ((uint64_t) 1u << 19)
 
 /** A client was restored from being iconified */
-#define IPC_EVENT_CLIENT_DEICONIFIED ((uint32_t) 1u << 20)
+#define IPC_EVENT_CLIENT_ICONIFY_CLEARED ((uint64_t) 1u << 20)
 
 /** A client's stacking layer changed */
-#define IPC_EVENT_LAYER_CHANGED ((uint32_t) 1u << 21)
+#define IPC_EVENT_CLIENT_LAYER_CHANGED ((uint64_t) 1u << 21)
 
 /** A client moved to a different desktop */
-#define IPC_EVENT_CLIENT_DESKTOP_CHANGED ((uint32_t) 1u << 22)
+#define IPC_EVENT_CLIENT_DESKTOP_CHANGED ((uint64_t) 1u << 22)
 
 /** A client's displayed title was overridden */
-#define IPC_EVENT_CLIENT_RENAMED ((uint32_t) 1u << 23)
+#define IPC_EVENT_CLIENT_RENAMED ((uint64_t) 1u << 23)
 
 /** A client's @c WM_CLASS was overridden */
-#define IPC_EVENT_CLIENT_RECLASSED ((uint32_t) 1u << 24)
+#define IPC_EVENT_CLIENT_RECLASSED ((uint64_t) 1u << 24)
 
 /** A client's window role was overridden */
-#define IPC_EVENT_CLIENT_REROLED ((uint32_t) 1u << 25)
+#define IPC_EVENT_CLIENT_REROLED ((uint64_t) 1u << 25)
 
 /** A client's displayed icon was overridden */
-#define IPC_EVENT_CLIENT_ICON_CHANGED ((uint32_t) 1u << 26)
+#define IPC_EVENT_CLIENT_ICON_CHANGED ((uint64_t) 1u << 26)
 
 /** A desktop's solid background color was set */
-#define IPC_EVENT_DESKTOP_BACKGROUND_CHANGED ((uint32_t) 1u << 27)
+#define IPC_EVENT_DESKTOP_BACKGROUND_CHANGED ((uint64_t) 1u << 27)
 
 /** Every client on a desktop was shown at once */
-#define IPC_EVENT_DESKTOP_SHOWN ((uint32_t) 1u << 28)
+#define IPC_EVENT_DESKTOP_SHOWN ((uint64_t) 1u << 28)
 
 /** Every client on a desktop was hidden at once */
-#define IPC_EVENT_DESKTOP_HIDDEN ((uint32_t) 1u << 29)
+#define IPC_EVENT_DESKTOP_HIDDEN ((uint64_t) 1u << 29)
 
 /** Every configuration file was reloaded */
-#define IPC_EVENT_CONFIG_RELOADED ((uint32_t) 1u << 30)
+#define IPC_EVENT_CONFIG_RELOADED ((uint64_t) 1u << 30)
 
 /** A client's position within its layer's stacking order changed */
-#define IPC_EVENT_STACKING_CHANGED ((uint32_t) 1u << 31)
+#define IPC_EVENT_CLIENT_STACKING_CHANGED ((uint64_t) 1u << 31)
+
+/** A client was maximized on an axis it was not before */
+#define IPC_EVENT_CLIENT_MAXIMIZE_SET ((uint64_t) 1u << 32)
+
+/** A client stopped being maximized on an axis it was before */
+#define IPC_EVENT_CLIENT_MAXIMIZE_CLEARED ((uint64_t) 1u << 33)
+
+/** A desktop was added to a stage */
+#define IPC_EVENT_DESKTOP_ADDED ((uint64_t) 1u << 34)
+
+/** A desktop was removed from a stage */
+#define IPC_EVENT_DESKTOP_REMOVED ((uint64_t) 1u << 35)
+
+/** The scratchpad was shown */
+#define IPC_EVENT_SCRATCHPAD_SHOWN ((uint64_t) 1u << 36)
+
+/** The scratchpad was hidden */
+#define IPC_EVENT_SCRATCHPAD_HIDDEN ((uint64_t) 1u << 37)
 
 /** @} */
 
@@ -317,7 +335,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args);
  *
  * @see @c IPC_EVENT_* constants above
  */
-void ipc_broadcast_event(uint32_t type, cJSON *fields);
+void ipc_broadcast_event(uint64_t type, cJSON *fields);
 
 
 #endif  /* ! IPC_H */

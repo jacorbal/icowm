@@ -403,7 +403,7 @@ static void s_test_subscribe_then_broadcast_then_unsubscribe_all(void)
     args = cJSON_CreateObject();
     cJSON_AddItemToObject(args, "events",
             cJSON_CreateStringArray(
-                    (const char *[]) { "window_mapped" }, 1));
+                    (const char *[]) { "client_mapped" }, 1));
     resp = ipc_client_subscribe(client_idx, args);
     ok_field = cJSON_GetObjectItem(resp, "ok");
     TAP_OK(ok_field != NULL && cJSON_IsTrue(ok_field),
@@ -411,11 +411,11 @@ static void s_test_subscribe_then_broadcast_then_unsubscribe_all(void)
     cJSON_Delete(args);
     cJSON_Delete(resp);
 
-    ipc_broadcast_event(IPC_EVENT_WINDOW_MAPPED, NULL);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_MAPPED, NULL);
 
     memset(buf, 0, sizeof(buf));
     n = read(client_fd, buf, sizeof(buf) - 1u);
-    TAP_OK(n > 0 && strstr(buf, "\"event\":\"window_mapped\"") != NULL,
+    TAP_OK(n > 0 && strstr(buf, "\"event\":\"client_mapped\"") != NULL,
             "the subscribed client receives the broadcast event," \
             " naming it by its wire name");
 
@@ -428,7 +428,7 @@ static void s_test_subscribe_then_broadcast_then_unsubscribe_all(void)
     cJSON_Delete(args);
     cJSON_Delete(resp);
 
-    ipc_broadcast_event(IPC_EVENT_WINDOW_MAPPED, NULL);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_MAPPED, NULL);
 
     n = fcntl(client_fd, F_SETFL, O_NONBLOCK);
     TAP_EQ_INT((int) n, 0, "the client socket was made non-blocking" \
@@ -460,7 +460,7 @@ static void s_test_broadcast_noop_when_down(void)
      * 'fields' is always freed internally either way); TAP_OK below
      * exists so this scenario still counts toward the plan and
      * confirms execution reached this point. */
-    ipc_broadcast_event(IPC_EVENT_WINDOW_MAPPED, fields);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_MAPPED, fields);
     TAP_OK(true,
             "broadcasting while the socket is down returns safely" \
             " without crashing");

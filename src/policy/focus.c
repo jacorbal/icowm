@@ -342,7 +342,7 @@ static void s_focus_broadcast_changed(const stage_td *stage,
         cJSON_AddNumberToObject(fields, "client_id",
                 (double) client->id);
     }
-    ipc_broadcast_event(IPC_EVENT_FOCUS_CHANGED, fields);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_FOCUSED, fields);
 }
 
 

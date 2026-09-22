@@ -47,7 +47,7 @@
  * @note No-op if @p client is @c NULL
  * @note Complexity: @e O(1)
  */
-void enact_broadcast_client_event(client_td *client, uint32_t type);
+void enact_broadcast_client_event(client_td *client, uint64_t type);
 
 
 #endif /* ! ENACT_INTERNAL_H */

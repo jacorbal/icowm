@@ -38,10 +38,14 @@
 #include <time.h>
 
 /* Local includes */
+#include <cjson/cJSON.h>
+
+/* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <harness/tap.h>
+#include <ipc.h>
 #include <scratchpad.h>
 #include <stage.h>
 #include <wm/internal.h>
@@ -223,6 +227,27 @@ void enact_client_hide(client_td *client)
 }
 
 void enact_client_unhide(client_td *client) { (void) client; }
+
+/** Link-only stand-ins for the scratchpad's own IPC broadcast */
+cJSON *cJSON_CreateObject(void)
+{
+    return NULL;
+}
+
+cJSON *cJSON_AddNumberToObject(cJSON *object, const char *name,
+        double number)
+{
+    (void) object;
+    (void) name;
+    (void) number;
+    return NULL;
+}
+
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
+{
+    (void) type;
+    (void) fields;
+}
 
 void enact_desktop_client_send(desktop_td *desktop, client_td *client,
         desktop_td *target)

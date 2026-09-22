@@ -39,10 +39,10 @@
 #include <cjson/cJSON.h>
 
 
-/** @c set_desktop_background: arguments @c desktop_id (required),
+/** @c set_background_desktop: arguments @c desktop_id (required),
  *  @c stage_id" (optional), @c color (required, a packed @c 0xRRGGBB
  *  value) */
-cJSON *ipc_action_set_desktop_background(const wm_td *wm, const cJSON *args);
+cJSON *ipc_action_set_background_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c show_desktop: arguments @c desktop_id (required), @c stage_id
  *  (optional), @c show (required boolean) */

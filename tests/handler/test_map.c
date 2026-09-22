@@ -716,7 +716,7 @@ void ccmd_client_sync_states(client_td *client)
  *  object it is handed, mirroring the ownership the real function
  *  documents, so a test that triggers this path leaves nothing
  *  leaked for ASan to catch */
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     (void) type;
 

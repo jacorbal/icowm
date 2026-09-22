@@ -124,7 +124,7 @@ int wm_action_config_reload(const wm_td *wm)
  *
  * @note Complexity: @e O(1)
  */
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     s_ipc_broadcast_calls++;
     s_ipc_broadcast_last_type = type;

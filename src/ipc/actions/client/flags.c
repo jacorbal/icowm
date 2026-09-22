@@ -95,6 +95,24 @@ static void s_clear_urgent(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Set the client's urgency, or clear it if it is already set,
+ *        per @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_toggle_urgent(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (client_is_urgent(client)) {
+        enact_client_unurge(client);
+    } else {
+        enact_client_urge(client);
+    }
+}
+
+
 /* Make the client visible on every desktop */
 cJSON *ipc_action_pin_client(const wm_td *wm, const cJSON *args)
 {
@@ -128,4 +146,11 @@ cJSON *ipc_action_urge_client(const wm_td *wm, const cJSON *args)
 cJSON *ipc_action_unurge_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_clear_urgent);
+}
+
+
+/* Set the client's urgency, or clear it if it is already set */
+cJSON *ipc_action_toggle_urge_client(const wm_td *wm, const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_toggle_urgent);
 }

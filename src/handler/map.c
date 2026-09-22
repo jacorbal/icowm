@@ -389,7 +389,7 @@ static void s_map_finish(const wm_td *wm, stage_td *stage,
         cJSON_AddNumberToObject(fields, "stage_id",
                 (double) stage->id);
     }
-    ipc_broadcast_event(IPC_EVENT_WINDOW_MAPPED, fields);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_MAPPED, fields);
 }
 
 
@@ -871,7 +871,7 @@ void handler_window_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         cJSON_AddNumberToObject(fields, "stage_id",
                 (double) stage->id);
     }
-    ipc_broadcast_event(IPC_EVENT_WINDOW_CLOSED, fields);
+    ipc_broadcast_event(IPC_EVENT_CLIENT_CLOSED, fields);
 
     client_destroy(client);
 

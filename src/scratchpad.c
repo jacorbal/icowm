@@ -24,6 +24,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* JSON includes */
+#include <cjson/cJSON.h>
+
 /* Type includes */
 #include <types/pair.h>
 
@@ -54,6 +57,7 @@
 #include <enact.h>
 #include <enact/client.h>
 #include <enact/desktop.h>
+#include <ipc.h>
 #include <logger.h>
 #include <stage.h>
 #include <wm.h>
@@ -216,6 +220,8 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
  * launched and is still awaited */
 void scratchpad_notice_client_created(client_td *client)
 {
+    cJSON *fields;
+
     if (client == NULL || !s_awaiting_scratchpad) {
         return;
     }
@@ -243,6 +249,13 @@ void scratchpad_notice_client_created(client_td *client)
     s_awaiting_scratchpad = false;
     s_awaiting_scratchpad_pid = (pid_t) -1;
     s_scratchpad_client = client;
+
+    /* It is shown as soon as it maps, which follows right after */
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "client_id", (double) client->id);
+    }
+    ipc_broadcast_event(IPC_EVENT_SCRATCHPAD_SHOWN, fields);
 
     ccmd_client_reclass(client, WM_SCRATCHPAD_WM_CLASS,
             WM_SCRATCHPAD_WM_CLASS);

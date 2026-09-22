@@ -98,7 +98,7 @@ cJSON *ipc_action_rerole_client(const wm_td *wm, const cJSON *args)
 
 
 /* Override the client's own icon */
-cJSON *ipc_action_set_client_icon(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_icon_client(const wm_td *wm, const cJSON *args)
 {
     const char *icon_name;
     client_td *client;

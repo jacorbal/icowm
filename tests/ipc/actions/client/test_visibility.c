@@ -77,6 +77,16 @@ static client_td *s_last_client;
 
 
 /**
+ * @brief Link-only stand-in for @a enact_client_restore
+ * @note Complexity: @e O(1)
+ */
+void enact_client_restore(client_td *client)
+{
+    (void) client;
+}
+
+
+/**
  * @brief Recording stand-in for enact_client_iconify
  *
  * @note Complexity: O(1)

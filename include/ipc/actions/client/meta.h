@@ -62,7 +62,7 @@ cJSON *ipc_action_reclass_client(const wm_td *wm, const cJSON *args);
 cJSON *ipc_action_rerole_client(const wm_td *wm, const cJSON *args);
 
 /**
- * @brief @c set_client_icon: override the client's own icon
+ * @brief @c set_icon_client: override the client's own icon
  *
  * @param wm   Window manager instance
  * @param args The request object; arguments @c client_id,
@@ -70,7 +70,7 @@ cJSON *ipc_action_rerole_client(const wm_td *wm, const cJSON *args);
  *
  * @return The standard success or failure response
  */
-cJSON *ipc_action_set_client_icon(const wm_td *wm, const cJSON *args);
+cJSON *ipc_action_set_icon_client(const wm_td *wm, const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_CLIENT_META_H */

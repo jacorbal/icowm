@@ -161,7 +161,7 @@ arguments are unused in this mode.
 .Pp
 .Ar events
 is a comma-separated list of event names, without spaces, such as
-.Ql window_mapped,desktop_switched .
+.Ql client_mapped,desktop_switched .
 With
 .Fl n Ar count ,
 watching stops once that many events have arrived; without it, watching
@@ -207,6 +207,10 @@ Iconifies (minimizes) the client
 Hides the client without iconifying it
 .It Ic unhide_client Ar client_id
 Undoes `hide_client`
+.It Ic toggle_iconify_client Ar client_id
+Toggles `iconify_client`/`deiconify_client`
+.It Ic toggle_hide_client Ar client_id
+Toggles `hide_client`/`unhide_client`
 .El
 .Ss Client flags
 .Bl -tag -width Ds
@@ -245,11 +249,26 @@ Moves and resizes the client in one step
 .It Ic resize_client Ar client_id Ar w Ar h
 Resizes the client only, leaving position alone
 .It Ic maximize_client_horz Ar client_id
-Maximizes the client horizontally only
+Maximizes the client horizontally only; already maximized that way, it
+is left as it is
 .It Ic maximize_client_vert Ar client_id
-Maximizes the client vertically only
+Maximizes the client vertically only; already maximized that way, it is
+left as it is
 .It Ic maximize_client Ar client_id
-Maximizes the client both horizontally and vertically
+Maximizes the client both horizontally and vertically; already
+maximized both ways, it is left as it is
+.It Ic unmaximize_client_horz Ar client_id
+Restores the client's width, if it is maximized horizontally
+.It Ic unmaximize_client_vert Ar client_id
+Restores the client's height, if it is maximized vertically
+.It Ic unmaximize_client Ar client_id
+Restores the client from being maximized on either axis
+.It Ic toggle_maximize_client_horz Ar client_id
+Toggles `maximize_client_horz`/`unmaximize_client_horz`
+.It Ic toggle_maximize_client_vert Ar client_id
+Toggles `maximize_client_vert`/`unmaximize_client_vert`
+.It Ic toggle_maximize_client Ar client_id
+Toggles `maximize_client`/`unmaximize_client`
 .El
 .Ss Client layering
 .Bl -tag -width Ds
@@ -274,7 +293,7 @@ Overrides the client's window title
 Overrides the client's `WM_CLASS`
 .It Ic rerole_client Ar client_id Ar role
 Overrides the client's window role
-.It Ic set_client_icon Ar client_id Ar icon_name
+.It Ic set_icon_client Ar client_id Ar icon_name
 Overrides which icon IcoWM shows for the client
 .El
 .Ss Client state
@@ -291,12 +310,16 @@ Makes the client fill its screen
 Undoes `fullscreen_client`
 .It Ic toggle_fullscreen_client Ar client_id
 Toggles `fullscreen_client`/`unfullscreen_client`
+.It Ic decorate_client Ar client_id
+Shows the client's titlebar and border
+.It Ic undecorate_client Ar client_id
+Hides the client's titlebar and border
 .It Ic toggle_decorate_client Ar client_id
-Shows or hides the client's titlebar and border
+Toggles `decorate_client`/`undecorate_client`
 .El
 .Ss Desktops and surfaces
 .Bl -tag -width Ds
-.It Ic set_desktop_background Ar desktop_id Oo Ar surface_id Oc Ar color
+.It Ic set_background_desktop Ar desktop_id Oo Ar surface_id Oc Ar color
 Sets that desktop's solid background color
 .It Ic show_desktop Ar desktop_id Oo Ar surface_id Oc Ar show
 Shows or hides every client on that desktop at once
@@ -314,13 +337,13 @@ Restores every iconified client on that desktop at once
 Re-applies the configured placement policy on that desktop
 .It Ic goto_desktop Ar desktop_id Oo Ar surface_id Oc
 Switches the resolved surface to that desktop
-.It Ic goto_north_desktop Oo Ar surface_id Oc
+.It Ic goto_desktop_north Oo Ar surface_id Oc
 Switches the resolved surface to the desktop north of its current one
-.It Ic goto_south_desktop Oo Ar surface_id Oc
+.It Ic goto_desktop_south Oo Ar surface_id Oc
 The same, toward the desktop south of the current one
-.It Ic goto_east_desktop Oo Ar surface_id Oc
+.It Ic goto_desktop_east Oo Ar surface_id Oc
 The same, toward the desktop east of the current one
-.It Ic goto_west_desktop Oo Ar surface_id Oc
+.It Ic goto_desktop_west Oo Ar surface_id Oc
 The same, toward the desktop west of the current one
 .It Ic add_desktop Oo Ar surface_id Oc
 Adds a new desktop after the resolved surface's last one, growing its
@@ -356,20 +379,20 @@ Each arrives as one JSON line naming the event in its
 .Ic event
 field, alongside the fields given here.
 .Bl -tag -width Ds
-.It Ic window_mapped Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_mapped Ar client_id , Ar desktop_id , Ar surface_id
 A client was just mapped onto that desktop
-.It Ic window_closed Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_closed Ar client_id , Ar desktop_id , Ar surface_id
 A client was just destroyed
 .It Ic desktop_switched Ar surface_id , Ar desktop_id
 That surface's current desktop just changed to
 .Ic desktop_id
-.It Ic focus_changed Ar surface_id , Ar client_id
+.It Ic client_focused Ar surface_id , Ar client_id
 That client just became the active one on its surface
-.It Ic urgency_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_urgency_set Ar client_id , Ar desktop_id , Ar surface_id
 That client's urgency hint was just set
-.It Ic urgency_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_urgency_cleared Ar client_id , Ar desktop_id , , Ar surface_id
 That client's urgency hint was just cleared
-.It Ic window_moved Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_moved Ar client_id , Ar desktop_id , Ar surface_id
 That client's position just changed (see the
 .Ic list_clients
 command for its current
@@ -377,7 +400,7 @@ command for its current
 /
 .Ic y
 )
-.It Ic window_resized Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_resized Ar client_id , Ar desktop_id , Ar surface_id
 That client's size just changed (see the
 .Ic list_clients
 command for its current
@@ -385,33 +408,33 @@ command for its current
 /
 .Ic h
 )
-.It Ic rule_applied Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_rule_applied Ar client_id , Ar desktop_id , Ar surface_id
 A loaded rule just changed one or more of that client's properties
-.It Ic pin_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_pin_set Ar client_id , Ar desktop_id , Ar surface_id
 That client was just pinned (visible on every desktop)
-.It Ic pin_cleared Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_pin_cleared Ar client_id , Ar desktop_id , Ar surface_id
 That client was just unpinned
-.It Ic fullscreen_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_fullscreen_set Ar client_id , Ar desktop_id , Ar surface_id
 That client just entered full screen
-.It Ic fullscreen_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_fullscreen_cleared Ar client_id , Ar desktop_id , , Ar surface_id
 That client just left full screen
-.It Ic shade_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_shade_set Ar client_id , Ar desktop_id , Ar surface_id
 That client was just shaded (rolled up into its titlebar)
-.It Ic shade_cleared Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_shade_cleared Ar client_id , Ar desktop_id , Ar surface_id
 That client was just unshaded
-.It Ic hide_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_hide_set Ar client_id , Ar desktop_id , Ar surface_id
 That client was just hidden
-.It Ic hide_cleared Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_hide_cleared Ar client_id , Ar desktop_id , Ar surface_id
 That client was just unhidden
-.It Ic decoration_set Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_decoration_set Ar client_id , Ar desktop_id , Ar surface_id
 That client's titlebar and border were just shown
-.It Ic decoration_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_decoration_cleared Ar client_id , Ar desktop_id , , Ar surface_id
 That client's titlebar and border were just hidden
-.It Ic client_iconified Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_iconify_set Ar client_id , Ar desktop_id , , Ar surface_id
 That client was just iconified
-.It Ic client_deiconified Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_iconify_cleared Ar client_id , Ar desktop_id , , Ar surface_id
 That client was just restored from being iconified
-.It Ic layer_changed Ar client_id , Ar desktop_id , Ar surface_id
+.It Ic client_layer_changed Ar client_id , Ar desktop_id , Ar surface_id
 That client's stacking layer just changed (see
 .Ic list_clients
 for its current layer)
@@ -435,11 +458,33 @@ That desktop's solid background color was just set
 Every client on that desktop was just shown at once
 .It Ic desktop_hidden Ar desktop_id , Ar surface_id
 Every client on that desktop was just hidden at once
-.It Ic stacking_changed Ar client_id , Ar desktop_id , , Ar surface_id
+.It Ic client_stacking_changed Ar client_id , Ar desktop_id , , Ar surface_id
 That client's position within its layer's stacking order just changed
+.It Ic client_maximize_set Ar client_id , Ar desktop_id , Ar surface_id
+That client was just maximized on an axis it was not before
+.It Ic client_maximize_cleared Ar client_id , Ar desktop_id , Ar surface_id
+That client just stopped being maximized on an axis it was before
+.It Ic desktop_added Ar desktop_id , Ar surface_id
+A desktop was just added to that stage
+.It Ic desktop_removed Ar desktop_id , Ar surface_id
+That desktop was just removed from that stage
+.It Ic scratchpad_shown Ar client_id
+The scratchpad was just shown
+.It Ic scratchpad_hidden Ar client_id , Ar desktop_id , Ar surface_id
+The scratchpad was just hidden
 .It Ic config_reloaded
 Every configuration file was just reloaded; carries no fields.
 .El
+.Pp
+Commands are named verb, then object, then any direction
+.Pq Ql goto_desktop_north ,
+and events subject, then what happened to it, with
+.Ql _set
+and
+.Ql _cleared
+for a state gained or lost and
+.Ql _changed
+for a value that changes.
 .Sh ENVIRONMENT
 .Bl -tag -width XDG_RUNTIME_DIR
 .It Ev XDG_RUNTIME_DIR
@@ -559,9 +604,9 @@ $ icowm-msg get_focused | jq -r '.focused[0].client_id'
 Watch until the connection drops, which is what the trailing status
 reports:
 .Bd -literal -offset indent
-$ icowm-msg -w window_mapped
+$ icowm-msg -w client_mapped
 {"ok":true}
-{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"window_mapped"}
+{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"client_mapped"}
 icowm-msg: connection closed with no response
 $ echo $?
 2

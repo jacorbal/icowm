@@ -125,6 +125,38 @@ static void s_toggle_decoration(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Show the client's decoration if it has none, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_decorate(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (!client_is_decorated(client)) {
+        enact_client_toggle_decorate(client);
+    }
+}
+
+
+/**
+ * @brief Hide the client's decoration if it has one, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_undecorate(const wm_td *wm, client_td *client,
+        stage_td *stage, desktop_td *desktop)
+{
+    (void) wm; (void) stage; (void) desktop;
+    if (client_is_decorated(client)) {
+        enact_client_toggle_decorate(client);
+    }
+}
+
+
 /* Roll the client up into just its own titlebar */
 cJSON *ipc_action_shade_client(const wm_td *wm, const cJSON *args)
 {
@@ -178,4 +210,18 @@ cJSON *ipc_action_toggle_decorate_client(const wm_td *wm,
         const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_toggle_decoration);
+}
+
+
+/* Show the client's own titlebar and border */
+cJSON *ipc_action_decorate_client(const wm_td *wm, const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_decorate);
+}
+
+
+/* Hide the client's own titlebar and border */
+cJSON *ipc_action_undecorate_client(const wm_td *wm, const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_undecorate);
 }

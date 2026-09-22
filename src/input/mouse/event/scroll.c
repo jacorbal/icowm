@@ -35,6 +35,7 @@
 #include <render/outdate.h>
 
 /* Enact includes */
+#include <enact/client.h>
 #include <enact/stage.h>
 
 /* Project includes */
@@ -74,7 +75,7 @@ static void s_scroll_titlebar_maximize(client_td *client,
     if (client_is_maximized(client)) {
         return;
     }
-    ccmd_client_maximize(client);
+    enact_client_maximize(client);
     if (desktop != NULL) {
         desktop->is_outdated = true;
     }
@@ -105,7 +106,7 @@ static void s_scroll_titlebar_restore(client_td *client,
     if (!client_is_maximized(client)) {
         return;
     }
-    ccmd_client_maximize(client);
+    enact_client_maximize(client);
     if (desktop != NULL) {
         desktop->is_outdated = true;
     }

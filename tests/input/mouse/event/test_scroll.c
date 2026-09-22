@@ -43,6 +43,7 @@
 
 /* Command includes */
 #include <cmds/client/maximize.h>
+#include <enact/client.h>
 #include <cmds/client/state.h>
 
 /* Project includes */
@@ -65,7 +66,7 @@
 #include <input/mouse/internal.h>
 
 
-/** Recorded calls to ccmd_client_maximize */
+/** Recorded calls to enact_client_maximize */
 static int s_maximize_calls;
 
 /** Recorded calls to ccmd_client_shade / ccmd_client_unshade */
@@ -99,10 +100,10 @@ static int s_allow_and_flush_calls;
 
 
 /**
- * @brief Recording stand-in for @a ccmd_client_maximize
+ * @brief Recording stand-in for @a enact_client_maximize
  * @note Complexity: @e O(1)
  */
-void ccmd_client_maximize(client_td *client)
+void enact_client_maximize(client_td *client)
 {
     (void) client;
 

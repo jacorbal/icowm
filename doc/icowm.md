@@ -485,13 +485,13 @@ broken rather than merely deferred.
 | `rename_client`          | `client_id`, `name`                                           | Overrides the client's window title as IcoWM displays it |
 | `reclass_client`         | `client_id`, `class_name`, `instance_name`                    | Overrides the client's ICCCM `WM_CLASS` (both its class and instance name), which theme rules and other IcoWM behavior that matches on window class use |
 | `rerole_client`          | `client_id`, `role`                                           | Overrides the client's window role |
-| `set_client_icon`        | `client_id`, `icon_name`                                      | Overrides which icon IcoWM shows for the client when iconified |
+| `set_icon_client`        | `client_id`, `icon_name`                                      | Overrides which icon IcoWM shows for the client when iconified |
 
 #### 5.3.4. Desktop-scoped actions
 
 | Command                  | Arguments                                                                                      | What it does |
 |--------------------------|------------------------------------------------------------------------------------------------|--------------|
-| `set_desktop_background` | `desktop_id`, `stage_id` (optional), `color` (a packed `0xRRGGBB` value)                       | Sets that desktop's solid background color |
+| `set_background_desktop` | `desktop_id`, `stage_id` (optional), `color` (a packed `0xRRGGBB` value)                       | Sets that desktop's solid background color |
 | `show_desktop`           | `desktop_id`, `stage_id` (optional), `show` (boolean)                                          | Shows or hides every client on that desktop at once, the same as a "show desktop" shortcut |
 | `send_client_to_desktop` | `client_id`, `target_desktop_id` (on the client's current stage)                               | Moves the client to another desktop on the same stage |
 | `iconify_all`            | `desktop_id` (optional; the resolved stage's current desktop otherwise), `stage_id` (optional) | Iconifies every client on that desktop at once |
@@ -504,10 +504,10 @@ broken rather than merely deferred.
 | Command                     | Arguments                                      | What it does |
 |-----------------------------|------------------------------------------------|--------------|
 | `goto_desktop`              | `desktop_id` (required), `stage_id` (optional) | Switches the resolved stage to that desktop |
-| `goto_north_desktop`        | `stage_id` (optional)                          | Switches the resolved stage to the desktop north of its current one; wraps if `desktops.wrap-at-bounds` allows it (`config.md`, §2.10), otherwise a no-op at the edge, including when no `topology.screens.desktops[].layout` with more than one row is configured at all |
-| `goto_south_desktop`        | `stage_id` (optional)                          | The same, toward the desktop south of the current one |
-| `goto_east_desktop`         | `stage_id` (optional)                          | The same, toward the desktop east of the current one |
-| `goto_west_desktop`         | `stage_id` (optional)                          | The same, toward the desktop west of the current one |
+| `goto_desktop_north`        | `stage_id` (optional)                          | Switches the resolved stage to the desktop north of its current one; wraps if `desktops.wrap-at-bounds` allows it (`config.md`, §2.10), otherwise a no-op at the edge, including when no `topology.screens.desktops[].layout` with more than one row is configured at all |
+| `goto_desktop_south`        | `stage_id` (optional)                          | The same, toward the desktop south of the current one |
+| `goto_desktop_east`         | `stage_id` (optional)                          | The same, toward the desktop east of the current one |
+| `goto_desktop_west`         | `stage_id` (optional)                          | The same, toward the desktop west of the current one |
 | `add_desktop`               | `stage_id` (optional)                          | Adds a new desktop after the resolved stage's last one, growing its configured grid layout by one row or column first if there is not already a gap cell for it to land on (see `config.md`'s `topology.screens.desktops[].layout`).  Refused, with an error, once the maximum of 16 desktops is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
 | `remove_desktop`            | `stage_id` (optional)                          | Removes the resolved stage's last desktop, moving any client still on it to the one before it, and switching the stage's current view there too if it was the one being removed.  Shrinks the grid layout back down by one row or column if that was its last member.  Refused, with an error, while only one desktop remains |
 | `toggle_strutless_maximize` | `stage_id` (optional)                          | Toggles whether panel and tray struts are set aside when computing every desktop's own work area on the resolved stage.  With it on, a maximized window fills the whole screen underneath wherever a panel would otherwise have reserved space.  Every work area is recomputed at once, and every already-maximized window re-applied to it.  Also reachable through the `windows.toggle-strutless-maximization` keybinding (`config.md`, §2.11) and the root menu |
@@ -567,9 +567,9 @@ line the way there is on every ordinary response, since nothing was
 asked for it to answer.
 
 ```sh
-$ echo '{"cmd": "subscribe", "events": ["window_mapped"]}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
+$ echo '{"cmd": "subscribe", "events": ["client_mapped"]}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
 {"ok":true}
-{"client_id":23068673,"desktop_id":0,"stage_id":0,"event":"window_mapped"}
+{"client_id":23068673,"desktop_id":0,"stage_id":0,"event":"client_mapped"}
 ```
 
 (`socat` above exits once the connection closes or is interrupted; in
@@ -591,28 +591,28 @@ Every event type:
 
 | Event                        | Fields |
 |------------------------------|--------|
-| `window_mapped`              | `client_id`, `desktop_id`, `stage_id`: a client was just mapped onto that desktop |
-| `window_closed`              | `client_id`, `desktop_id`, `stage_id`: a client was just destroyed |
+| `client_mapped`              | `client_id`, `desktop_id`, `stage_id`: a client was just mapped onto that desktop |
+| `client_closed`              | `client_id`, `desktop_id`, `stage_id`: a client was just destroyed |
 | `desktop_switched`           | `stage_id`, `desktop_id`: that stage's current desktop just changed to `desktop_id` |
-| `focus_changed`              | `stage_id`, `client_id`: that client just became the active one on its stage |
-| `urgency_set`                | `client_id`, `desktop_id`, `stage_id`: that client's urgency hint was just set |
-| `urgency_cleared`            | `client_id`, `desktop_id`, `stage_id`: that client's urgency hint was just cleared |
-| `window_moved`               | `client_id`, `desktop_id`, `stage_id`: that client's position just changed (see the `list_clients` command for its current `x`/`y`) |
-| `window_resized`             | `client_id`, `desktop_id`, `stage_id`: that client's size just changed (see the `list_clients` command for its current `w`/`h`) |
-| `rule_applied`               | `client_id`, `desktop_id`, `stage_id`: a loaded rule just changed one or more of that client's properties |
-| `pin_set`                    | `client_id`, `desktop_id`, `stage_id`: that client was just pinned (visible on every desktop) |
-| `pin_cleared`                | `client_id`, `desktop_id`, `stage_id`: that client was just unpinned |
-| `fullscreen_set`             | `client_id`, `desktop_id`, `stage_id`: that client just entered full screen |
-| `fullscreen_cleared`         | `client_id`, `desktop_id`, `stage_id`: that client just left full screen |
-| `shade_set`                  | `client_id`, `desktop_id`, `stage_id`: that client was just shaded (rolled up into its titlebar) |
-| `shade_cleared`              | `client_id`, `desktop_id`, `stage_id`: that client was just unshaded |
-| `hide_set`                   | `client_id`, `desktop_id`, `stage_id`: that client was just hidden |
-| `hide_cleared`               | `client_id`, `desktop_id`, `stage_id`: that client was just unhidden |
-| `decoration_set`             | `client_id`, `desktop_id`, `stage_id`: that client's titlebar and border were just shown |
-| `decoration_cleared`         | `client_id`, `desktop_id`, `stage_id`: that client's titlebar and border were just hidden |
-| `client_iconified`           | `client_id`, `desktop_id`, `stage_id`: that client was just iconified |
-| `client_deiconified`         | `client_id`, `desktop_id`, `stage_id`: that client was just restored from being iconified |
-| `layer_changed`              | `client_id`, `desktop_id`, `stage_id`: that client's stacking layer just changed (see `list_clients` for its current layer) |
+| `client_focused`              | `stage_id`, `client_id`: that client just became the active one on its stage |
+| `client_urgency_set`                | `client_id`, `desktop_id`, `stage_id`: that client's urgency hint was just set |
+| `client_urgency_cleared`            | `client_id`, `desktop_id`, `stage_id`: that client's urgency hint was just cleared |
+| `client_moved`               | `client_id`, `desktop_id`, `stage_id`: that client's position just changed (see the `list_clients` command for its current `x`/`y`) |
+| `client_resized`             | `client_id`, `desktop_id`, `stage_id`: that client's size just changed (see the `list_clients` command for its current `w`/`h`) |
+| `client_rule_applied`               | `client_id`, `desktop_id`, `stage_id`: a loaded rule just changed one or more of that client's properties |
+| `client_pin_set`                    | `client_id`, `desktop_id`, `stage_id`: that client was just pinned (visible on every desktop) |
+| `client_pin_cleared`                | `client_id`, `desktop_id`, `stage_id`: that client was just unpinned |
+| `client_fullscreen_set`             | `client_id`, `desktop_id`, `stage_id`: that client just entered full screen |
+| `client_fullscreen_cleared`         | `client_id`, `desktop_id`, `stage_id`: that client just left full screen |
+| `client_shade_set`                  | `client_id`, `desktop_id`, `stage_id`: that client was just shaded (rolled up into its titlebar) |
+| `client_shade_cleared`              | `client_id`, `desktop_id`, `stage_id`: that client was just unshaded |
+| `client_hide_set`                   | `client_id`, `desktop_id`, `stage_id`: that client was just hidden |
+| `client_hide_cleared`               | `client_id`, `desktop_id`, `stage_id`: that client was just unhidden |
+| `client_decoration_set`             | `client_id`, `desktop_id`, `stage_id`: that client's titlebar and border were just shown |
+| `client_decoration_cleared`         | `client_id`, `desktop_id`, `stage_id`: that client's titlebar and border were just hidden |
+| `client_iconify_set`           | `client_id`, `desktop_id`, `stage_id`: that client was just iconified |
+| `client_iconify_cleared`         | `client_id`, `desktop_id`, `stage_id`: that client was just restored from being iconified |
+| `client_layer_changed`              | `client_id`, `desktop_id`, `stage_id`: that client's stacking layer just changed (see `list_clients` for its current layer) |
 | `client_desktop_changed`     | `client_id`, `desktop_id`, `stage_id`: that client just moved to a different desktop (`desktop_id` is the new one) |
 | `client_renamed`             | `client_id`, `desktop_id`, `stage_id`, `name`: that client's displayed title was just overridden |
 | `client_reclassed`           | `client_id`, `desktop_id`, `stage_id`, `class_name`, `instance_name`: that client's `WM_CLASS` was just overridden |
@@ -622,7 +622,7 @@ Every event type:
 | `desktop_shown`              | `desktop_id`, `stage_id`: every client on that desktop was just shown at once |
 | `desktop_hidden`             | `desktop_id`, `stage_id`: every client on that desktop was just hidden at once |
 | `config_reloaded`            | *none*: every configuration file was just reloaded |
-| `stacking_changed`           | `client_id`, `desktop_id`, `stage_id`: that client's position within its layer's stacking order just changed |
+| `client_stacking_changed`           | `client_id`, `desktop_id`, `stage_id`: that client's position within its layer's stacking order just changed |
 
 A subscription lasts only as long as the connection itself: closing the
 connection (or losing it) drops every subscription made on it, with no

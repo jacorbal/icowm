@@ -54,10 +54,9 @@ struct s_ipc_client_s {
                                             not yet a complete line */
     int fd;                            /**< -1 when this slot is free */
 
-    /** Bitmask of 'enum ipc_event_type_e'; 0 means none, which is
-     *  correctly the same as this static array's zero-initialized
-     *  default */
-    uint32_t subscribed_events;
+    /** Bitmask of @c IPC_EVENT_*; 0 means none, which is correctly the
+     *  same as this static array's zero-initialized default */
+    uint64_t subscribed_events;
 
     char buf[IPC_MSG_MAX_LENGTH];
 };
@@ -98,7 +97,7 @@ static char s_ipc_socket_path[CONFIG_MAX_LENGTH_PATH_BASE] = { 0 };
  */
 struct s_ipc_event_def_s {
     const char *name;
-    uint32_t bit;
+    uint64_t bit;
 };
 
 
@@ -106,28 +105,28 @@ struct s_ipc_event_def_s {
  * @brief Event structure
  */
 static const struct s_ipc_event_def_s s_event_defs[] = {
-    { "window_mapped",              IPC_EVENT_WINDOW_MAPPED },
-    { "window_closed",              IPC_EVENT_WINDOW_CLOSED },
+    { "client_mapped",              IPC_EVENT_CLIENT_MAPPED },
+    { "client_closed",              IPC_EVENT_CLIENT_CLOSED },
     { "desktop_switched",           IPC_EVENT_DESKTOP_SWITCHED },
-    { "focus_changed",              IPC_EVENT_FOCUS_CHANGED },
-    { "urgency_set",                IPC_EVENT_URGENCY_SET },
-    { "urgency_cleared",            IPC_EVENT_URGENCY_CLEARED },
-    { "window_moved",               IPC_EVENT_WINDOW_MOVED },
-    { "window_resized",             IPC_EVENT_WINDOW_RESIZED },
-    { "rule_applied",               IPC_EVENT_RULE_APPLIED },
-    { "pin_set",                    IPC_EVENT_PIN_SET },
-    { "pin_cleared",                IPC_EVENT_PIN_CLEARED },
-    { "fullscreen_set",             IPC_EVENT_FULLSCREEN_SET },
-    { "fullscreen_cleared",         IPC_EVENT_FULLSCREEN_CLEARED },
-    { "shade_set",                  IPC_EVENT_SHADE_SET },
-    { "shade_cleared",              IPC_EVENT_SHADE_CLEARED },
-    { "hide_set",                   IPC_EVENT_HIDE_SET },
-    { "hide_cleared",               IPC_EVENT_HIDE_CLEARED },
-    { "decoration_set",             IPC_EVENT_DECORATION_SET },
-    { "decoration_cleared",         IPC_EVENT_DECORATION_CLEARED },
-    { "client_iconified",           IPC_EVENT_CLIENT_ICONIFIED },
-    { "client_deiconified",         IPC_EVENT_CLIENT_DEICONIFIED },
-    { "layer_changed",              IPC_EVENT_LAYER_CHANGED },
+    { "client_focused",             IPC_EVENT_CLIENT_FOCUSED },
+    { "client_urgency_set",         IPC_EVENT_CLIENT_URGENCY_SET },
+    { "client_urgency_cleared",     IPC_EVENT_CLIENT_URGENCY_CLEARED },
+    { "client_moved",               IPC_EVENT_CLIENT_MOVED },
+    { "client_resized",             IPC_EVENT_CLIENT_RESIZED },
+    { "client_rule_applied",        IPC_EVENT_CLIENT_RULE_APPLIED },
+    { "client_pin_set",             IPC_EVENT_CLIENT_PIN_SET },
+    { "client_pin_cleared",         IPC_EVENT_CLIENT_PIN_CLEARED },
+    { "client_fullscreen_set",      IPC_EVENT_CLIENT_FULLSCREEN_SET },
+    { "client_fullscreen_cleared",  IPC_EVENT_CLIENT_FULLSCREEN_CLEARED },
+    { "client_shade_set",           IPC_EVENT_CLIENT_SHADE_SET },
+    { "client_shade_cleared",       IPC_EVENT_CLIENT_SHADE_CLEARED },
+    { "client_hide_set",            IPC_EVENT_CLIENT_HIDE_SET },
+    { "client_hide_cleared",        IPC_EVENT_CLIENT_HIDE_CLEARED },
+    { "client_decoration_set",      IPC_EVENT_CLIENT_DECORATION_SET },
+    { "client_decoration_cleared",  IPC_EVENT_CLIENT_DECORATION_CLEARED },
+    { "client_iconify_set",         IPC_EVENT_CLIENT_ICONIFY_SET },
+    { "client_iconify_cleared",     IPC_EVENT_CLIENT_ICONIFY_CLEARED },
+    { "client_layer_changed",       IPC_EVENT_CLIENT_LAYER_CHANGED },
     { "client_desktop_changed",     IPC_EVENT_CLIENT_DESKTOP_CHANGED },
     { "client_renamed",             IPC_EVENT_CLIENT_RENAMED },
     { "client_reclassed",           IPC_EVENT_CLIENT_RECLASSED },
@@ -137,7 +136,13 @@ static const struct s_ipc_event_def_s s_event_defs[] = {
     { "desktop_shown",              IPC_EVENT_DESKTOP_SHOWN },
     { "desktop_hidden",             IPC_EVENT_DESKTOP_HIDDEN },
     { "config_reloaded",            IPC_EVENT_CONFIG_RELOADED },
-    { "stacking_changed",           IPC_EVENT_STACKING_CHANGED },
+    { "client_stacking_changed",    IPC_EVENT_CLIENT_STACKING_CHANGED },
+    { "client_maximize_set",        IPC_EVENT_CLIENT_MAXIMIZE_SET },
+    { "client_maximize_cleared",    IPC_EVENT_CLIENT_MAXIMIZE_CLEARED },
+    { "desktop_added",              IPC_EVENT_DESKTOP_ADDED },
+    { "desktop_removed",            IPC_EVENT_DESKTOP_REMOVED },
+    { "scratchpad_shown",           IPC_EVENT_SCRATCHPAD_SHOWN },
+    { "scratchpad_hidden",          IPC_EVENT_SCRATCHPAD_HIDDEN },
 };
 
 
@@ -239,7 +244,7 @@ static void s_client_close(int idx)
  *
  * @note Complexity: @e O(1) (a handful of entries, checked linearly)
  */
-static uint32_t s_event_name_to_bit(const char *name)
+static uint64_t s_event_name_to_bit(const char *name)
 {
     for (size_t i = 0; i < S_IPC_EVENT_COUNT; ++i) {
         if (safe_strcmp(s_event_defs[i].name, name) == 0) {
@@ -260,7 +265,7 @@ static uint32_t s_event_name_to_bit(const char *name)
  *
  * @note Complexity: @e O(1) (a handful of entries, checked linearly)
  */
-static const char *s_event_bit_to_name(uint32_t type)
+static const char *s_event_bit_to_name(uint64_t type)
 {
     for (size_t i = 0; i < S_IPC_EVENT_COUNT; ++i) {
         if (s_event_defs[i].bit == type) {
@@ -604,7 +609,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
     cJSON *const events = cJSON_GetObjectItem(args, "events");
     cJSON *item;
     cJSON *resp;
-    uint32_t requested = 0;
+    uint64_t requested = 0;
 
     if (events == NULL || !cJSON_IsArray(events) ||
             cJSON_GetArraySize(events) == 0) {
@@ -618,7 +623,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
     }
 
     cJSON_ArrayForEach(item, events) {
-        uint32_t bit;
+        uint64_t bit;
 
         if (!cJSON_IsString(item)) {
             resp = cJSON_CreateObject();
@@ -639,7 +644,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
             }
             return resp;
         }
-        requested |= (uint32_t) bit;
+        requested |= bit;
     }
 
     s_clients[client_idx].subscribed_events |= requested;
@@ -673,7 +678,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
         cJSON *item;
 
         cJSON_ArrayForEach(item, events) {
-            uint32_t bit;
+            uint64_t bit;
 
             if (!cJSON_IsString(item)) {
                 resp = cJSON_CreateObject();
@@ -690,7 +695,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
              * subscribed to it in the first place, so there is nothing
              * to undo, the same as unsubscribing from an event never
              * subscribed to at all is not an error either. */
-            s_clients[client_idx].subscribed_events &= ~(uint32_t) bit;
+            s_clients[client_idx].subscribed_events &= ~bit;
         }
     }
 
@@ -703,7 +708,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
 
 
 /* Send one event line to every currently subscribed client */
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     const char *name = s_event_bit_to_name(type);
     cJSON *envelope;
@@ -730,7 +735,7 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
 
     for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
         if (s_clients[i].fd == -1 ||
-                (s_clients[i].subscribed_events & (uint32_t) type) == 0) {
+                (s_clients[i].subscribed_events & type) == 0) {
             continue;
         }
         if (write(s_clients[i].fd, line, len) != (ssize_t) len ||

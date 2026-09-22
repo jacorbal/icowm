@@ -93,7 +93,7 @@ client_td *desktop_find_client_by_id(const desktop_td *desktop,
     return NULL;
 }
 
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     (void) type;
 

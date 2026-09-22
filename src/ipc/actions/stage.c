@@ -48,7 +48,7 @@ cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_north_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_north(const wm_td *wm, const cJSON *args)
 {
     stage_td *const stage = ipc_resolve_stage(wm, args);
 
@@ -61,7 +61,7 @@ cJSON *ipc_action_goto_north_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_south_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_south(const wm_td *wm, const cJSON *args)
 {
     stage_td *const stage = ipc_resolve_stage(wm, args);
 
@@ -74,7 +74,7 @@ cJSON *ipc_action_goto_south_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_east_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_east(const wm_td *wm, const cJSON *args)
 {
     stage_td *const stage = ipc_resolve_stage(wm, args);
 
@@ -87,7 +87,7 @@ cJSON *ipc_action_goto_east_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_west_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_desktop_west(const wm_td *wm, const cJSON *args)
 {
     stage_td *const stage = ipc_resolve_stage(wm, args);
 

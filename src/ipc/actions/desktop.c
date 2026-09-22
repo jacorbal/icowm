@@ -36,7 +36,7 @@
 #include <ipc/actions/desktop.h>
 
 
-cJSON *ipc_action_set_desktop_background(const wm_td *wm,
+cJSON *ipc_action_set_background_desktop(const wm_td *wm,
         const cJSON *args)
 {
     uint32_t color;

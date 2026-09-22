@@ -203,7 +203,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
 static int s_ipc_broadcast_calls;
 static uint32_t s_ipc_broadcast_last_type;
 
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     s_ipc_broadcast_calls++;
     s_ipc_broadcast_last_type = type;
@@ -1013,7 +1013,7 @@ static void s_test_urge_sets_flag_and_broadcasts(void)
     TAP_EQ_INT(s_ipc_broadcast_calls, 1,
             "exactly one IPC event is broadcast");
     TAP_EQ_INT((long) s_ipc_broadcast_last_type,
-            (long) IPC_EVENT_URGENCY_SET,
+            (long) IPC_EVENT_CLIENT_URGENCY_SET,
             "and it is the urgency-set event");
 
     s_teardown();
@@ -1058,7 +1058,7 @@ static void s_test_unurge_clears_flag_and_broadcasts(void)
     TAP_OK(!client_is_urgent(client),
             "clearing urgency drops the urgency flag");
     TAP_EQ_INT((long) s_ipc_broadcast_last_type,
-            (long) IPC_EVENT_URGENCY_CLEARED,
+            (long) IPC_EVENT_CLIENT_URGENCY_CLEARED,
             "the broadcast event is the urgency-cleared one, not the"
             " urgency-set one");
 

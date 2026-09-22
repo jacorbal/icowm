@@ -64,5 +64,28 @@ cJSON *ipc_action_hide_client(const wm_td *wm, const cJSON *args);
  */
 cJSON *ipc_action_unhide_client(const wm_td *wm, const cJSON *args);
 
+/**
+ * @brief @c toggle_iconify_client: iconify the client, or restore it if
+ *        it already is
+ *
+ * @param wm   Window manager instance
+ * @param args The request object; argument @c client_id
+ *
+ * @return The standard success or failure response
+ */
+cJSON *ipc_action_toggle_iconify_client(const wm_td *wm,
+        const cJSON *args);
+
+/**
+ * @brief @c toggle_hide_client: hide the client, or show it if it
+ *        already is hidden
+ *
+ * @param wm   Window manager instance
+ * @param args The request object; argument @c client_id
+ *
+ * @return The standard success or failure response
+ */
+cJSON *ipc_action_toggle_hide_client(const wm_td *wm, const cJSON *args);
+
 
 #endif  /* ! IPC_ACTIONS_CLIENT_VISIBILITY_H */

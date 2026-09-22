@@ -68,7 +68,8 @@
 
 
 /**
- * @brief Every command name this build knows about, for @c -K alone
+ * @brief Every command name this build knows about, for @c -K alone, in
+ *        alphabetical order
  *
  * A plain, hand-maintained snapshot of the server's own dispatch table
  * (@c s_dispatch in @c src/ipc/commands.c), kept here rather than
@@ -94,6 +95,7 @@ static const char *const s_known_commands[] = {
     "center_client",
     "close_client",
     "cycle_layer_client",
+    "decorate_client",
     "deiconify_all",
     "deiconify_client",
     "exit_wm",
@@ -102,10 +104,10 @@ static const char *const s_known_commands[] = {
     "get_focused",
     "get_version",
     "goto_desktop",
-    "goto_east_desktop",
-    "goto_north_desktop",
-    "goto_south_desktop",
-    "goto_west_desktop",
+    "goto_desktop_east",
+    "goto_desktop_north",
+    "goto_desktop_south",
+    "goto_desktop_west",
     "hide_client",
     "iconify_all",
     "iconify_client",
@@ -136,8 +138,8 @@ static const char *const s_known_commands[] = {
     "send_client_to_back",
     "send_client_to_desktop",
     "send_client_to_front",
-    "set_client_icon",
-    "set_desktop_background",
+    "set_background_desktop",
+    "set_icon_client",
     "set_layer_above_client",
     "set_layer_below_client",
     "set_layer_normal_client",
@@ -145,13 +147,23 @@ static const char *const s_known_commands[] = {
     "show_desktop",
     "toggle_decorate_client",
     "toggle_fullscreen_client",
+    "toggle_hide_client",
+    "toggle_iconify_client",
+    "toggle_maximize_client",
+    "toggle_maximize_client_horz",
+    "toggle_maximize_client_vert",
     "toggle_pin_client",
     "toggle_scratchpad",
     "toggle_shade_client",
     "toggle_strutless_maximize",
+    "toggle_urge_client",
+    "undecorate_client",
     "unfocus_client",
     "unfullscreen_client",
     "unhide_client",
+    "unmaximize_client",
+    "unmaximize_client_horz",
+    "unmaximize_client_vert",
     "unpin_client",
     "unshade_client",
     "unurge_client",
@@ -159,7 +171,8 @@ static const char *const s_known_commands[] = {
 };
 
 /**
- * @brief Every event name this build knows about, for @c -W alone
+ * @brief Every event name this build knows about, for @c -W alone, in
+ *        alphabetical order
  *
  * The exact same trade-off @c s_known_commands above already accepts,
  * for the same reason: a plain, hand-maintained snapshot of the
@@ -174,38 +187,44 @@ static const char *const s_known_commands[] = {
  *       that file carries the same note pointing back here
  */
 static const char *const s_known_events[] = {
-    "window_mapped",
-    "window_closed",
-    "desktop_switched",
-    "focus_changed",
-    "urgency_set",
-    "urgency_cleared",
-    "window_moved",
-    "window_resized",
-    "rule_applied",
-    "pin_set",
-    "pin_cleared",
-    "fullscreen_set",
-    "fullscreen_cleared",
-    "shade_set",
-    "shade_cleared",
-    "hide_set",
-    "hide_cleared",
-    "decoration_set",
-    "decoration_cleared",
-    "client_iconified",
-    "client_deiconified",
-    "layer_changed",
+    "client_closed",
+    "client_decoration_cleared",
+    "client_decoration_set",
     "client_desktop_changed",
-    "client_renamed",
-    "client_reclassed",
-    "client_reroled",
+    "client_focused",
+    "client_fullscreen_cleared",
+    "client_fullscreen_set",
+    "client_hide_cleared",
+    "client_hide_set",
     "client_icon_changed",
-    "desktop_background_changed",
-    "desktop_shown",
-    "desktop_hidden",
+    "client_iconify_cleared",
+    "client_iconify_set",
+    "client_layer_changed",
+    "client_mapped",
+    "client_maximize_cleared",
+    "client_maximize_set",
+    "client_moved",
+    "client_pin_cleared",
+    "client_pin_set",
+    "client_reclassed",
+    "client_renamed",
+    "client_reroled",
+    "client_resized",
+    "client_rule_applied",
+    "client_shade_cleared",
+    "client_shade_set",
+    "client_stacking_changed",
+    "client_urgency_cleared",
+    "client_urgency_set",
     "config_reloaded",
-    "stacking_changed",
+    "desktop_added",
+    "desktop_background_changed",
+    "desktop_hidden",
+    "desktop_removed",
+    "desktop_shown",
+    "desktop_switched",
+    "scratchpad_hidden",
+    "scratchpad_shown",
 };
 
 #define S_KNOWN_EVENTS_COUNT \
@@ -325,7 +344,7 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "   %s-msg list_clients\n", PROJECT_NAME_PROG);
     fprintf(fp, "   %s-msg goto_desktop desktop_id=1\n",
             PROJECT_NAME_PROG);
-    fprintf(fp, "   %s-msg set_desktop_background desktop_id=0" \
+    fprintf(fp, "   %s-msg set_background_desktop desktop_id=0" \
                 " color=0xaaccff\n", PROJECT_NAME_PROG);
     fprintf(fp, "   %s-msg move_client client_id=23068673 x=100 y=200\n",
             PROJECT_NAME_PROG);

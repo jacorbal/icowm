@@ -335,7 +335,7 @@ static bool s_last_broadcast_had_fields;
  *  of
  *  @note Complexity: @e O(1)
  */
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
+void ipc_broadcast_event(uint64_t type, cJSON *fields)
 {
     const cJSON *stage_id_field;
     const cJSON *desktop_id_field;

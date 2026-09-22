@@ -303,30 +303,30 @@ static void s_test_goto_compass_ok(void)
     cJSON *resp;
 
     s_reset();
-    resp = ipc_action_goto_north_desktop(s_wm, args);
+    resp = ipc_action_goto_desktop_north(s_wm, args);
     TAP_EQ_INT(s_call_switch_north, 1,
-            "goto_north_desktop calls enact_stage_desktop_switch_north"
+            "goto_desktop_north calls enact_stage_desktop_switch_north"
             " exactly once");
     cJSON_Delete(resp);
 
     s_reset();
-    resp = ipc_action_goto_south_desktop(s_wm, args);
+    resp = ipc_action_goto_desktop_south(s_wm, args);
     TAP_EQ_INT(s_call_switch_south, 1,
-            "goto_south_desktop calls enact_stage_desktop_switch_south"
+            "goto_desktop_south calls enact_stage_desktop_switch_south"
             " exactly once");
     cJSON_Delete(resp);
 
     s_reset();
-    resp = ipc_action_goto_east_desktop(s_wm, args);
+    resp = ipc_action_goto_desktop_east(s_wm, args);
     TAP_EQ_INT(s_call_switch_east, 1,
-            "goto_east_desktop calls enact_stage_desktop_switch_east"
+            "goto_desktop_east calls enact_stage_desktop_switch_east"
             " exactly once");
     cJSON_Delete(resp);
 
     s_reset();
-    resp = ipc_action_goto_west_desktop(s_wm, args);
+    resp = ipc_action_goto_desktop_west(s_wm, args);
     TAP_EQ_INT(s_call_switch_west, 1,
-            "goto_west_desktop calls enact_stage_desktop_switch_west"
+            "goto_desktop_west calls enact_stage_desktop_switch_west"
             " exactly once");
     cJSON_Delete(resp);
 
@@ -346,10 +346,10 @@ static void s_test_goto_compass_no_stage_is_error(void)
     s_stage_by_id_result = NULL;
     list_clear(&s_stages_list);
 
-    resp = ipc_action_goto_north_desktop(s_wm, args);
+    resp = ipc_action_goto_desktop_north(s_wm, args);
     ok_field = cJSON_GetObjectItem(resp, "ok");
     TAP_OK(ok_field != NULL && !cJSON_IsTrue(ok_field),
-            "goto_north_desktop with no stage: an error response");
+            "goto_desktop_north with no stage: an error response");
     TAP_EQ_INT(s_call_switch_north, 0,
             "and enact_stage_desktop_switch_north is never called");
     cJSON_Delete(resp);
