@@ -262,6 +262,14 @@ static void s_viewport_translate_icon(client_td *client,
  * already sits, as well as whichever single client (if any)
  * @a scmd_stage_viewport_drag_exclude last named.
  *
+ * A pinned client is skipped for the same reason.  It is on every
+ * desktop, and each desktop pans its own viewport, so panning one
+ * while that client happens to be there would move it for all the
+ * others too, by a delta that depends on which desktop was being
+ * looked at; panning four desktops in turn would move it four times.
+ * Its place belongs to the screen, like a sticky client's, not to the
+ * canvas of whichever desktop it is currently sitting on.
+ *
  * Every other client, maximized or fullscreen included, moves by the
  * same delta as the desktop's own viewport origin: both @c cur and
  * @c old halves of its saved geometry shift together, so a later
@@ -284,7 +292,7 @@ static void s_viewport_translate_visit(client_td *client, void *data)
     const struct position_s *delta = (const struct position_s *) data;
     xcb_window_t target;
 
-    if (client_is_sticky(client) ||
+    if (client_is_sticky(client) || client_is_pinned(client) ||
             client == s_viewport_pan_excluded_client) {
         return;
     }
