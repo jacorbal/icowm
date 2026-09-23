@@ -10,7 +10,7 @@ What each release brought, newest first.
 ### September 23, 2026
 
 - **RELEASED.**  Version 1.0.1 (codename: "'ovelya") released as the
-  Autumnal Equinox raises its head above the horizon at precisely
+  autumnal equinox raises its head above the horizon at precisely
   00:05:38 UTC
 
 - **DOCUMENTATION.**  Wiki page on GitHub:
@@ -21,6 +21,14 @@ What each release brought, newest first.
 
 `icowm_1.0.1-rc.3`
 ------------------
+
+### September 20, 2026
+
+- **NOMENCLATURE.**  Rename IPC command and event names under one uniform scheme
+
+### September 19, 2026
+
+- **NOMENCLATURE.**  Use "stage" terminology instead of "surface"
 
 ### September 16, 2026
 
