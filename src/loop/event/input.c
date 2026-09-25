@@ -18,6 +18,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Input includes */
 #include <input/kbd/event.h>
 #include <input/mouse/event.h>
@@ -28,7 +31,6 @@
 
 /* Local includes */
 #include <loop/event.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -40,9 +42,9 @@
  * @param window Window a real @c KeyPress or @c ButtonPress named as
  *               its @c event field, i.e., the one that actually
  *               received it
- * @param response_type The raw, unmasked @c response_type off the
- *                       event itself, top bit included
- * @param time X server timestamp of the event
+ * @param response_type The raw, unmasked @c response_type off the event
+ *                      itself, top bit included
+ * @param time          X server timestamp of the event
  *
  * @note A no-op when the top bit of @p response_type marks the event
  *       synthetic, i.e., sent by an application itself via

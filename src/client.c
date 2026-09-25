@@ -44,6 +44,22 @@
 /* Type includes */
 #include <types/pair.h>
 
+/* Input includes */
+#include <input/mouse/cursor.h>
+
+/* Render includes */
+#include <render/wmicon.h>
+
+/* Policy includes */
+#include <policy/focus.h>
+#include <policy/stacking.h>
+
+/* Menu includes */
+#include <menu/context/iconmenu.h>
+#include <menu/context/wincmenu.h>
+#include <menu/context/winlist.h>
+#include <menu/cycle.h>
+
 /* Command includes */
 #include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
@@ -60,18 +76,8 @@
 #include <client.h>
 #include <config.h>
 #include <logger.h>
-#include <render/wmicon.h>
-#include <policy/focus.h>
-#include <policy/stacking.h>
-#include <menu/context/iconmenu.h>
-#include <menu/context/wincmenu.h>
-#include <menu/context/winlist.h>
-#include <menu/cycle.h>
 #include <scratchpad.h>
 #include <wm.h>
-
-/* Input includes */
-#include <input/mouse/cursor.h>
 
 /* Local includes */
 #include <client/internal.h>
@@ -81,14 +87,14 @@
 /**
  * @brief Timestamp of the most recent genuine user input seen
  *
- * Kept for the focus-granting path, which ICCCM requires to carry a
- * real timestamp and forbids from carrying @c CurrentTime, but which
+ * Kept for the focus-granting path, which ICCCM requires to carry
+ * a real timestamp and forbids from carrying @c CurrentTime, but which
  * is reached from places that hold no event of their own.  A fallback
  * after a window closed, a desktop switch, an activation request.
  *
  * File scope, and updated by the event loop from every real key or
- * button press, which is how Openbox keeps its @c event_curtime
- * for the same purpose.
+ * button press, which is how Openbox keeps its @c event_curtime for the
+ * same purpose.
  */
 static uint32_t s_last_user_time = 0u;
 
@@ -177,22 +183,22 @@ static void s_client_display_name_set(client_td *client,
 /**
  * @brief Every request @a client_init issues in one go, awaiting reply
  *
- * XCB splits a request from its reply.  The request function returns a
- * cookie without blocking, and only the reply function waits.  Issuing
- * every independent request first and collecting the replies
+ * XCB splits a request from its reply.  The request function returns
+ * a cookie without blocking, and only the reply function waits.
+ * Issuing every independent request first and collecting the replies
  * afterwards costs one round trip to the server rather than one per
- * property, which is the whole reason this project uses XCB rather
- * than Xlib.
+ * property, which is the whole reason this project uses XCB rather than
+ * Xlib.
  *
  * Three requests are deliberately absent.  @c GetWindowAttributes is
  * issued and awaited before any of these, since an override-redirect
- * window is discarded on its answer and issuing a dozen requests for a
- * window about to be thrown away would make every menu and tooltip
- * more expensive rather than less.  The plain @c _NET_WM_STRUT is
- * asked for only when @c _NET_WM_STRUT_PARTIAL has no answer, so
- * batching it would ask every time.  And @c _NET_WM_USER_TIME is asked
- * of whichever window @c _NET_WM_USER_TIME_WINDOW names, which is not
- * known until that reply arrives.
+ * window is discarded on its answer and issuing a dozen requests for
+ * a window about to be thrown away would make every menu and tooltip
+ * more expensive rather than less.  The plain @c _NET_WM_STRUT is asked
+ * for only when @c _NET_WM_STRUT_PARTIAL has no answer, so batching it
+ * would ask every time.  And @c _NET_WM_USER_TIME is asked of whichever
+ * window @c _NET_WM_USER_TIME_WINDOW names, which is not known until
+ * that reply arrives.
  *
  * A dependency between what two readers do with their replies does not
  * stop their requests going out together: @c _MOTIF_WM_HINTS is read
@@ -205,10 +211,8 @@ struct s_client_cookies_init_s {
     xcb_get_property_cookie_t wm_hints;      /**< @c WM_HINTS */
     xcb_get_property_cookie_t client_leader; /**< @c WM_CLIENT_LEADER */
     xcb_get_property_cookie_t transient_for; /**< @c WM_TRANSIENT_FOR */
-    /** @c _NET_WM_STRUT_PARTIAL */
-    xcb_get_property_cookie_t strut_partial;
-    /** @c _NET_WM_WINDOW_TYPE */
-    xcb_get_property_cookie_t window_type;
+    xcb_get_property_cookie_t strut_partial; /**< @c _NET_WM_STRUT_PARTIAL */
+    xcb_get_property_cookie_t window_type;   /**< @c _NET_WM_WINDOW_TYPE */
     xcb_get_property_cookie_t motif_hints;   /**< @c _MOTIF_WM_HINTS */
     xcb_get_property_cookie_t wm_state;      /**< @c _NET_WM_STATE */
     xcb_get_property_cookie_t wm_pid;        /**< @c _NET_WM_PID */
@@ -220,28 +224,28 @@ struct s_client_cookies_init_s {
 
 
 /**
- * @brief Read 'WM_PROTOCOLS' and set up '_NET_WM_SYNC_REQUEST' support
+ * @brief Read @c WM_PROTOCOLS and set up @c _NET_WM_SYNC_REQUEST
+ *        support
  *
- * Interns 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS', and '_NET_WM_PING',
- * caches which of those (plus '_NET_WM_SYNC_REQUEST') the window
- * advertises support for, and, when '_NET_WM_SYNC_REQUEST' is both
- * advertised and the XSync extension is available, reads the
- * client-set counter and creates the alarm watching it (see
- * 'ccmd_client_resize' and 'handler_sync_event' for how that alarm is
- * consumed later).
+ * Interns @c WM_DELETE_WINDOW, @c WM_TAKE_FOCUS, and @c _NET_WM_PING,
+ * caches which of those (plus @c _NET_WM_SYNC_REQUEST) the window
+ * advertises support for, and, when @c _NET_WM_SYNC_REQUEST is both
+ * advertised and the XSync extension is available, reads the client-set
+ * counter and creates the alarm watching it (see @a ccmd_client_resize
+ * and @a handler_sync_event for how that alarm is consumed later).
  *
  * @param connection XCB connection
- * @param ewmh       EWMH connection, for 'WM_PROTOCOLS' and
- *                   '_NET_WM_SYNC_REQUEST_COUNTER'
- * @param window Window being adopted
- * @param ck     Requests already issued by @a client_init; this
+ * @param ewmh       EWMH connection, for @c WM_PROTOCOLS and
+ *                   @c _NET_WM_SYNC_REQUEST_COUNTER
+ * @param window     Window being adopted
+ * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client Client being initialized; its protocol-support
- *                   flags, 'sync_counter', and 'sync_alarm' fields
+ * @param client     Client being initialized; its protocol-support
+ *                   flags, @c sync_counter, and @c sync_alarm fields
  *                   are set here
  *
  * @note Complexity: @e O(n), where @e n is the number of protocols
- *       'WM_PROTOCOLS' advertises
+ *       @c WM_PROTOCOLS advertises
  */
 static void s_client_read_wm_protocols(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
@@ -329,6 +333,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
              * would silently fall back to applying once every
              * 'WM_SYNC_MAX_WAIT_TICKS' attempts instead of being
              * acknowledged promptly. */
+
             /* COUNTER */
             alarm_values[0] = client->hints_ewmh.sync.counter;
             /* VALUE_TYPE */
@@ -355,9 +360,9 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
                     client->hints_ewmh.sync.counter,
                     client->hints_ewmh.sync.alarm);
         } else {
-            /* Client advertised the protocol but never actually set
-             * its counter property; treat it as unsupported rather
-             * than sending requests nobody will ever answer */
+            /* Client advertised the protocol but never actually set its
+             * counter property; treat it as unsupported rather than
+             * sending requests nobody will ever answer */
             LOGGER_DEBUG("window=0x%x advertised" \
                     " '_NET_WM_SYNC_REQUEST' but never set its" \
                     " counter property; treating it as unsupported",
@@ -369,19 +374,18 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
 
 
 /**
- * @brief Read 'WM_HINTS', 'WM_CLIENT_LEADER', and 'WM_TRANSIENT_FOR'
+ * @brief Read @c WM_HINTS, @c WM_CLIENT_LEADER, and @c WM_TRANSIENT_FOR
  *
  * @c WM_HINTS supplies the input model, initial iconic state, window
- * group, and urgency; @c WM_CLIENT_LEADER (ICCCM §5.1) and
- * @c WM_HINTS' own window group together let @c client_group_leader
- * and @c place_window_apply cluster windows belonging to the same
- * application; @c WM_TRANSIENT_FOR identifies dialogs and their
- * parent.
+ * group, and urgency; @c WM_CLIENT_LEADER (ICCCM §5.1) and @c WM_HINTS'
+ * own window group together let @c client_group_leader and
+ * @c place_window_apply cluster windows belonging to the same
+ * application; @c WM_TRANSIENT_FOR identifies dialogs and their parent.
  *
  * @param connection XCB connection
  * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client Client being initialized; every field these three
+ * @param client     Client being initialized; every field these three
  *                   properties feed is set here
  *
  * @note Complexity: @e O(1)
@@ -440,10 +444,10 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
     /* Read 'WM_TRANSIENT_FOR': identify dialogs and their parent.
      * ICCCM §4.1.2.6: a value of the root window itself means the
      * client is transient for its whole application group, not one
-     * specific window; 'client->parent_id' already holds that root
-     * (set from 'xcb_get_geometry''s reply, above, before this
-     * client is ever reparented) so no separate lookup is needed
-     * here to tell the two cases apart. */
+     * specific window; 'client->parent_id' already holds that root (set
+     * from 'xcb_get_geometry''s reply, above, before this client is
+     * ever reparented) so no separate lookup is needed here to tell the
+     * two cases apart. */
     client->transient_for = XCB_WINDOW_NONE;
     client->is_transient_for_group = false;
     if (xcb_icccm_get_wm_transient_for_reply(connection,
@@ -458,19 +462,19 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
 
 
 /**
- * @brief Read '_NET_WM_STRUT_PARTIAL', falling back to legacy
- *        '_NET_WM_STRUT', for dock/panel windows
+ * @brief Read @c _NET_WM_STRUT_PARTIAL, falling back to legacy
+ *        @c _NET_WM_STRUT, for dock/panel windows
  *
  * @c _NET_WM_STRUT_PARTIAL additionally carries the start/end range
  * each edge's reservation applies to; the legacy, coordinate-less
- * '_NET_WM_STRUT' is only consulted when the partial form is absent.
+ * @c _NET_WM_STRUT is only consulted when the partial form is absent.
  *
  * @param ewmh   EWMH connection
  * @param window Window being adopted
  * @param ck     Requests already issued by @a client_init; this reader
  *               awaits its rather than making one
- * @param client Client being initialized; its
- *               @c layout.strut_partial fields are set here
+ * @param client Client being initialized; its @c layout.strut_partial
+ *               fields are set here
  *
  * @note Complexity: @e O(1)
  */
@@ -531,28 +535,28 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
 
 
 /**
- * @brief Read '_NET_WM_WINDOW_TYPE' to determine client type and
+ * @brief Read @c _NET_WM_WINDOW_TYPE to determine client type and
  *        decoration
  *
  * Dock and notification windows are additionally stripped of frame
  * extents, made pinned (dock only), excluded from taskbar/pager, and
  * unfocusable, on top of the type itself; every other recognized type
  * only sets @c properties.type, undecorating menu/splash windows.
- * The first recognized type in @c type_reply wins; an unrecognized
- * type leaves @c properties.type at whatever @c client_init already
+ * The first recognized type in @c type_reply wins; an unrecognized type
+ * leaves @c properties.type at whatever @c client_init already
  * defaulted it to.
  *
  * @param connection XCB connection, to intern
  *                   @c _NET_WM_WINDOW_TYPE_NOTIFICATION
- * @param ewmh EWMH connection
- * @param ck   Requests already issued by @a client_init; this
+ * @param ewmh       EWMH connection
+ * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client Client being initialized; its type, decoration,
- *                   frame extents, and several property flags are
- *                   set here
+ * @param client     Client being initialized; its type, decoration,
+ *                   frame extents, and several property flags are set
+ *                   here
  *
  * @note Complexity: @e O(n), where @e n is the number of atoms
- *       '_NET_WM_WINDOW_TYPE' lists
+ *       @c _NET_WM_WINDOW_TYPE lists
  */
 static void s_client_read_window_type(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, client_td *client,
@@ -640,12 +644,12 @@ static void s_client_read_window_type(xcb_connection_t *connection,
 
 
 /**
- * @brief Read '_MOTIF_WM_HINTS' to honor a client's decoration
+ * @brief Read @c _MOTIF_WM_HINTS to honor a client's decoration
  *        request
  *
  * The long-standing de-facto convention several toolkits and
  * applications (e.g., Xpad) still use to explicitly request no window
- * decorations, predating '_NET_WM_WINDOW_TYPE'.
+ * decorations, predating @c _NET_WM_WINDOW_TYPE.
  *
  * Format: 5x CARD32
  *      { flags, functions, decorations, input_mode, status };
@@ -654,8 +658,8 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  * consulted here.
  *
  * An explicit request to turn decorations off overrides whatever the
- * type-based defaults @c s_client_read_window_type already chose; a
- * request to turn them on is honored only if the theme itself
+ * type-based defaults @c s_client_read_window_type already chose;
+ * a request to turn them on is honored only if the theme itself
  * decorates windows by default, so this never re-decorates a client
  * type (dock, splash, menu, &c.) that is unconditionally undecorated
  * there.
@@ -663,11 +667,10 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client Client being initialized; its decoration flag,
+ * @param client     Client being initialized; its decoration flag,
  *                   frame extents, and own @c config (checked for
- *                   @c window.is_decorated before honoring a request
- *                   to turn decorations on) may be used or changed
- *                   here
+ *                   @c window.is_decorated before honoring a request to
+ *                   turn decorations on) may be used or changed here
  *
  * @note Complexity: @e O(1)
  */
@@ -712,15 +715,15 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
 
 
 /**
- * @brief Read the pre-existing '_NET_WM_STATE' property so that
- *        states an application sets on itself before ever mapping
- *        are honored from the start
+ * @brief Read the pre-existing @c _NET_WM_STATE property so that states
+ *        an application sets on itself before ever mapping are honored
+ *        from the start
  *
  * Without this, such a state would only take effect the first time the
  * application happens to resend it later via a @c _NET_WM_STATE
  * @c ClientMessage (i.e., before the window manager has a chance to
  * intervene; e.g., toggling a "skip taskbar" preference off and back on
- * in xpad's settings): panels and dock windows that set
+ * in Xpad's settings): panels and dock windows that set
  * @c _NET_WM_STATE_BELOW (e.g., tint2) get the BELOW layer, and
  * applications that set @c _NET_WM_STATE_SKIP_TASKBAR /
  * @c _NET_WM_STATE_SKIP_PAGER' (e.g., xpad's "hide from taskbar"
@@ -733,11 +736,11 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  * @param window     Window being adopted
  * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
- * @param client Client being initialized; its layer and
+ * @param client     Client being initialized; its layer and
  *                   skip-taskbar/skip-pager flags may be set here
  *
  * @note Complexity: @e O(n), where @e n is the number of atoms
- *       '_NET_WM_STATE' lists
+ *       @c _NET_WM_STATE lists
  */
 static void s_client_read_pre_existing_state(xcb_connection_t *connection,
         xcb_window_t window, client_td *client,
@@ -833,43 +836,41 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
  * @brief Subscribe to events on the adopted window, apply its border
  *        width, and set its default cursor
  *
- * For dock and notification windows, preserves the application's
- * event mask (which includes 'ButtonPress'/'ButtonRelease' needed for
+ * For dock and notification windows, preserves the application's event
+ * mask (which includes @c ButtonPress / @c ButtonRelease needed for
  * systray interaction) and ORs in only the window manager's required
  * events; replacing the mask wholesale would strip 'ButtonPress',
  * making systray icons non-interactive after a 'PassiveGrab' replay.
  * Every other client type gets a fresh mask covering focus, geometry,
  * and pointer tracking.
  *
- * The border width is applied before subscribing to
- * 'STRUCTURE_NOTIFY' so the resulting 'ConfigureNotify' is not
- * delivered to the window manager: at this point the window has not
- * yet been placed, so the event would carry the X-server-initial
- * position (typically (0,0)), and 'handler_configure_notify' would
- * overwrite the placement position computed later by
- * 'place_window_apply', causing an undecorated window to flicker back
- * to the origin on every render cycle.  Dock windows always get zero
- * border width.
+ * The border width is applied before subscribing to @c STRUCTURE_NOTIFY
+ * so the resulting @c ConfigureNotify is not delivered to the window
+ * manager: at this point the window has not yet been placed, so the
+ * event would carry the X-server-initial position (typically @c (0,0)),
+ * and @a handler_configure_notify would overwrite the placement
+ * position computed later by @a place_window_apply, causing an
+ * undecorated window to flicker back to the origin on every render
+ * cycle.  Dock windows always get zero border width.
  *
  * The explicit plain-pointer cursor set here, once, is what makes the
- * resize cursor set while hovering the frame's border reliably
- * give way to a plain pointer the instant the pointer crosses into
- * this client's content: X11 always prefers the nearest explicit
- * cursor over an inherited one, resolved by the server itself on
- * every crossing, with no window-manager-side event handling
- * required.  A purely event-driven reset (motion, or even
- * enter-notify) can be preempted by a client that intercepts pointer
- * motion for its purposes (e.g., GTK/Qt applications tracking
- * hover for their UI), which stops those events from ever
- * reaching this window manager at all; this static default has no
- * such dependency.
+ * resize cursor set while hovering the frame's border reliably give way
+ * to a plain pointer the instant the pointer crosses into this client's
+ * content: X11 always prefers the nearest explicit cursor over an
+ * inherited one, resolved by the server itself on every crossing, with
+ * no window-manager-side event handling required.  A purely
+ * event-driven reset (motion, or even enter-notify) can be preempted by
+ * a client that intercepts pointer motion for its purposes (e.g.,
+ * GTK/Qt applications tracking hover for their UI), which stops those
+ * events from ever reaching this window manager at all; this static
+ * default has no such dependency.
  *
  * @param connection XCB connection
  * @param window     Window being adopted
- * @param client     Client being initialized; its @c config
- *                   (checked for the active theme's border width; a
- *                   @c NULL config or a dock window gets a zero-width
- *                   border) and @c properties.type are read here
+ * @param client     Client being initialized; its @c config (checked
+ *                   for the active theme's border width; a @c NULL
+ *                   config or a dock window gets a zero-width border)
+ *                   and @c properties.type are read here
  *
  * @note Complexity: @e O(1)
  */
@@ -905,10 +906,10 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
                     XCB_EVENT_MASK_POINTER_MOTION;
     }
 
-    /* The same width the first render pass gives a focused window,
-     * none at all for a dock or a notification, so that pass has
-     * nothing to change on a window mapped with focus and the border
-     * recorded here is the one the window really has */
+    /* The same width the first render pass gives a focused window, none
+     * at all for a dock or a notification, so that pass has nothing to
+     * change on a window mapped with focus and the border recorded here
+     * is the one the window really has */
     bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
             client->properties.type ==
                 (uint16_t) CLIENT_TYPE_NOTIFICATION)
@@ -926,6 +927,41 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief This host's own hostname, as set in @c WM_CLIENT_MACHINE by
+ *        a well-behaved local client
+ *
+ * Read once and cached for the life of the process: a host's own
+ * name does not change while it is running, so every later client
+ * adopted reuses this same answer instead of each paying for its own
+ * @c gethostname(2) call.
+ *
+ * @return This host's hostname, or an empty string if @c gethostname
+ *         itself failed, in which case no client will ever be found
+ *         to match it
+ *
+ * @note Complexity: @e O(1) amortized; the underlying system call
+ *       runs at most once
+ */
+static const char *s_local_hostname(void)
+{
+    static char name[HOST_NAME_MAX + 1] = "";
+    static bool is_read = false;
+
+    if (!is_read) {
+        if (gethostname(name, sizeof(name)) != 0) {
+            name[0] = '\0';
+        }
+        /* POSIX leaves the string unterminated if it was truncated
+         * to fit; the buffer is one byte larger than advertised
+         * precisely to give this an always-safe place to land */
+        name[HOST_NAME_MAX] = '\0';
+        is_read = true;
+    }
+    return name;
+}
+
+
 /* Destroy the specified client and free associated resources */
 void client_destroy(client_td *client)
 {
@@ -935,19 +971,19 @@ void client_destroy(client_td *client)
 
     /* Out of both orders before anything else.  One left in the focus
      * order would be handed real input focus by the next fallback that
-     * walked far enough to reach it, and one left in the stacking
-     * order would be restacked as a dangling pointer */
+     * walked far enough to reach it, and one left in the stacking order
+     * would be restacked as a dangling pointer */
     focus_order_remove(client);
     (void) stacking_remove(client);
 
-    /* Removes 'client' from its parent's 'transients' list (true
-     * O(1), see 'transient_node''s comment, client.h) and
-     * orphans every one of its own children, before anything below
-     * frees so much as a single field: every other function walking
-     * the transient tree (top-parent walks, focus redirection, family
-     * cascades) follows real 'client_td*' pointers now, so a client
-     * freed while still linked in would leave those pointers dangling
-     * for whoever encounters it next. */
+    /* Removes 'client' from its parent's 'transients' list (true O(1),
+     * see 'transient_node''s comment, client.h) and orphans every one
+     * of its own children, before anything below frees so much as
+     * a single field: every other function walking the transient tree
+     * (top-parent walks, focus redirection, family cascades) follows
+     * real 'client_td*' pointers now, so a client freed while still
+     * linked in would leave those pointers dangling for whoever
+     * encounters it next. */
     client_unlink_transient(client);
 
     cycle_notice_client_destroyed(client);
@@ -966,10 +1002,10 @@ void client_destroy(client_td *client)
     }
 
     /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any.  It is
-     * a server-side resource owned by the window manager's
-     * connection (unlike the counter it watches, which belongs to the
-     * client and is not ours to destroy), so it is not freed
-     * automatically when the client window above is destroyed */
+     * a server-side resource owned by the window manager's connection
+     * (unlike the counter it watches, which belongs to the client and
+     * is not ours to destroy), so it is not freed automatically when
+     * the client window above is destroyed */
     if (xcb_connection_get() != NULL &&
             client->hints_ewmh.sync.alarm != 0u) {
         xcb_sync_destroy_alarm(xcb_connection_get(),
@@ -984,7 +1020,7 @@ void client_destroy(client_td *client)
         xcb_window_destroy(client->icon_window);
     }
     /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
-     * (see render/wmicon.h), if any; a no-op if nothing was ever
+     * (see 'render/wmicon.h'), if any; a no-op if nothing was ever
      * cached, e.g., a client that never had 'theme.icon.show-pixmaps'
      * draw anything for it in the first place */
     wmicon_invalidate(xcb_connection_get(), &client->icon_pixmap_cache);
@@ -1000,8 +1036,6 @@ void client_destroy(client_td *client)
 }
 
 
-/* Refresh a client's user-time from a genuine input event that
- * just reached it */
 /* Record the timestamp of a genuine user input event */
 void client_note_user_time(uint32_t time)
 {
@@ -1018,6 +1052,8 @@ uint32_t client_last_user_time(void)
 }
 
 
+/* Refresh a client's user-time from a genuine input event that just
+ * reached it */
 void client_update_user_time(client_td *client, uint32_t time)
 {
     if (client == NULL) {
@@ -1083,43 +1119,8 @@ void client_subscribe_colormap_windows(
 }
 
 
-/**
- * @brief This host's own hostname, as set in @c WM_CLIENT_MACHINE by
- *        a well-behaved local client
- *
- * Read once and cached for the life of the process: a host's own
- * name does not change while it is running, so every later client
- * adopted reuses this same answer instead of each paying for its own
- * @c gethostname(2) call.
- *
- * @return This host's hostname, or an empty string if @c gethostname
- *         itself failed, in which case no client will ever be found
- *         to match it
- *
- * @note Complexity: @e O(1) amortized; the underlying system call
- *       runs at most once
- */
-static const char *s_local_hostname(void)
-{
-    static char name[HOST_NAME_MAX + 1] = "";
-    static bool is_read = false;
-
-    if (!is_read) {
-        if (gethostname(name, sizeof(name)) != 0) {
-            name[0] = '\0';
-        }
-        /* POSIX leaves the string unterminated if it was truncated
-         * to fit; the buffer is one byte larger than advertised
-         * precisely to give this an always-safe place to land */
-        name[HOST_NAME_MAX] = '\0';
-        is_read = true;
-    }
-    return name;
-}
-
-
-/* Initialize a new client, adopting an existing X window under
- * window manager control */
+/* Initialize a new client, adopting an existing X window under window
+ * manager control */
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t window,
@@ -1169,15 +1170,14 @@ client_td *client_init(xcb_connection_t *connection,
     client->id = window;
 
     /* Query existing geometry */
-    /* Every independent request goes out here, before a single reply
-     * is awaited, so that the whole set costs one round trip to the
-     * server rather than one apiece.  See
-     * 'struct s_client_cookies_init_s' for what is deliberately left
-     * out of the batch and why.
+    /* Every independent request goes out here, before a single reply is
+     * awaited, so that the whole set costs one round trip to the server
+     * rather than one apiece.  See 'struct s_client_cookies_init_s' for
+     * what is deliberately left out of the batch and why.
      *
      * The two atoms are interned first because a request needs them,
-     * and 'atom_intern' answers from its cache after the first
-     * window, so they cost no round trip of their own here. */
+     * and 'atom_intern' answers from its cache after the first window,
+     * so they cost no round trip of their own here. */
     client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER",
             true);
     motif_hints_atom = atom_intern(connection, "_MOTIF_WM_HINTS", true);
@@ -1308,11 +1308,11 @@ client_td *client_init(xcb_connection_t *connection,
     }
 
     /* Read 'WM_CLIENT_MACHINE': a bare '_NET_WM_PID' names a process
-     * table this window manager shares only when the two agree on
-     * which host that table belongs to.  A client silent on the
-     * matter, same as one naming some other host, leaves
-     * 'pid_is_local' at its 'false' default, since a PID is never
-     * safe to act on without that confirmation. */
+     * table this window manager shares only when the two agree on which
+     * host that table belongs to.  A client silent on the matter, same
+     * as one naming some other host, leaves 'pid_is_local' at its
+     * 'false' default, since a PID is never safe to act on without that
+     * confirmation. */
     if (xcb_icccm_get_wm_client_machine_reply(connection,
                 ck.client_machine, &machine_prop, NULL)) {
         const char *local_name = s_local_hostname();
@@ -1324,15 +1324,14 @@ client_td *client_init(xcb_connection_t *connection,
     }
 
     /* Read '_NET_WM_USER_TIME': used for initial focus policy.
-     * Checked on '_NET_WM_USER_TIME_WINDOW' first.  Some toolkits
-     * (GTK among them) set the frequently-changing
-     * '_NET_WM_USER_TIME' on a dedicated, often-unmapped window
-     * instead of the client's toplevel, specifically so that
-     * every tool interested in any of the toplevel's other
-     * properties is not woken up on every keypress (EWMH §5.16); a
-     * client relying on that indirection would otherwise never have
-     * its genuine value seen here at all, always reading as the
-     * default 0 instead. */
+     * Checked on '_NET_WM_USER_TIME_WINDOW' first.  Some toolkits (GTK
+     * among them) set the frequently-changing '_NET_WM_USER_TIME' on
+     * a dedicated, often-unmapped window instead of the client's
+     * toplevel, specifically so that every tool interested in any of
+     * the toplevel's other properties is not woken up on every keypress
+     * (EWMH §5.16); a client relying on that indirection would
+     * otherwise never have its genuine value seen here at all, always
+     * reading as the default 0 instead. */
     utime = 0u;
     user_time_window = window;
     user_time_window_raw = 0u;
@@ -1447,8 +1446,8 @@ void client_border_color_apply(client_td *client, bool is_focused)
             : client->config->theme.window.inactive.opacity;
     }
 
-    /* Sent only when it would actually change, the render pass
-     * reaching every client on the desktop on every turn */
+    /* Sent only when it would actually change, the render pass reaching
+     * every client on the desktop on every turn */
     if (color == client->last_border_color) {
         return;
     }

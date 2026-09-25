@@ -1,11 +1,11 @@
 /**
  * @file enact/desktop.c
  *
- * @brief Every desktop-level action this window manager can carry
- *        out, one typed function per action
+ * @brief Every desktop-level action this window manager can carry out,
+ *        one typed function per action
  *
- * One of the files @c enact/ is made of; see
- * @c enact/internal.h for why.
+ * One of the files @c enact/ is made of; see @c enact/internal.h for
+ * why.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -103,12 +103,11 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
  * @brief Send exactly this one client from one desktop to another,
  *        ignoring any transient family it may belong to
  *
- * Holds the single-client half of
- * @a enact_desktop_client_send, so that function can redirect to, and
- * cascade across, a transient family (see its comment) while
- * still sharing this single client's worth of desktop-move plumbing
- * with the top-level, family-unaware call it makes on the family's
- * top parent and on every other member in turn.
+ * Holds the single-client half of @a enact_desktop_client_send, so that
+ * function can redirect to, and cascade across, a transient family (see
+ * its comment) while still sharing this single client's worth of
+ * desktop-move plumbing with the top-level, family-unaware call it
+ * makes on the family's top parent and on every other member in turn.
  *
  * @param desktop Client's current desktop; must be non-null
  * @param client  Client to move; must be non-null
@@ -135,10 +134,10 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * independent things to check, not one gating the other: an
      * iconified client has no content mapped for the first half to
      * touch, but very much has an icon mapped for the second half to,
-     * and skipping that half whenever the first one does not apply
-     * (as a single, shared guard covering both used to) left an
-     * iconified client's icon sitting in the old desktop's spot,
-     * visible from every desktop, until some later, unrelated event
+     * and skipping that half whenever the first one does not apply (as
+     * a single, shared guard covering both used to) left an iconified
+     * client's icon sitting in the old desktop's spot, visible from
+     * every desktop, until some later, unrelated event
      * happened to hide it. */
     if (stage != NULL && desktop->id == stage->desktop_cur &&
             !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
@@ -156,26 +155,24 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         unmapped_icon = true;
     }
 
-    /* Moved to 'target' before the fallback call just below, not
-     * after: 'ccmd_client_focus' (called from inside
-     * 'client_focus_fallback') redirects to whichever mapped
-     * transient descendant of the new fallback target should
-     * actually receive focus in its place, as
-     * 'ccmd_client_focus_target''s comment in
-     * 'cmds/client/transient.h' describes, and
-     * that redirect walk would otherwise still find 'client' sitting
-     * in 'desktop->clients' at the moment of the search, even though
-     * it is already on its way to 'target'; the same reasoning
-     * behind the matching reorder in 'handler_window_destroy_notify' and
-     * 'handler_window_unmap_notify' (handler/map.c).  The remove-add-
-     * rollback-record sequence itself comes straight from
-     * 'desktop_action_client_move' (desktop/dclient.c) rather than
-     * being reimplemented here, so it stays the one place that
-     * undoes a failed insertion and records the client's resulting
-     * desktop for every caller of this whole mechanism alike; only
-     * the unmap performed above is this function's own to undo,
-     * since that is a decoration/visibility concern outside that
-     * function's reach. */
+    /* Moved to 'target' before the fallback call just below, not after:
+     * 'ccmd_client_focus' (called from inside 'client_focus_fallback')
+     * redirects to whichever mapped transient descendant of the new
+     * fallback target should actually receive focus in its place, as
+     * 'ccmd_client_focus_target''s comment in 'cmds/client/transient.h'
+     * describes, and that redirect walk would otherwise still find
+     * 'client' sitting in 'desktop->clients' at the moment of the
+     * search, even though it is already on its way to 'target'; the
+     * same reasoning behind the matching reorder in
+     * 'handler_window_destroy_notify' and 'handler_window_unmap_notify'
+     * ('handler/map.c').  The remove-add- rollback-record sequence
+     * itself comes straight from 'desktop_action_client_move'
+     * ('desktop/dclient.c') rather than being reimplemented here, so it
+     * stays the one place that undoes a failed insertion and records
+     * the client's resulting desktop for every caller of this whole
+     * mechanism alike; only the unmap performed above is this
+     * function's own to undo, since that is a decoration/visibility
+     * concern outside that function's reach. */
     if (desktop_action_client_move(desktop, target, client) != 0) {
         LOGGER_WARNING("Failed to move client window=0x%x to" \
                 " desktop %u; leaving it on desktop %u instead",
@@ -196,8 +193,8 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         return;
     }
 
-    /* Remembered as 'target''s active client only while 'target' is
-     * not the desktop shown: there it is no more than a record, and
+    /* Remembered as 'target''s active client only while 'target' is not
+     * the desktop shown: there it is no more than a record, and
      * 'stage_client_show_all' ('stage/actions/client.c') works real
      * focus out again from the focus order whenever 'target' is shown.
      * On the desktop shown, the active client is the one holding the
@@ -225,14 +222,14 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
 
     /* Published here, once, for every caller of this whole desktop-
      * move mechanism alike (the "Send to desktop" menu, the move-to-
-     * desktop keybind, and any rule with its 'apply.desktop'),
-     * rather than each duplicating this same publish on its own:
-     * an EWMH-aware external tool (a taskbar or pager) watching
-     * '_NET_WM_DESKTOP' needs to learn about the reassignment
-     * regardless of which of those actually triggered it.  See
-     * 'ccmd_client_bring_family's comment, cmds/client/transient.c,
-     * for the fuller reasoning on why a pinned client's registration
-     * and its own published desktop can differ. */
+     * desktop keybind, and any rule with its 'apply.desktop'), rather
+     * than each duplicating this same publish on its own: an EWMH-aware
+     * external tool (a taskbar or pager) watching '_NET_WM_DESKTOP'
+     * needs to learn about the reassignment regardless of which of
+     * those actually triggered it.  See 'ccmd_client_bring_family's
+     * comment, cmds/client/transient.c, for the fuller reasoning on why
+     * a pinned client's registration and its own published desktop can
+     * differ. */
     ccmd_publish_wm_desktop(client, target->id);
 
     /* If 'client' was the source desktop's active client, hand focus
@@ -259,15 +256,17 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
  * @brief What @a s_desktop_rearrange_visit carries across the desktop
  */
 struct s_rearrange_ctx_s {
-    /** Window manager, needed to find a transient's parent */
-    const wm_td *wm;
-    stage_td *stage;    /**< Stage being rearranged */
-    /** Desktop being rearranged, needed to place a client on a page */
-    const desktop_td *desktop;
-    uint32_t page_col;      /**< Column of the page panned to */
-    uint32_t page_row;      /**< Row of the page panned to */
-    bool is_single_spot;    /**< Whether the policy has one spot only */
-    bool is_first;          /**< Whether this is the first client */
+    const wm_td *wm;            /**< Window manager, needed to find
+                                     a transient's parent */
+    stage_td *stage;            /**< Stage being rearranged */
+    const desktop_td *desktop;  /**< Desktop being rearranged, needed to
+                                     place a client on a page */
+
+    uint32_t page_col;          /**< Column of the page panned to */
+    uint32_t page_row;          /**< Row of the page panned to */
+
+    bool is_single_spot;        /**< Whether the policy has one spot only */
+    bool is_first;              /**< Whether this is the first client */
 };
 
 
@@ -349,12 +348,12 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     desktop->background.bg.color = color;
     desktop->is_outdated = true;
     /* Marking only 'desktop->is_outdated' is not enough on its own:
-     * 'loop_refresh' only calls 'stage_render_all_desktops' at all
-     * when this desktop's stage is itself outdated (see
+     * 'loop_refresh' only calls 'stage_render_all_desktops' at all when
+     * this desktop's stage is itself outdated (see
      * 'enact_desktop_show', right below, for the same pattern).
      * Without this, the new color never actually repaints until
-     * something else marks the stage outdated for an unrelated
-     * reason, e.g., switching desktops away and back. */
+     * something else marks the stage outdated for an unrelated reason,
+     * e.g., switching desktops away and back. */
     stage->is_outdated = true;
     s_broadcast_desktop_event(desktop,
             IPC_EVENT_DESKTOP_BACKGROUND_CHANGED);
@@ -377,7 +376,8 @@ void enact_desktop_show(desktop_td *desktop, bool show)
 
     hi_handle_net_showing_desktop(stage, show);
     s_broadcast_desktop_event(desktop,
-            (show) ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
+            (show) ? IPC_EVENT_DESKTOP_SHOWN
+                   : IPC_EVENT_DESKTOP_HIDDEN);
 }
 
 
@@ -425,7 +425,7 @@ void enact_desktop_client_send(const desktop_td *desktop,
     siblings = ccmd_client_transient_family_snapshot(top_desktop, top,
             &count);
     if (siblings != NULL) {
-        for (size_t i = 0; i < count; i++) {
+        for (size_t i = 0; i < count; ++i) {
             s_enact_desktop_client_send_one(top_desktop, siblings[i],
                     target);
         }
@@ -444,7 +444,8 @@ void enact_desktop_client_send_front(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_front(desktop, client);
-    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_STACKING_CHANGED);
+    enact_broadcast_client_event(client,
+            IPC_EVENT_CLIENT_STACKING_CHANGED);
 }
 
 
@@ -457,7 +458,8 @@ void enact_desktop_client_send_back(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_back(desktop, client);
-    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_STACKING_CHANGED);
+    enact_broadcast_client_event(client,
+            IPC_EVENT_CLIENT_STACKING_CHANGED);
 }
 
 
@@ -527,8 +529,7 @@ void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, stage, desktop, false, 1,
-            modifier, cfg);
+    cycle_init(connection, stage, desktop, false, 1, modifier, cfg);
     cycle_draw(connection, cfg);
 }
 
@@ -542,8 +543,7 @@ void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, stage, desktop, false, -1,
-            modifier, cfg);
+    cycle_init(connection, stage, desktop, false, -1, modifier, cfg);
     cycle_draw(connection, cfg);
 }
 
@@ -557,8 +557,7 @@ void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, stage, desktop, true, 1,
-            modifier, cfg);
+    cycle_init(connection, stage, desktop, true, 1, modifier, cfg);
     cycle_draw(connection, cfg);
 }
 
@@ -572,7 +571,6 @@ void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, stage, desktop, true, -1,
-            modifier, cfg);
+    cycle_init(connection, stage, desktop, true, -1, modifier, cfg);
     cycle_draw(connection, cfg);
 }

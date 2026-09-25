@@ -369,8 +369,9 @@ static bool s_xs_config_changed(const wm_td *wm)
  *
  * @param wm Window manager state
  *
- * @return @c true on success (or if already ready), @c false if it
- *         could not be created
+ * @return Status of the operation
+ * @retval  true on success (or if already ready)
+ * @retval false if it could not be created
  */
 static bool s_xs_ensure_window(const wm_td *wm)
 {
@@ -430,9 +431,10 @@ static bool s_xs_ensure_window(const wm_td *wm)
 /**
  * @brief Acquire the XSETTINGS selection and publish the settings
  *
- * @return @c true if ownership was acquired (or already held),
- *         @c false if another settings manager already owns it or the
- *         window is not ready yet
+ * @return Status of the operation
+ * @retval  true if ownership was acquired (or already held),
+ * @retval false if another settings manager already owns it or the
+ *                window is not ready yet
  */
 static bool s_xs_acquire_selection(void)
 {
@@ -533,7 +535,8 @@ void xsettings_reload(const wm_td *wm)
     should_be_enabled = config->theme.xsettings.is_enabled;
 
     if (s_xs.is_selection_owned && !should_be_enabled) {
-        LOGGER_INFO("XSETTINGS disabled by configuration reload", L_NARG);
+        LOGGER_INFO("XSETTINGS disabled by configuration reload",
+                L_NARG);
         s_xs_release_selection();
         return;
     }

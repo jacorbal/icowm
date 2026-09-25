@@ -1,11 +1,11 @@
 /**
  * @file enact/stage.c
  *
- * @brief Every stage-level action this window manager can carry
- *        out, one typed function per action
+ * @brief Every stage-level action this window manager can carry out,
+ *        one typed function per action
  *
- * One of the files @c enact/ is made of; see
- * @c enact/internal.h for why.
+ * One of the files @c enact/ is made of; see @c enact/internal.h for
+ * why.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -19,11 +19,6 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 
-/* Project includes */
-#include <stage.h>
-#include <stage/action.h>
-#include <wm.h>
-
 /* JSON includes */
 #include <cjson/cJSON.h>
 
@@ -36,6 +31,13 @@
 /* Handler includes */
 #include <input/kbd/bind.h>
 
+/* Stage includes */
+#include <stage/action.h>
+
+/* Project includes */
+#include <stage.h>
+#include <wm.h>
+
 /* Local includes */
 #include <enact.h>
 #include <enact/stage.h>
@@ -44,8 +46,8 @@
 /**
  * @brief Broadcast that the stage's current desktop just changed
  *
- * @param stage Stage whose current desktop just changed;
- *                must not be null
+ * @param stage Stage whose current desktop just changed; must not be
+ *              null
  *
  * @note Complexity: @e O(1)
  */
@@ -92,13 +94,13 @@ static void s_broadcast_desktop_counted(const stage_td *stage,
  * @brief Refresh keyboard grabs after any stage's desktop count
  *        changes
  *
- * @c keyboard_load (@c input/kbd/bind.c) only grabs the desktop-cycle
- * and @c go-to-desktop-@e N keys when at least one managed stage
+ * @a keyboard_load (@c input/kbd/bind.c) only grabs the desktop-cycle
+ * and @a go-to-desktop-@e N keys when at least one managed stage
  * currently has more than one desktop, decided fresh every time it
- * runs.  Nothing else re-runs it after @a stage_action_desktop_add
- * or @a stage_action_desktop_remove change a stage's desktop
- * count, so without this, those grabs could silently drift out of
- * sync with the desktop count they were meant to reflect.
+ * runs.  Nothing else re-runs it after @a stage_action_desktop_add or
+ * @a stage_action_desktop_remove change a stage's desktop count, so
+ * without this, those grabs could silently drift out of sync with the
+ * desktop count they were meant to reflect.
  *
  * Stuck in whichever state happened to be true the last time some
  * unrelated event (a keyboard mapping change, a RandR change,
@@ -110,7 +112,7 @@ static void s_broadcast_desktop_counted(const stage_td *stage,
  *
  * @note No-op if @a wm_get_keysyms (@c wm.h) has nothing to return yet,
  *       the same guard @a wm_action_config_reload (in @c wm/actions.c)
- *       already applies to its @c keyboard_load call
+ *       already applies to its @a keyboard_load call
  * @note Complexity: same as @a keyboard_load itself
  */
 static void s_refresh_keyboard_grabs(void)
@@ -123,6 +125,7 @@ static void s_refresh_keyboard_grabs(void)
 }
 
 
+/* Switch stage to desktop */
 void enact_stage_desktop_switch(stage_td *stage,
         uint32_t desktop_id)
 {

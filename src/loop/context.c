@@ -15,12 +15,14 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <wm.h>
 
 /* Local includes */
 #include <loop/context.h>
-#include <utils/xcb/connection.h>
 
 
 /* Resolve the window manager values the loop caches for a run */

@@ -317,19 +317,19 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  * @brief Compute one work area, struts and margins folded in, scoped
  *        to a single rectangular region
  *
- * Shared by @a desktop_update_workarea for both the whole stage's
- * own @c workarea and each individual monitor's entry in
+ * Shared by @a desktop_update_workarea for both the whole stage's own
+ * @c workarea and each individual monitor's entry in
  * @c monitor_workareas, the exact same reservation math either way,
- * only the region it is scoped to differing.  The whole stage for
- * the former, one monitor's physical extent for the latter.
+ * only the region it is scoped to differing.  The whole stage for the
+ * former, one monitor's physical extent for the latter.
  *
- * @param desktop Desktop whose stacking list to scan for
+ * @param desktop             Desktop whose stacking list to scan for
  *                            client struts
- * @param region_x          Region's left edge, in stage coordinates
- * @param region_y          Region's top edge, in stage coordinates
- * @param region_w          Region's width
- * @param region_h          Region's height
- * @param apply_margin_left Whether this region's left edge coincides
+ * @param region_x            Region's left edge, in stage coordinates
+ * @param region_y            Region's top edge, in stage coordinates
+ * @param region_w            Region's width
+ * @param region_h            Region's height
+ * @param apply_margin_left   Whether this region's left edge coincides
  *                            with a side of the stage
  *                            @p config_desktop's @p margins should
  *                            actually reserve on
@@ -339,9 +339,9 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  * @param config_desktop      Active desktop-behavior configuration, for
  *                            its @p margins; a @c NULL treats every
  *                            margin as @c 0
- * @param systray_strut The systray's current reservation;
+ * @param systray_strut       The systray's current reservation;
  *                            a @c NULL value folds in nothing
- * @param ignore_struts When @c true, neither @p systray_strut nor
+ * @param ignore_struts       When @c true, neither @p systray_strut nor
  *                            any client's strut is folded in, only
  *                            whichever margins @p apply_margin_* select
  *

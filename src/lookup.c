@@ -21,11 +21,13 @@
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
+/* Stage includes */
+#include <stage/desktop.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <stage.h>
-#include <stage/desktop.h>
 
 /* Local includes */
 #include <lookup.h>
@@ -125,7 +127,8 @@ client_td *lookup_find_client(list_td *stages, xcb_window_t window,
         }
 
         do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;

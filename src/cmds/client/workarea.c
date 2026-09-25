@@ -21,12 +21,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* Util includes */
+#include <utils/geom.h>
+
+/* Stage includes */
+#include <stage/desktop.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <stage.h>
-#include <stage/desktop.h>
-#include <utils/geom.h>
 #include <wm.h>
 
 /* Local includes */

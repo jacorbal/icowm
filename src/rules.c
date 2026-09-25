@@ -53,8 +53,7 @@
  * @param key          Field name to read (e.g., @c title)
  * @param dest         Destination fixed-size string array
  * @param count_out    Receives the number of values actually stored
- * @param has_flag_out Set to @c true when at least one value was
- *                     stored
+ * @param has_flag_out Set to @c true when at least one value was stored
  *
  * @note Complexity: @e O(n), where @e n is @c RULES_MATCH_MAX_VALUES
  */

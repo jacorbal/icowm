@@ -19,6 +19,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Type includes */
 #include <types/pair.h>
 
@@ -41,7 +44,6 @@
 
 /* Local includes */
 #include <loop/event.h>
-#include <utils/xcb/connection.h>
 
 
 /** Whoever owns the pointer at the moment a motion event arrives */
@@ -70,7 +72,7 @@ enum s_loop_event_motion_target_e {
  * visibly lag behind the pointer, worse the more expensive that
  * per-event work is.
  *
- * @param ctx Main loop context, whose lookahead slot receives the
+ * @param ctx   Main loop context, whose lookahead slot receives the
  *              first non-motion event found, if any
  * @param event Newest motion event so far, replaced in place by any
  *              newer one found; superseded events are freed here

@@ -47,6 +47,10 @@
 /* Policy includes */
 #include <policy/focus.h>
 
+/* Enact includes */
+#include <enact/client.h>
+#include <enact/desktop.h>
+
 /* Default initial values */
 #include <defs/scratchpad.h>
 
@@ -55,8 +59,6 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
-#include <enact/client.h>
-#include <enact/desktop.h>
 #include <ipc.h>
 #include <logger.h>
 #include <stage.h>
@@ -477,7 +479,7 @@ void scratchpad_position(client_td *client,
         }
 
         /* Applied directly, the same way 'ccmd_client_maximize_horz'/
-         * '_vert' apply theirs (cmds/client/maximize.c), rather than
+         * '_vert' apply theirs ('cmds/client/maximize.c'), rather than
          * through 'enact_client_resize_force': a "max" axis has to
          * reach the workarea edge exactly, which the constrain step
          * just above deliberately does not touch for it. */

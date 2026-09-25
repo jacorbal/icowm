@@ -27,12 +27,14 @@
 /* Default initial values */
 #include <defs/client.h>
 
+/* Stage includes */
+#include <stage/desktop.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <lookup.h>
 #include <stage.h>
-#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */

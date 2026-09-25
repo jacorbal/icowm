@@ -46,8 +46,8 @@
 #include <systray/internal.h>
 
 
-/* Module-level built-in systray state; see 'systray/internal.h' for
- * the full field-by-field documentation */
+/* Module-level built-in systray state (see 'systray/internal.h' for the
+ * full field-by-field documentation) */
 struct systray_state_s s_tray;
 
 
@@ -255,9 +255,8 @@ xcb_window_t systray_below_window(void)
 }
 
 
-/* Return the space the tray currently reserves for itself on
- * 'stage', or 'NULL' when 'stage' is not the one it is docked
- * on */
+/* Return the space the tray currently reserves for itself on 'stage',
+ * or 'NULL' when 'stage' is not the one it is docked on */
 const struct strut_partial_s *systray_get_reserved_strut(
         const stage_td *stage)
 {
@@ -275,8 +274,8 @@ const struct strut_partial_s *systray_get_reserved_strut(
 }
 
 
-/* Return the tray's current on-screen rectangle on 'stage', or
- * 'false' when it is not currently showing there at all */
+/* Return the tray's current on-screen rectangle on 'stage', or 'false'
+ * when it is not currently showing there at all */
 bool systray_get_geometry(const stage_td *stage,
         struct geometry_s *restrict out_tray)
 {

@@ -24,6 +24,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* IPC includes */
 #include <ipc.h>
 
@@ -37,7 +40,6 @@
 
 /* Local includes */
 #include <loop/pollset.h>
-#include <utils/xcb/connection.h>
 
 
 /* Wait for the X connection or any IPC descriptor to be ready */

@@ -51,12 +51,14 @@
 #include <cmds/client/visibility.h>
 #include <cmds/stage.h>
 
+/* Stage includes */
+#include <stage/desktop.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
 #include <scratchpad.h>
 #include <stage.h>
-#include <stage/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -71,16 +73,15 @@
  * @brief Shared logic for carrying the client to another desktop in
  *        a given compass direction, following it there
  *
- * @param client Client to move
- * @param stages Full stage list, passed through to
- *                  @c focus_apply
- * @param config Active configuration, passed through to
+ * @param client    Client to move
+ * @param stages    Full stage list, passed through to @c focus_apply
+ * @param config    Active configuration, passed through to
  *                  @c focus_apply
  * @param direction Compass direction to move the client in
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's top parent's desktop (see
- *       @a enact_desktop_client_send's comment)
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       client's top parent's desktop (@a enact_desktop_client_send's
+ *       comment)
  */
 static void s_enact_client_send_to_desktop(client_td *client,
         list_td *stages, const config_td *config,
@@ -112,14 +113,14 @@ static void s_enact_client_send_to_desktop(client_td *client,
     cycle = (stage->config != NULL)
         ? stage->config->desktops.wrap_at_bounds : true;
 
-    /* No different desktop to move to at all: either genuinely
-     * only one exists (restricted-memory mode is always locked to
-     * exactly one; see 'stage_action_desktop_add''s doc
-     * comment, stage/switch.c), wrapping is disabled and this is
-     * already the edgemost one that way, or (north/south only, on a
-     * stage with no 'topology.screens.desktops' layout configured
-     * at all) there is no second row or column to move to in the
-     * first place; is a silent no-op, the same as every other
+    /* No different desktop to move to at all: either genuinely only one
+     * exists (restricted-memory mode is always locked to exactly one;
+     * see 'stage_action_desktop_add''s comment, stage/switch.c),
+     * wrapping is disabled and this is already the edgemost one that
+     * way, or (north/south only, on a stage with no
+     * 'topology.screens.desktops' layout configured at all) there is no
+     * second row or column to move to in the first place; is a silent
+     * no-op, the same as every other
       keybind here that finds nothing to act on. */
     switch (direction) {
     case COMPASS_NORTH:
@@ -148,24 +149,53 @@ static void s_enact_client_send_to_desktop(client_td *client,
 
     /* 'enact_stage_desktop_switch' just above, via its
      * 'stage_client_show_all', already restored real input focus on
-     * its, to whichever client this target desktop's
-     * 'client_active_id' still remembered from some earlier,
-     * unrelated visit, not this client, freshly arrived on it as
-     * of the very call before this one.  Explicitly re-applied here,
-     * after the fact, rather than trying to somehow suppress that
-     * automatic restore instead: 'client' becomes this desktop's
-     * newly active one, genuinely focused, and raised above whatever
-     * else that restore just raised in front of it (any client
-     * already there before this one arrived stays exactly where it
-     * was, simply no longer topmost), matching a plain click or any
-     * other deliberate focus request landing on it right after the
-     * move, not a stale leftover from before. */
+     * its, to whichever client this target desktop's 'client_active_id'
+     * still remembered from some earlier, unrelated visit, not this
+     * client, freshly arrived on it as of the very call before this
+     * one.  Explicitly re-applied here, after the fact, rather than
+     * trying to somehow suppress that automatic restore instead:
+     * 'client' becomes this desktop's newly active one, genuinely
+     * focused, and raised above whatever else that restore just raised
+     * in front of it (any client already there before this one arrived
+     * stays exactly where it was, simply no longer topmost), matching
+     * a plain click or any other deliberate focus request landing on it
+     * right after the move, not a stale leftover from before. */
     focus_apply(stages, stage, target_desktop, client, true, config);
 }
 
 
-/* Broadcast an IPC event carrying one client's identifying
- * fields */
+/**
+ * @brief Tell IPC subscribers a client gained or lost a maximized axis
+ *
+ * Compares the axes it is maximized on now against the ones it was
+ * before: gaining one sends @c IPC_EVENT_CLIENT_MAXIMIZE_SET, losing
+ * one @c IPC_EVENT_CLIENT_MAXIMIZE_CLEARED, and a call that changed
+ * nothing sends neither.
+ *
+ * @param client   Client that may have changed
+ * @param was_horz Whether it was maximized horizontally before
+ * @param was_vert Whether it was maximized vertically before
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_enact_broadcast_maximize_change(client_td *client,
+        bool was_horz, bool was_vert)
+{
+    bool is_horz = client_is_maximized_horz(client);
+    bool is_vert = client_is_maximized_vert(client);
+
+    if ((is_horz && !was_horz) || (is_vert && !was_vert)) {
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_MAXIMIZE_SET);
+    }
+    if ((was_horz && !is_horz) || (was_vert && !is_vert)) {
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_MAXIMIZE_CLEARED);
+    }
+}
+
+
+/* Broadcast an IPC event carrying one client's identifying fields */
 void enact_broadcast_client_event(client_td *client, uint64_t type)
 {
     cJSON *fields;
@@ -262,8 +292,8 @@ void enact_client_resize(client_td *client, struct geometry_s geom)
 }
 
 
-/* Resize the client to a specific frame geometry immediately,
- * bypassing any in-flight sync throttling */
+/* Resize the client to a specific frame geometry immediately, bypassing
+ * any in-flight sync throttling */
 void enact_client_resize_force(client_td *client, struct geometry_s geom)
 {
     ccmd_client_resize_force(client, geom);
@@ -293,8 +323,8 @@ void enact_client_center(client_td *client)
 }
 
 
-/* Carry the client to the desktop north of the current one,
- * following it there */
+/* Carry the client to the desktop north of the current one, following
+ * it there */
 void enact_client_send_to_desktop_north(client_td *client,
         list_td *stages, const config_td *config)
 {
@@ -303,8 +333,8 @@ void enact_client_send_to_desktop_north(client_td *client,
 }
 
 
-/* Carry the client to the desktop south of the current one,
- * following it there */
+/* Carry the client to the desktop south of the current one, following
+ * it there */
 void enact_client_send_to_desktop_south(client_td *client,
         list_td *stages, const config_td *config)
 {
@@ -313,8 +343,8 @@ void enact_client_send_to_desktop_south(client_td *client,
 }
 
 
-/* Carry the client to the desktop east of the current one,
- * following it there */
+/* Carry the client to the desktop east of the current one, following it
+ * there */
 void enact_client_send_to_desktop_east(client_td *client,
         list_td *stages, const config_td *config)
 {
@@ -323,8 +353,8 @@ void enact_client_send_to_desktop_east(client_td *client,
 }
 
 
-/* Carry the client to the desktop west of the current one,
- * following it there */
+/* Carry the client to the desktop west of the current one, following it
+ * there */
 void enact_client_send_to_desktop_west(client_td *client,
         list_td *stages, const config_td *config)
 {
@@ -464,38 +494,6 @@ void enact_client_rename(client_td *client, const char *name)
 }
 
 
-
-/**
- * @brief Tell IPC subscribers a client gained or lost a maximized axis
- *
- * Compares the axes it is maximized on now against the ones it was
- * before: gaining one sends @c IPC_EVENT_CLIENT_MAXIMIZE_SET,
- * losing one @c IPC_EVENT_CLIENT_MAXIMIZE_CLEARED, and a call that
- * changed nothing sends neither.
- *
- * @param client   Client that may have changed
- * @param was_horz Whether it was maximized horizontally before
- * @param was_vert Whether it was maximized vertically before
- *
- * @note Complexity: @e O(1)
- */
-static void s_enact_broadcast_maximize_change(client_td *client,
-        bool was_horz, bool was_vert)
-{
-    bool is_horz = client_is_maximized_horz(client);
-    bool is_vert = client_is_maximized_vert(client);
-
-    if ((is_horz && !was_horz) || (is_vert && !was_vert)) {
-        enact_broadcast_client_event(client,
-                IPC_EVENT_CLIENT_MAXIMIZE_SET);
-    }
-    if ((was_horz && !is_horz) || (was_vert && !is_vert)) {
-        enact_broadcast_client_event(client,
-                IPC_EVENT_CLIENT_MAXIMIZE_CLEARED);
-    }
-}
-
-
 /* Maximize the client both horizontally and vertically */
 void enact_client_maximize(client_td *client)
 {
@@ -543,7 +541,8 @@ void enact_client_iconify(client_td *client)
 {
     ccmd_client_iconify(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_ICONIFY_SET);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_ICONIFY_SET);
     }
 }
 
@@ -553,7 +552,8 @@ void enact_client_hide(client_td *client)
 {
     ccmd_client_hide(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_HIDE_SET);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_HIDE_SET);
         if (scratchpad_is_client(client)) {
             enact_broadcast_client_event(client,
                     IPC_EVENT_SCRATCHPAD_HIDDEN);
@@ -582,7 +582,8 @@ void enact_client_shade(client_td *client)
 {
     ccmd_client_shade(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_SHADE_SET);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_SHADE_SET);
     }
 }
 
@@ -592,7 +593,8 @@ void enact_client_unshade(client_td *client)
 {
     ccmd_client_unshade(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_SHADE_CLEARED);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_SHADE_CLEARED);
     }
 }
 
@@ -602,8 +604,10 @@ void enact_client_toggle_shade(client_td *client)
 {
     ccmd_client_toggle_shade(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, client_is_shaded(client)
-                ? IPC_EVENT_CLIENT_SHADE_SET : IPC_EVENT_CLIENT_SHADE_CLEARED);
+        enact_broadcast_client_event(client,
+                client_is_shaded(client)
+                    ? IPC_EVENT_CLIENT_SHADE_SET
+                    : IPC_EVENT_CLIENT_SHADE_CLEARED);
     }
 }
 
@@ -613,7 +617,8 @@ void enact_client_pin(client_td *client)
 {
     ccmd_client_pin(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_PIN_SET);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_PIN_SET);
     }
 }
 
@@ -623,7 +628,8 @@ void enact_client_unpin(client_td *client)
 {
     ccmd_client_unpin(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_PIN_CLEARED);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_PIN_CLEARED);
     }
 }
 
@@ -640,17 +646,17 @@ void enact_client_toggle_pin(client_td *client)
 }
 
 
-/* Set the client's sticky mode.  No IPC event to broadcast here,
- * unlike its pin counterpart above: every bit of the IPC_EVENT_* mask
- * is already in use, with none free for a new sticky pair */
+/* Set the client's sticky mode.  No IPC event to broadcast here, unlike
+ * its pin counterpart above: every bit of the IPC_EVENT_* mask is
+ * already in use, with none free for a new sticky pair */
 void enact_client_stick(client_td *client)
 {
     ccmd_client_stick(client);
 }
 
 
-/* Remove the client's sticky mode.  Same reasoning as its setter
- * above for why there is no IPC event to broadcast */
+/* Remove the client's sticky mode.  Same reasoning as its setter above
+ * for why there is no IPC event to broadcast */
 void enact_client_unstick(client_td *client)
 {
     ccmd_client_unstick(client);
@@ -670,8 +676,7 @@ void enact_client_toggle_stick(client_td *client)
 void enact_client_send_to_page(stage_td *stage, client_td *client,
         uint32_t col, uint32_t row)
 {
-    scmd_stage_viewport_client_send_to_page(stage, client, col,
-            row);
+    scmd_stage_viewport_client_send_to_page(stage, client, col, row);
 }
 
 
@@ -680,7 +685,8 @@ void enact_client_fullscreen(client_td *client)
 {
     ccmd_client_fullscreen(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_FULLSCREEN_SET);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_FULLSCREEN_SET);
     }
 }
 
@@ -701,9 +707,10 @@ void enact_client_toggle_fullscreen(client_td *client)
 {
     ccmd_client_toggle_fullscreen(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, client_is_fullscreen(client)
-                ? IPC_EVENT_CLIENT_FULLSCREEN_SET
-                : IPC_EVENT_CLIENT_FULLSCREEN_CLEARED);
+        enact_broadcast_client_event(client,
+                client_is_fullscreen(client)
+                    ? IPC_EVENT_CLIENT_FULLSCREEN_SET
+                    : IPC_EVENT_CLIENT_FULLSCREEN_CLEARED);
     }
 }
 
@@ -735,7 +742,8 @@ void enact_client_layer_above(client_td *client)
 {
     ccmd_client_layer_above(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_LAYER_CHANGED);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_LAYER_CHANGED);
     }
 }
 
@@ -745,7 +753,8 @@ void enact_client_layer_normal(client_td *client)
 {
     ccmd_client_layer_normal(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_LAYER_CHANGED);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_LAYER_CHANGED);
     }
 }
 
@@ -755,7 +764,8 @@ void enact_client_layer_below(client_td *client)
 {
     ccmd_client_layer_below(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_LAYER_CHANGED);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_LAYER_CHANGED);
     }
 }
 
@@ -765,7 +775,8 @@ void enact_client_cycle_layer(client_td *client)
 {
     ccmd_client_cycle_layer(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_LAYER_CHANGED);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_LAYER_CHANGED);
     }
 }
 

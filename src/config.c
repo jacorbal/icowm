@@ -62,7 +62,7 @@
 
 
 /**
- * @brief Path of the theme file 'config_load' most recently found
+ * @brief Path of the theme file @a config_load most recently found
  *        specified by @c config.json but missing; empty when none is
  *        currently missing
  */
@@ -148,7 +148,7 @@ void config_resolve_theme_name(struct config_theme_s *theme,
     if (theme->name[0] == '\0') {
         /* The loaded file set no "name" of its own.  Falls back to the
          * file's short name (the same string "theme": "<this>" in
-         * memguard.json/config.json names, not a path or the ".json"
+         * "memguard.json"/"config.json" names, not a path or the ".json"
          * extension), same as if that had been its "name" all along. */
         safe_strncpy(theme->name, theme_file_name, sizeof(theme->name));
         return;

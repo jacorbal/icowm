@@ -31,12 +31,14 @@
 #include <types/direction.h>
 #include <types/pair.h>
 
+/* Stage includes */
+#include <stage/monitor.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
 #include <stage.h>
-#include <stage/monitor.h>
 #include <wm.h>
 
 /* Local includes */

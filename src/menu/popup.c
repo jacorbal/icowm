@@ -39,11 +39,11 @@
 #include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Local includes */
 #include <menu/draw.h>
 #include <menu/popup.h>
-#include <utils/xcb/window.h>
 
 
 /** XCB window of the currently visible info popup */
@@ -105,10 +105,9 @@ void popup_show(xcb_connection_t *connection,
 
     /* Resolve which physical monitor the client's center point
      * currently falls on, the same way
-     * 'ccmd_client_move_to_next_monitor' in 'cmds/client/geom.c'
-     * does, to display alongside its
-     * desktop/stage; a client on a single-monitor stage always
-     * resolves to monitor 0. */
+     * 'ccmd_client_move_to_next_monitor' in 'cmds/client/geom.c' does,
+     * to display alongside its desktop/stage; a client on
+     * a single-monitor stage always resolves to monitor 0. */
     if (ccmd_client_monitor(client, &client_stage, &client_monitor) &&
             client_stage != NULL) {
         for (uint32_t i = 0u; i < client_stage->monitor_count; ++i) {
@@ -144,8 +143,8 @@ void popup_show(xcb_connection_t *connection,
             "flags=%#x state=%#x",
             client->properties.flags, client->properties.state);
 
-    /* 'text_string_measure' needs the renderer already set up for
-     * this popup's font; safe and cheap to call here even though
+    /* 'text_string_measure' needs the renderer already set up for this
+     * popup's font; safe and cheap to call here even though
      * 'popup_repaint' calls it again later; it is a same-connection,
      * same-font no-op the second time (see its not-so-long comment). */
     (void) text_renderer_use_font(connection, cfg->theme.overlay.font);
@@ -251,7 +250,8 @@ int popup_ms_remaining(void)
         return -1;
     }
 
-    if (s_popup_open_time.tv_sec == 0 && s_popup_open_time.tv_nsec == 0) {
+    if (s_popup_open_time.tv_sec == 0 &&
+            s_popup_open_time.tv_nsec == 0) {
         return -1;
     }
 

@@ -28,6 +28,11 @@
 /* Policy includes */
 #include <policy/stacking.h>
 
+/* Stage includes */
+#include <stage/client.h>
+#include <stage/desktop.h>
+#include <stage/viewport.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -35,9 +40,6 @@
 #include <lookup.h>
 #include <scratchpad.h>
 #include <stage.h>
-#include <stage/client.h>
-#include <stage/desktop.h>
-#include <stage/viewport.h>
 #include <wm.h>
 
 /* Command includes */

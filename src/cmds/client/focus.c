@@ -41,6 +41,7 @@
 
 /* Windows policy includes */
 #include <policy/placement/window.h>
+#include <policy/focus.h>
 
 /* Utils includes */
 #include <utils/geom.h>
@@ -49,9 +50,6 @@
 
 /* Render includes */
 #include <render/outdate.h>
-
-/* Policy includes */
-#include <policy/focus.h>
 
 /* Control includes */
 #include <cctl/kill.h>

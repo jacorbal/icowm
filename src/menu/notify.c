@@ -27,6 +27,7 @@
 #include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <config.h>
@@ -36,7 +37,6 @@
 /* Local includes */
 #include <menu/draw.h>
 #include <menu/notify.h>
-#include <utils/xcb/window.h>
 
 
 /* Close the notification popup and reset its state */

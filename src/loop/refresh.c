@@ -21,6 +21,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Render includes */
 #include <render/stage.h>
 
@@ -36,7 +39,6 @@
 
 /* Local includes */
 #include <loop/refresh.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -74,10 +76,10 @@ static void s_loop_refresh_outdated(const loop_ctx_td *ctx)
  *        stage is first in the stage list
  *
  * Shared by the timed auto-close of the info popup and of the
- * desktop-switch notification: both close a dialog that, unlike a
- * per-client one, is not tied to any one particular stage, so any
- * stage's current-desktop repaint is enough to clear its
- * remnants from the screen.
+ * desktop-switch notification: both close a dialog that, unlike
+ * a per-client one, is not tied to any one particular stage, so any
+ * stage's current-desktop repaint is enough to clear its remnants from
+ * the screen.
  *
  * @param ctx      Main loop context
  * @param close_fn The dialog's @c X_close function
@@ -108,8 +110,8 @@ static void s_loop_refresh_close_overlay(const loop_ctx_td *ctx,
 /**
  * @brief Whether any stage is still marked outdated
  *
- * Asked before the render pass, since rendering is what clears the
- * flag it reads.
+ * Asked before the render pass, since rendering is what clears the flag
+ * it reads.
  *
  * @param ctx Main loop context
  *

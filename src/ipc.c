@@ -50,13 +50,14 @@
  * @brief One connected client's read state
  */
 struct s_ipc_client_s {
-    size_t buf_len;                    /**< Bytes currently buffered,
-                                            not yet a complete line */
-    int fd;                            /**< -1 when this slot is free */
+    size_t buf_len;             /**< Bytes currently buffered, not yet
+                                     a complete line */
+    int fd;                     /**< -1 when this slot is free */
 
-    /** Bitmask of @c IPC_EVENT_*; 0 means none, which is correctly the
-     *  same as this static array's zero-initialized default */
-    uint64_t subscribed_events;
+    uint64_t subscribed_events; /**< Bitmask of @c IPC_EVENT_*; 0 means
+                                     none, which is correctly the same
+                                     as this static array's
+                                     zero-initialized default */
 
     char buf[IPC_MSG_MAX_LENGTH];
 };
@@ -148,20 +149,22 @@ static const struct s_ipc_event_def_s s_event_defs[] = {
 
 /**
  * @brief Ensure the runtime directory exists, belongs to the calling
- *        user, and has exactly 'IPC_RUNTIME_DIR_MODE' permissions
+ *        user, and has exactly @c IPC_RUNTIME_DIR_MODE permissions
  *
  * Creates it fresh when nothing is there yet.  When something already
  * is (most commonly @c XDG_RUNTIME_DIR itself, already created by the
  * session; occasionally a leftover subdirectory of ours from a previous
  * run), verifies it is actually a directory this user owns before
- * trusting it, since the '/tmp' fallback path is a location other users
- * on the same system can also write to, and re-applies the mode
+ * trusting it, since the @c /tmp fallback path is a location other
+ * users on the same system can also write to, and re-applies the mode
  * regardless of whether it already matched, rather than assuming
  * a pre-existing directory's permissions were already correct.
  *
  * @param dir Path to the runtime directory
  *
- * @return 0 on success, -1 on failure (reason logged)
+ * @return Status of the operation
+ * @retval  0 on success
+ * @retval -1 on failure (reason logged)
  *
  * @note Complexity: @e O(1)
  */
@@ -210,7 +213,7 @@ static int s_runtime_dir_ensure(const char *dir)
 /**
  * @brief Close one connected client's descriptor and free its slot
  *
- * @param idx Index into 's_clients'
+ * @param idx Index into @c s_clients
  *
  * @note Complexity: @e O(1)
  */
@@ -277,8 +280,8 @@ static const char *s_event_bit_to_name(uint64_t type)
 
 
 /**
- * @brief Whether an 'errno' value from a non-blocking socket call
- *        means "nothing ready right now", not a real error
+ * @brief Whether an 'errno' value from a non-blocking socket call means
+ *        "nothing ready right now", not a real error
  *
  * POSIX allows @c EAGAIN and @c EWOULDBLOCK to be either the same or
  * two distinct values, depending on the platform; checking both by
@@ -288,6 +291,7 @@ static const char *s_event_bit_to_name(uint64_t type)
  * On glibc/Linux they are defined to the exact same number, which turns
  * that same traditional check into a comparison against itself twice,
  * something GCC's '-Wlogical-op' rightly flags.
+ *
  * The '#if' below only compares against @c EWOULDBLOCK separately when
  * it is actually a distinct value in the first place, so this stays the
  * fully portable check on every POSIX system, while never tripping that
@@ -369,7 +373,7 @@ static void s_new_client_accept(void)
  * @brief Read whatever is currently available from one connected client
  *        and dispatch every complete line it contains
  *
- * @param wm Window manager instance, passed through to each dispatched
+ * @param wm  Window manager instance, passed through to each dispatched
  *            command
  * @param idx Index into @c s_clients
  *

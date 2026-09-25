@@ -30,5 +30,5 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-/* suppress ISO C empty-translation-unit warning */
+/* Suppress ISO C empty-translation-unit warning */
 typedef int handler_empty_tu_placeholder;

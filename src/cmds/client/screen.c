@@ -24,10 +24,12 @@
 /* Utils includes */
 #include <utils/xcb/connection.h>
 
+/* Stage includes */
+#include <stage/monitor.h>
+
 /* Project includes */
 #include <client.h>
 #include <stage.h>
-#include <stage/monitor.h>
 #include <wm.h>
 
 /* Local includes */

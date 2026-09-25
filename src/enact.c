@@ -29,8 +29,6 @@
 #include <enact.h>
 
 
-/* 'action_wm_e' */
-
 /* Request that the window manager stop and exit */
 int enact_wm_exit(void)
 {

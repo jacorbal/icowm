@@ -34,6 +34,7 @@
 
 /* Windows & icons policy includes */
 #include <policy/placement/icon.h>
+#include <policy/stacking.h>
 
 /* Utils includes */
 #include <utils/geom.h>
@@ -42,13 +43,14 @@
 /* Types includes */
 #include <types/pair.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <policy/stacking.h>
 #include <ipc.h>
 #include <lookup.h>
-#include <render/outdate.h>
 #include <systray.h>
 #include <wm.h>
 

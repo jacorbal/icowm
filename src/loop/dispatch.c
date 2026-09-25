@@ -89,8 +89,7 @@ static void s_loop_dispatch_protocol_error(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Enter-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_enter_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -122,8 +121,7 @@ static void s_loop_dispatch_leave_notify(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Focus-in event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_focus_in(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -155,8 +153,7 @@ static void s_loop_dispatch_focus_out(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Configure-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_configure_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -172,8 +169,7 @@ static void s_loop_dispatch_configure_notify(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Configure-request event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_configure_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -194,7 +190,8 @@ static void s_loop_dispatch_configure_request(loop_ctx_td *ctx,
 static void s_loop_dispatch_map_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_map_request(ctx->wm, (xcb_map_request_event_t *) *event);
+    handler_window_map_request(ctx->wm,
+            (xcb_map_request_event_t *) *event);
 }
 
 
@@ -204,8 +201,7 @@ static void s_loop_dispatch_map_request(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Map-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -221,8 +217,7 @@ static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Unmap-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -244,7 +239,8 @@ static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_destroy_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_window_destroy_notify(ctx->wm, xcb_connection_get(), ctx->stages,
+    handler_window_destroy_notify(ctx->wm,
+            xcb_connection_get(), ctx->stages,
             (xcb_destroy_notify_event_t *) *event);
 }
 
@@ -255,8 +251,7 @@ static void s_loop_dispatch_destroy_notify(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Property-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_property_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -272,8 +267,7 @@ static void s_loop_dispatch_property_notify(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Colormap-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_colormap_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -289,8 +283,7 @@ static void s_loop_dispatch_colormap_notify(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Expose event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_expose(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -306,8 +299,7 @@ static void s_loop_dispatch_expose(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Client-message event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_client_message(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -323,8 +315,8 @@ static void s_loop_dispatch_client_message(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Selection-clear event
  *
- * @note Complexity: @e O(1), aside from @a wm_shutdown_begin's own
- *       cost when it is reached
+ * @note Complexity: @e O(1), aside from @a wm_shutdown_begin's own cost
+ *       when it is reached
  */
 static void s_loop_dispatch_selection_clear(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -357,8 +349,7 @@ static void s_loop_dispatch_mapping_notify(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Gravity-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -369,13 +360,13 @@ static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
 
 
 /**
- * @brief Adapt @a handler_window_circulate_notify to the table signature
+ * @brief Adapt @a handler_window_circulate_notify to the table
+ *        signature
  *
  * @param ctx   Main loop context
  * @param event Circulate-notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -386,13 +377,13 @@ static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
 
 
 /**
- * @brief Adapt @a handler_window_circulate_request to the table signature
+ * @brief Adapt @a handler_window_circulate_request to the table
+ *        signature
  *
  * @param ctx   Main loop context
  * @param event Circulate-request event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       stages
+ * @note Complexity: @e O(n), where @e n is the number of managed stages
  */
 static void s_loop_dispatch_circulate_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -413,8 +404,8 @@ static void s_loop_dispatch_circulate_request(loop_ctx_td *ctx,
  * @param ctx   Main loop context
  * @param event Event to test
  *
- * @return @c true when the event belonged to an extension and has
- *         been handled
+ * @return @c true when the event belonged to an extension and has been
+ *         handled
  *
  * @note Complexity: @e O(1)
  */
