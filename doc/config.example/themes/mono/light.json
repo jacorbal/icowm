@@ -112,10 +112,10 @@
                 "width": 0
             },
             "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
+                "background": "#000000",
+                "foreground": "#ffffff"
             },
-            "font": "fixed"
+            "font": "fixed bold"
         },
         "padding": {
             "horizontal": 12,
