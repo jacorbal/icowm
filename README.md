@@ -9,9 +9,9 @@ TWM aesthetics, but with a modern touch.
 
   - Current version: 1.0.1 ("*'ovelya*")
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/jacorbal/icowm)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
-[![Issues](https://img.shields.io/github/issues/jacorbal/icowm)](https://github.com/jacorbal/icowm/issues)
+[![Version](https://img.shields.io/badge/version-1.01-blue.svg)](https://github.com/jacorbal/icowm)
+[![[License: ISC](https://img.shields.io/badge/license-isc-blue.svg)](LICENSE)
+[![Issues](https://img.shields.io/github/issues/jacorbal/icowm?label=issues)](https://github.com/jacorbal/icowm/issues)
 
 [![Screenshot 1: IcoWM 1.0.1](doc/scrot/icowm_1.0.1_a-800.png)](doc/scrot/icowm_1.0.1_a.png)
 [![Screenshot 2: IcoWM 1.0.1](doc/scrot/icowm_1.0.1_b-800.png)](doc/scrot/icowm_1.0.1_b.png)
